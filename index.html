@@ -79,8 +79,8 @@
 <link rel="preconnect" href="https://accounts.google.com" crossorigin>
 <link rel="dns-prefetch" href="https://accounts.google.com">
 <title>Keluarga W</title>
-<link rel="stylesheet" href="styles.css?v=619">
-<link rel="stylesheet" href="modern-ui-layer.css?v=619">
+<link rel="stylesheet" href="styles.css?v=622">
+<link rel="stylesheet" href="modern-ui-layer.css?v=622">
 <script>
 /* Debug console (Eruda) — aktifkan sekali lewat ?debug=1 di URL, nempel via localStorage.
    Matikan lagi lewat ?debug=0. Tidak aktif buat user biasa. */
@@ -133,8 +133,8 @@ b.appendChild(closeBtn);
 }catch(_e){ console.error('Gagal tampilkan banner error modul:',_e); }
 };
 </script>
-<script src="app-bundle-a.min.js?v=619" onerror="window.__moduleLoadFail('app-bundle-a.min.js')"></script>
-<script src="modules/shared/smoke-test.js?v=619" defer></script>
+<script src="app-bundle-a.min.js?v=622" onerror="window.__moduleLoadFail('app-bundle-a.min.js')"></script>
+<script src="modules/shared/smoke-test.js?v=622" defer></script>
 <link rel="manifest" id="pwaManifestLink" href="manifest.json">
 </head>
 <body data-theme="fresh">
@@ -399,6 +399,11 @@ b.appendChild(closeBtn);
       </span>
     </div>
     <div class="card-collapse-body" id="keuBillCard-cbody">
+    <div class="month-nav u-mb8">
+      <button class="month-nav-btn" data-action="changeBillStatMonth" data-args='[-1]' aria-label="Sebelumnya">‹</button>
+      <div class="month-nav-label" id="keuBillMonthLabel">-</div>
+      <button class="month-nav-btn" data-action="changeBillStatMonth" data-args='[1]' aria-label="Berikutnya">›</button>
+    </div>
     <div class="grid3 u-mb10" id="keuBillStatGrid">
       <div class="stat-box"><div class="stat-label">Bulan Ini</div><div class="stat-val red" id="keuBillMonthTotal">Rp 0</div></div>
       <div class="stat-box"><div class="stat-label">Jatuh Tempo ≤7 Hari</div><div class="stat-val orange" id="keuBillSoonCount">0</div></div>
@@ -764,7 +769,7 @@ b.appendChild(closeBtn);
        FinancialRiskDashboardAPI.summary() (sesi ini, sendiri 100% reuse
        DebtOptimizerAPI.debtRecommendation()/FinancialHealthScoreAPI.
        financialHealthRecommendation()/FinanceIntelligence.insights()/
-       TanggaKeuangan.compute()). UI hanya presenter, tidak ada rumus
+       status Dana Darurat). UI hanya presenter, tidak ada rumus
        baru di sini. CSS TIDAK baru — reuse penuh class
        findash-grid/findash-card (grid generik). -->
   <div class="dashhub-wrap card u-mb12" id="financialRiskDashboardWrap">
@@ -2649,33 +2654,6 @@ b.appendChild(closeBtn);
       </div>
     </div>
   </div>
-  <!-- TANGGA KEUANGAN (fitur baru -- lihat tangga-keuangan.js). Kartu murni
-       tambahan, diisi oleh TanggaKeuangan.render() yang di-load sebagai
-       <script src> terpisah SETELAH app-bundle-a/b.min.js -- tidak mengubah
-       1 baris pun kode yang sudah ada di bundle.
-       COLLAPSE (permintaan user 2026-07-17): kartu ini sengaja TETAP di
-       posisi semula (selalu tampil di atas nav .dhb-subtabs, lihat
-       tests/dashboard-hub-sectiontabs.test.js) — dipindah ke tab akan
-       memecah kontrak "Hero/Tangga/Quick Actions/Search selalu tampil" yang
-       sudah dites. Sebagai gantinya kartu jadi collapsible lewat sistem
-       toggleCardCollapse/applyCardCollapsePrefs yang SUDAH dipakai ~40+
-       kartu lain (lihat modal-navigasi.js) — bukan mekanisme collapse baru,
-       cuma reuse pola yang ada supaya kartu ini bisa ditutup & tidak makan
-       tempat kalau tidak dibutuhkan. TanggaKeuangan.render() TIDAK diubah
-       (masih nulis ke #tanggaKeuanganStepNum/#tanggaKeuanganStepTitle/
-       #tanggaKeuanganList seperti sebelumnya, cuma sekarang 3 elemen itu ada
-       di dalam wrapper #tanggaKeuangan-cbody). -->
-  <div class="card u-mb12" id="tanggaKeuanganCard" style="background-image:linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.75)), url('tangga-ternak-uang.jpg'); background-size:cover; background-position:top center; color:#fff;">
-    <div class="card-title" style="color:#fff;">🪜 Tangga Ternak Uang <span class="u-flexc8"><span class="card-collapse-toggle" id="tanggaKeuangan-chev" data-action="toggleCardCollapse" data-args='["tanggaKeuangan","$event"]' aria-label="Buka/tutup bagian">▾</span></span></div>
-    <div class="card-collapse-body" id="tanggaKeuangan-cbody">
-      <div style="font-size:12px;color:#e8e8e8;margin-bottom:10px;">Analisis otomatis dari data keuangan kamu (estimasi, bukan nasihat finansial personal).</div>
-      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:10px;">
-        <div style="font-size:40px;font-weight:800;line-height:1;" id="tanggaKeuanganStepNum">-</div>
-        <div style="font-size:13px;font-weight:700;" id="tanggaKeuanganStepTitle">Menghitung...</div>
-      </div>
-      <div id="tanggaKeuanganList"></div>
-    </div>
-  </div>
   <!-- QUICK ACTIONS (Sprint 1 Tahap 3 — Dashboard 2.0, lihat QUICK-ACTIONS.md).
        Baris tombol kartu kecil ala Material 3, tepat di bawah Hero Card. Setiap
        tombol HANYA memanggil fungsi yang SUDAH ADA (openTxModal/openCatatan/
@@ -3435,7 +3413,6 @@ b.appendChild(closeBtn);
 <script>document.write(MODAL_HTML[74]);</script><!-- modal:fuelBarCorrectionModal -->
 <script>document.write(MODAL_HTML[75]);</script><!-- modal:fuelTankProfileModal -->
 
-<script src="app-bundle-b.min.js?v=619" onerror="window.__moduleLoadFail('app-bundle-b.min.js')"></script>
-<script src="modules/finance/tangga-keuangan.js?v=619"></script>
+<script src="app-bundle-b.min.js?v=622" onerror="window.__moduleLoadFail('app-bundle-b.min.js')"></script>
 </body>
 </html>

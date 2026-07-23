@@ -5,46 +5,6 @@ JANGAN audit/implement/test/build ulang bagian yang sudah **Completed**.
 
 ## Current Session
 
-Sesi 167 (2026-07-23) — Bugfix: freeze pas PIN benar & pas pindah ke tab
-Keuangan. SELESAI PENUH.
-
-**Root cause**: `renderPageContent()` (modules/shared/modules-render.js)
-render `dashboard-hub` (`DashboardHub.render()`) & `keuangan`
-(`populateKeuFilters`+`loadKeuFilterPrefsIntoDOM`+`renderKeuangan`+
-`renderBillList`+kondisional `renderLaporan`) 100% SINKRON di tumpukan JS
-yang sama dgn pemanggilnya — baik pas `showPage()` (tap tab manual) MAUPUN
-pas `refreshCurrentPage()` jalan otomatis di `showMain()` begitu PIN benar
-(lihat catatan "PERF (unblock PIN-unlock freeze)" di situ, Sesi sebelumnya
-cuma benerin `renderDashboard()`/Beranda, TIDAK ikut benerin dashboard-hub
-& keuangan). Makin banyak data numpuk (166 sesi pemakaian), makin kerasa.
-
-**Fix**: bungkus 2 blok itu di `renderPageContent()` pakai
-`runDeferredOrNow()` (helper yg sudah ada, dipakai pola sama di
-`showMain()`) — browser sempat nge-paint dulu sebelum kerja beratnya
-jalan. 0 perubahan logika/hasil render, cuma KAPAN dipanggil.
-
-## Test
-
-`node --test tests/*.test.js` -> **424/424 pass, 0 fail** (tidak ada test
-baru, ini bugfix murni timing).
-
-## Build
-
-`node scripts/build.js kw167-fix-freeze-pin-keuangan` -> sukses, `?v=619`
-(naik dari `?v=618`).
-
-## ZIP
-
-`kw_release_sesi167_fix_freeze_pin_keuangan_v619.zip` — dibuat &
-diverifikasi `unzip -t`.
-
-## Current Step
-
-Sesi 167 selesai penuh — ZIP rilis dibuat & diverifikasi. STOP (menunggu
-konfirmasi user apakah freeze-nya udah hilang).
-
----
-
 Sesi 166 (2026-07-23) — Fitur baru: "Pantau Harga" (Price Watch) — tab ke-3
 Worth It?. SELESAI PENUH.
 
