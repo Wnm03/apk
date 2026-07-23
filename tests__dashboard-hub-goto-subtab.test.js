@@ -2,7 +2,7 @@
 /**
  * dashboard-hub-goto-subtab.test.js — Regresi bugfix "kartu Fitur (Penasihat
  * AI/Skor Hidup Seimbang/Refleksi & Self-Care/Kebebasan Finansial/Life OS)
- * selalu terlihat mengarah ke Tangga Ternak Uang".
+ * selalu terlihat mengarah ke kartu Hero di atas subtab".
  *
  * Root cause (lihat komentar DASHHUB_GOTO_SECTION_MAP di dashboard-hub.js):
  * target.goTo dari kartu-kartu itu hidup di dalam container yang ada di
@@ -10,8 +10,8 @@
  * "Widget", #lifeOSWrap = sub-tab "Insight"), tapi dashHubNavigateToFeature()
  * SEBELUM fix ini tidak pernah memanggil DashboardHub.setSectionTab() dulu —
  * jadi scrollIntoView() ke elemen yang leluhurnya u-dnone selalu no-op, dan
- * showPage() sudah keburu reset scroll ke 0 duluan (mendarat di Tangga
- * Ternak Uang yang selalu tampil di atas subtab).
+ * showPage() sudah keburu reset scroll ke 0 duluan (mendarat di kartu Hero
+ * yang selalu tampil di atas subtab).
  *
  * Test ini load FILE ASLI (bukan copy-paste logic) lewat vm dgn DOM tiruan
  * minimal yang meniru struktur nyata index.html/app_production.html:
@@ -73,17 +73,17 @@ function buildFakeDom() {
   const refleksiCard = makeEl('refleksiCard', dashboardHubPinnedWrap);
   const dashFiCard = makeEl('dashFiCard', dashboardHubPinnedWrap);
 
-  // Elemen yang TIDAK terdaftar di section manapun (pola sama Tangga
+  // Elemen yang TIDAK terdaftar di section manapun (pola sama Hero Card/
   // Keuangan/Hero -- selalu tampil, tidak butuh switch tab apa pun).
-  const tanggaKeuanganCard = makeEl('tanggaKeuanganCard');
+  const dashHubHeroCard = makeEl('dashHubHeroCard');
 
   [
     dashHubSummaryGrid, dashHubMainGridCard, dashboardHubPinnedWrap, lifeOSWrap,
     advisorCard, aiRecommendBody, lifeBalanceCard, refleksiCard, dashFiCard,
-    tanggaKeuanganCard,
+    dashHubHeroCard,
   ].forEach((el) => { byId[el.id] = el; });
 
-  return { byId, advisorCard, aiRecommendBody, lifeBalanceCard, refleksiCard, dashFiCard, lifeOSWrap, dashHubSummaryGrid, dashHubMainGridCard, tanggaKeuanganCard };
+  return { byId, advisorCard, aiRecommendBody, lifeBalanceCard, refleksiCard, dashFiCard, lifeOSWrap, dashHubSummaryGrid, dashHubMainGridCard, dashHubHeroCard };
 }
 
 function loadSandbox() {
@@ -157,9 +157,9 @@ test('_dashHubResolveGoToSection: dashHubSummaryGrid -> "ringkasan", dashHubMain
   assert.equal(context._dashHubResolveGoToSection('dashHubMainGridCard'), 'fitur');
 });
 
-test('_dashHubResolveGoToSection: elemen di luar SECTION_GROUPS manapun (mis. Tangga Keuangan) -> null, tidak dipaksa pindah tab', () => {
+test('_dashHubResolveGoToSection: elemen di luar SECTION_GROUPS manapun (mis. Hero Card) -> null, tidak dipaksa pindah tab', () => {
   const { context } = loadSandbox();
-  assert.equal(context._dashHubResolveGoToSection('tanggaKeuanganCard'), null);
+  assert.equal(context._dashHubResolveGoToSection('dashHubHeroCard'), null);
 });
 
 test('_dashHubResolveGoToSection: id yang tidak ada di DOM -> null (tidak throw)', () => {
@@ -187,12 +187,12 @@ test('dashHubNavigateToFeature: klik kartu "Life OS" (goTo:lifeOSWrap) memanggil
   assert.equal(dom.lifeOSWrap.scrollIntoViewCalls, 1);
 });
 
-test('dashHubNavigateToFeature: goTo yang TIDAK butuh pindah tab (mis. Tangga Keuangan / target di luar SECTION_GROUPS) -> setSectionTab TIDAK dipanggil sama sekali, tetap scroll ke elemennya', async () => {
+test('dashHubNavigateToFeature: goTo yang TIDAK butuh pindah tab (mis. Hero Card / target di luar SECTION_GROUPS) -> setSectionTab TIDAK dipanggil sama sekali, tetap scroll ke elemennya', async () => {
   const { context, dom, setSectionTabCalls } = loadSandbox();
-  context.dashHubNavigateToFeature({ page: 'dashboard-hub', goTo: 'tanggaKeuanganCard' });
+  context.dashHubNavigateToFeature({ page: 'dashboard-hub', goTo: 'dashHubHeroCard' });
   await wait(200);
   assert.deepEqual(setSectionTabCalls, []);
-  assert.equal(dom.tanggaKeuanganCard.scrollIntoViewCalls, 1);
+  assert.equal(dom.dashHubHeroCard.scrollIntoViewCalls, 1);
 });
 
 test('dashHubNavigateToFeature: goTo di halaman LAIN (bukan dashboard-hub) tidak pernah memicu switch sub-tab Dashboard Hub', async () => {

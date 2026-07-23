@@ -13,7 +13,7 @@ const SRC_HTML = path.join(ROOT, 'index.html');
 const OUT_HTML = path.join(ROOT, 'keluarga-w-preview.html');
 
 // Urutan HARUS sama dgn urutan <script src=...> di index.html.
-const INLINE_FILES = ['app-bundle-a.min.js', 'modules/shared/smoke-test.js', 'app-bundle-b.min.js', 'modules/finance/tangga-keuangan.js'];
+const INLINE_FILES = ['app-bundle-a.min.js', 'modules/shared/smoke-test.js', 'app-bundle-b.min.js'];
 
 // CSS juga WAJIB di-inline (bukan cuma JS) -- kalau tidak, preview yang
 // dibuka sbg file standalone/artifact (bukan diserver dari folder proyek)

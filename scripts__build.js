@@ -265,11 +265,7 @@ const GROUP_B = [
   // financial-health-score-*.js, bareng grouping per-domain finance.
   // Dependency `DebtOptimizerAPI`/`FinancialHealthScoreAPI`/
   // `FinanceIntelligence` semuanya sudah dimuat lebih dulu (di atas) —
-  // TIDAK perlu forward-reference. `TanggaKeuangan` (modules/finance/
-  // tangga-keuangan.js) dimuat lewat <script> TERPISAH setelah kedua
-  // bundle (lihat index.html/app_production.html) — TIDAK masalah krn
-  // hanya dipanggil di dalam method (runtime, setelah seluruh halaman
-  // selesai dimuat), pola sama persis forward-reference `Investment` di
+  // TIDAK perlu forward-reference. Pola sama persis forward-reference `Investment` di
   // investment-planner-api.js.
   'modules/finance/financial-risk-dashboard-api.js',
   'modules/finance/financial-risk-dashboard-presenter.js',
