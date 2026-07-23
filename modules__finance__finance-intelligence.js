@@ -157,7 +157,8 @@ insights() {
   const out = [];
   const ie = this.incomeVsExpense();
   if (ie.income > 0 && ie.net < 0) {
-    out.push({ type: 'warning', code: 'deficit', message: `Pengeluaran bulan ini (${ie.expense}) melebihi pemasukan (${ie.income}).` });
+    const fmtNominal = typeof fmt === 'function' ? fmt : (n => 'Rp ' + Math.round(n || 0).toLocaleString('id-ID'));
+    out.push({ type: 'warning', code: 'deficit', message: `Pengeluaran bulan ini (${fmtNominal(ie.expense)}) melebihi pemasukan (${fmtNominal(ie.income)}).` });
   } else if (ie.income > 0 && ie.savingsRate >= 0.2) {
     out.push({ type: 'positive', code: 'good_savings', message: `Tingkat tabungan bulan ini ${Math.round(ie.savingsRate * 100)}% dari pemasukan — di atas 20%.` });
   }

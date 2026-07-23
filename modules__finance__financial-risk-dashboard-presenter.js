@@ -6,8 +6,8 @@
 // PRINSIP (RULE #1 sesi ini): UI HANYA presenter. 100% REUSE
 // `FinancialRiskDashboardAPI.summary()` (modules/finance/
 // financial-risk-dashboard-api.js, sesi ini — sendiri 100% reuse
-// DebtOptimizerAPI/FinancialHealthScoreAPI/FinanceIntelligence/
-// TanggaKeuangan) — TIDAK ada rumus baru, TIDAK menghitung ulang faktor
+// DebtOptimizerAPI/FinancialHealthScoreAPI/FinanceIntelligence/status
+// Dana Darurat) — TIDAK ada rumus baru, TIDAK menghitung ulang faktor
 // risiko/level apa pun, TIDAK membaca D/modul sumber langsung. Pola SAMA
 // PERSIS `FinancialHealthScorePresenter.render()` (Sesi 98 — 3 kartu,
 // container `findash-grid` generik yang sama).

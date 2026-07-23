@@ -17,9 +17,11 @@
 //   - FinanceIntelligence.insights()             (finance-intelligence.js,
 //     Sesi 74 — defisit bulanan/anggaran lewat batas/proyeksi arus kas
 //     minus, threshold SUDAH final di sana)
-//   - TanggaKeuangan.compute()                   (tangga-keuangan.js —
-//     status "Dana Darurat 3-6 Bulan" [step index 2], threshold `saved
-//     >= amount` SUDAH final di sana)
+//   - _emergencyFundRisk()                       (helper di file ini —
+//     status "Dana Darurat 3-6 Bulan" dari D.targets, threshold `saved
+//     >= amount`; sebelumnya dibaca dari TanggaKeuangan.compute() [fitur
+//     "Tangga Ternak Uang", sudah dihapus], logic dipindah ke sini apa
+//     adanya, 0 perubahan threshold)
 //
 // Risk Factors di bawah BUKAN hasil hitungan baru — murni MEMFILTER
 // item bertipe 'warning' dari ke-3 fungsi rekomendasi/insight di atas +
@@ -95,30 +97,29 @@ _cashflowBudgetRisk() {
     .map((i) => ({ domain: 'cashflow_budget', icon: '💸', ...i }));
 },
 
-// _emergencyFundRisk() — helper internal: reuse `TanggaKeuangan.
-// compute()` apa adanya (steps[2] = "Dana Darurat 3-6 Bulan", `done`/
-// `note` SUDAH final dari sana, 0 recompute) — dibungkus jadi 1 item
-// warning kalau belum `done`, memakai `note` aslinya apa adanya utk
-// bagian angka pesan. Guard sama pola dgn _debtRisk() (TanggaKeuangan
-// dimuat lewat <script> terpisah SETELAH bundle, tapi fungsi ini hanya
-// dipanggil saat render/summary [runtime], bukan saat file di-load —
-// jadi guard `typeof` di sini cukup, TIDAK perlu forward-reference).
+// _emergencyFundRisk() — helper internal: cek status "Dana Darurat 3-6
+// Bulan" langsung dari D.targets (isDanaDarurat, saved>=amount) — logic
+// & threshold SAMA PERSIS dgn bekas step 3 TanggaKeuangan.compute()
+// (fitur "Tangga Ternak Uang" sudah dihapus, lihat CHANGELOG; logic Dana
+// Darurat ini dipindah ke sini SEBELUM file dihapus supaya Financial
+// Risk Dashboard tidak kehilangan faktor risiko ini). Dibungkus jadi 1
+// item warning kalau belum tercapai. Guard sama pola dgn _debtRisk().
 _emergencyFundRisk() {
-  if (typeof TanggaKeuangan === 'undefined') return [];
-  let result;
+  let dd;
   try {
-    result = TanggaKeuangan.compute();
+    dd = (D.targets || []).find(t => t.isDanaDarurat);
   } catch (e) {
     return [];
   }
-  const dd = result && Array.isArray(result.steps) ? result.steps[2] : null;
-  if (!dd || dd.done) return [];
+  const done = !!(dd && dd.amount && dd.saved >= dd.amount);
+  if (done) return [];
+  const note = dd ? (Math.min(100, Math.round((dd.saved / (dd.amount || 1)) * 100)) + '% dari target') : 'Belum ada Target Dana Darurat';
   return [{
     domain: 'emergency_fund',
     icon: '🚨',
     type: 'warning',
     code: 'risk_emergency_fund_low',
-    message: `Dana Darurat belum tercapai — ${dd.note}.`,
+    message: `Dana Darurat belum tercapai — ${note}.`,
   }];
 },
 

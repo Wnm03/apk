@@ -472,35 +472,6 @@ const DashboardHub = {
     // tidak mengubah baris manapun sebelum ini.
     if (typeof DashboardHubAnalytics !== 'undefined') DashboardHubAnalytics.render();
 
-    // GAP FIX lanjutan (lihat catatan panjang S136 di bawah untuk latar
-    // belakang lengkap "Menghitung..." macet permanen): panggilan
-    // TanggaKeuangan.render() DIPINDAH ke SINI (tepat setelah 4 kartu inti
-    // Dashboard 2.0 Hero/Favorit/Summary/Analytics di atas), BUKAN lagi
-    // di posisi lama (setelah EIEDashboard, lihat bekas lokasinya di
-    // bawah). Sebelumnya, kalau salah SATU SAJA dari 15+ presenter
-    // "tambahan murni" antara sini & posisi lama (Property/Rental/Asset
-    // Portfolio/Asset Maintenance/Cross Dashboard/Cross Insight/Unified
-    // Briefing/Unified Dashboard Home/Decision Center/Favorit
-    // View/EIEDashboard) throw exception TAK TERTANGKAP, SISA render()
-    // ini langsung berhenti total di titik itu -- termasuk baris
-    // TanggaKeuangan.render() yang posisinya jauh di bawah, sehingga
-    // kartu tetap macet di placeholder statis "Menghitung..." walau fix
-    // S136 (live-wiring vs DashboardHub.render() timing) sudah benar.
-    // Dipindah ke sini supaya kartu ini SELALU ikut ter-render di frame
-    // yang sama dgn 4 kartu inti lain, TIDAK bergantung pada berhasil/
-    // gagalnya presenter lain yang jauh lebih banyak & lebih berisiko
-    // (baca data lintas-modul/AI). Dibungkus try/catch sendiri (pola sama
-    // dgn renderDashboard() di modules-render.js) sbg lapisan proteksi
-    // kedua -- kalau TanggaKeuangan.render() SENDIRI yang throw, tidak
-    // ikut menjatuhkan sisa render() (Property/Rental/dst di bawah tetap
-    // jalan). 100% reuse TanggaKeuangan.render() yang sudah ada, 0
-    // rumus/mekanisme baru.
-    try {
-      if (typeof TanggaKeuangan !== 'undefined') TanggaKeuangan.render();
-    } catch (e) {
-      console.warn('DashboardHub.render(): TanggaKeuangan.render() gagal, dilewati:', e);
-    }
-
     // Finance Dashboard/Forecast/Budget Reco/Cashflow Proj/Financial
     // Goal/Invest Planner/Debt Optimizer/Retirement Planner/Health
     // Score/Risk Dashboard (Sesi 75/91-99, Batch 6/10) — DIPINDAH (Sesi
@@ -612,15 +583,6 @@ const DashboardHub = {
     // manapun sebelum ini. Async & self-guarded (try/catch di dalam
     // EIEDashboard.render()), jadi tidak memblokir render kartu lain.
     if (typeof EIEDashboard !== 'undefined') EIEDashboard.render();
-
-    // S137: panggilan TanggaKeuangan.render() yang dulu ada DI SINI (Sesi
-    // 136 gap fix) sudah DIPINDAH lebih ke atas — tepat setelah
-    // DashboardHubAnalytics.render() — supaya tidak lagi ikut batal kalau
-    // salah satu presenter "tambahan murni" antara situ & sini (Property/
-    // Rental/Asset Portfolio/Asset Maintenance/Cross Dashboard/Cross
-    // Insight/Unified Briefing/Unified Dashboard Home/Decision Center/
-    // Favorit View/EIEDashboard) throw exception. Lihat komentar lengkap
-    // di lokasi baru (setelah DashboardHubAnalytics.render() di atas).
 
     // Tab switcher "Semua Fitur"/"Pinned Widgets" (dashHubMainTabsRow) sudah
     // DIHAPUS 2026-07-17 — #dashHubMainGridCard & #dashboardHubPinnedWrap
