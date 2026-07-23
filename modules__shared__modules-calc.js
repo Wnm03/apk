@@ -1,6 +1,6 @@
 
 // Dipindah ke modules/shared/modules-calc.js (Sesi 17-18 restrukturisasi folder — lihat docs/FILE-MAP.md & RENCANA-SESI.md; isi & nama file TIDAK berubah, cuma lokasi folder).
-const MODULE_CALC_VERSION='kw167-fix-freeze-pin-keuangan';
+const MODULE_CALC_VERSION='kw167-fix-monthtotal-cleanup-3';
 const FI={
 assetScopeState:'zakatable',
 investmentAssetValue(){
@@ -875,7 +875,7 @@ const netWorth=saldoAkun+totalAset+totalInventori+totalPiutang-utang;
 // & seluruh sisa fungsi (termasuk #kbNetWorth di baris paling bawah)
 // batal dieksekusi, membuat Kekayaan Bersih macet permanen di placeholder
 // statis "Rp 0" di HTML. Sekarang semua elemen di-guard sama rata, pola
-// sama dgn TanggaKeuangan.render()/showDashCardEl() di modules-render.js.
+// sama dgn showDashCardEl() di modules-render.js.
 const saldoEl=document.getElementById('kbSaldoAkun');if(saldoEl)saldoEl.textContent=fmtFull(saldoAkun);
 const asetEl=document.getElementById('kbTotalAset');if(asetEl)asetEl.textContent=fmtFull(totalAset);
 const invEl=document.getElementById('kbInventori');

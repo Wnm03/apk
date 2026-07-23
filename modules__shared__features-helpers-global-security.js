@@ -43,8 +43,8 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1')return true;
 }catch(e){ /* anggap bukan dev mode kalau gagal deteksi */ }
 return false;
 }
-const APP_BUILD_VERSION = 'kw167-fix-freeze-pin-keuangan';
-const PRODUCTION_BUILD_SYNCED_VERSION = 'kw167-fix-freeze-pin-keuangan';
+const APP_BUILD_VERSION = 'kw167-fix-monthtotal-cleanup-3';
+const PRODUCTION_BUILD_SYNCED_VERSION = 'kw167-fix-monthtotal-cleanup-3';
 let D = {
 schemaVersion:SCHEMA_VERSION,
 transactions:[],cobek:[],products:[],produsen:[],cobekKategori:JSON.parse(JSON.stringify(DEFAULT_COBEK_KATEGORI)),targets:[],eduFunds:[],reminders:[],bills:[],billsArchive:[],
@@ -482,7 +482,7 @@ autoSnapshotLifeBalanceIfNeeded();
 //
 // GAP FIX (Sesi 135): renderDashboard() DI SINI selalu dipanggil SINKRON tanpa syarat — padahal
 // `page-dashboard` (Beranda) BUKAN landing page default; landing page default adalah
-// `page-dashboard-hub` (lihat komentar di tangga-keuangan.js & docs/PROJECT_STATE.md), yang
+// `page-dashboard-hub` (lihat docs/PROJECT_STATE.md), yang
 // dirender lewat refreshCurrentPage() beberapa baris di bawah (renderPageContent('dashboard-hub')
 // -> DashboardHub.render(), sendiri sinkron & berat: bangun ulang seluruh grid fitur + 15+
 // presenter). Jadi pada kasus paling umum (buka app dari kondisi tertutup, PIN muncul di landing

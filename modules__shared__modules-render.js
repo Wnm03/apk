@@ -2,24 +2,15 @@
 // Dipindah ke modules/shared/modules-render.js (Sesi 17-18 restrukturisasi folder — lihat docs/FILE-MAP.md & RENCANA-SESI.md; isi & nama file TIDAK berubah, cuma lokasi folder).
 // Semua fungsi ini murni definisi function global (bukan module), jadi tetap bisa dipanggil dari file manapun
 // yang loadnya belakangan (sama seperti modules-calc.js/features-*.js).
-const MODULE_RENDER_VERSION='kw167-fix-freeze-pin-keuangan';
+const MODULE_RENDER_VERSION='kw167-fix-monthtotal-cleanup-3';
 
 function renderPageContent(name){
 if(name==='dashboard')renderDashboard();
-// PERF (fix freeze PIN-unlock & pindah tab — lanjutan catatan di showMain()): DashboardHub.render()
-// & blok Keuangan di bawah ini berat (bangun ulang grid/15+ presenter, atau 4-7 fungsi
-// render+filter sekaligus) dan dulu jalan SINKRON persis di tumpukan JS yang sama dengan
-// showPage()/refreshCurrentPage() pemanggilnya — kerasa freeze baik pas buka tab-nya langsung
-// maupun pas refreshCurrentPage() jalan otomatis begitu PIN benar (lihat showMain()). Dibungkus
-// runDeferredOrNow() (helper yg sama, sudah ada) supaya browser sempat nge-paint dulu sebelum
-// kerja beratnya jalan. 0 perubahan logika/hasil masing-masing fungsi — cuma KAPAN dipanggil.
-if(name==='dashboard-hub'&&typeof DashboardHub!=='undefined')runDeferredOrNow(function(){DashboardHub.render();});
+if(name==='dashboard-hub'&&typeof DashboardHub!=='undefined')DashboardHub.render();
 if(name==='keuangan'){
-runDeferredOrNow(function(){
 populateKeuFilters();loadKeuFilterPrefsIntoDOM();renderKeuangan();renderBillList();
 const lapTab=document.getElementById('keuanganTab-laporan');
 if(lapTab&&lapTab.style.display!=='none'){populateCatFilter();populateAccFilters();renderLaporan();}
-});
 }
 if(name==='shop'){renderShopRecent();renderProductList();renderShop();if(typeof Kasir!=='undefined')Kasir.render();}
 if(name==='laporan'){populateCatFilter();populateAccFilters();renderLaporan();}
@@ -769,15 +760,14 @@ console.warn('renderDashboard: card "'+key+'" ('+cardDef.elId+') gagal dirender,
 // sebelum blok ini menyusul sepersekian detik kemudian. 0 perubahan logika/urutan/isi widget —
 // yang berubah cuma KAPAN blok ini dieksekusi, bukan APA yang dieksekusi ataupun isi try/catch-nya.
 runDeferredOrNow(function(){
-// S159 (bugfix — laporan user "tangga keuangan menghitung terus"): blok ini
+// S159 (bugfix — kartu presenter tertentu "menghitung terus"): blok ini
 // SEBELUMNYA 1 try/catch besar membungkus ~14 presenter berurutan. Kalau
-// presenter manapun SEBELUM TanggaKeuangan.render() (paling akhir) throw,
-// seluruh sisa blok berhenti dieksekusi -- TanggaKeuangan.render() tidak
-// pernah kepanggil, kartu tetap HTML statis "Menghitung..." selamanya
-// (error cuma keluar sbg console.warn, tidak kelihatan user). Sekarang
-// TIAP presenter dibungkus try/catch SENDIRI (pola sama persis dgn loop
-// DASH_RENDER_ORDER di atas blok ini) -- 1 presenter gagal cuma melewati
-// presenter itu, sisanya (termasuk TanggaKeuangan) tetap jalan. 0 perubahan
+// presenter manapun di tengah throw, seluruh sisa blok berhenti dieksekusi --
+// presenter setelahnya tidak pernah kepanggil, kartu tetap HTML statis
+// "Menghitung..." selamanya (error cuma keluar sbg console.warn, tidak
+// kelihatan user). Sekarang TIAP presenter dibungkus try/catch SENDIRI (pola
+// sama persis dgn loop DASH_RENDER_ORDER di atas blok ini) -- 1 presenter
+// gagal cuma melewati presenter itu, sisanya tetap jalan. 0 perubahan
 // urutan/logika presenter manapun, murni isolasi failure.
 function _safeRender(name,fn){
 try{fn();}catch(e){console.warn('renderDashboard: presenter "'+name+'" gagal dirender, dilewati:',e);}
@@ -821,22 +811,6 @@ _safeRender('UnifiedDashboardHome',function(){if(typeof UnifiedDashboardHome!=='
 _safeRender('DecisionCenterHome',function(){if(typeof DecisionCenterHome!=='undefined')DecisionCenterHome.render();});
 _safeRender('DashboardHubFavoritView',function(){if(typeof DashboardHubFavoritView!=='undefined')DashboardHubFavoritView.render();});
 _safeRender('EIEDashboard',function(){if(typeof EIEDashboard!=='undefined')EIEDashboard.render();});
-// S121 (bugfix): TanggaKeuangan (Kartu "Tangga Ternak Uang") SEBELUMNYA cuma
-// ter-render lewat wrap window.showPage miliknya sendiri (tangga-keuangan.js)
-// + fallback setTimeout(450ms) sekali-jalan saat window 'load' -- keduanya
-// TIDAK pernah tersentuh di boot pertama krn page-dashboard-hub adalah
-// landing page DEFAULT (sudah class="page active" statis di HTML), jadi
-// showMain() lewat refreshCurrentPage()->renderPageContent(), BUKAN
-// showPage() -- wrap-nya tidak pernah kepanggil. Fallback setTimeout jadi
-// satu-satunya jalan & race melawan await load(); kalau kalah race (device
-// lambat/data besar), kartu macet permanen di "Menghitung...". Baris ini
-// menyambungkannya ke titik live-wiring yang sama dgn 20+ presenter Dashboard
-// Hub lain di atas (renderDashboard() dipanggil LANGSUNG-sinkron dari
-// showMain() setelah data siap, + tiap save() di seluruh app) -- pola gap
-// SAMA PERSIS DecisionCenterHome (S118), 100% reuse TanggaKeuangan.render()
-// yang sudah ada, 0 mekanisme baru. Wrap showPage/setTimeout lama di
-// tangga-keuangan.js sudah DIHAPUS (lihat file itu), digantikan baris ini.
-_safeRender('TanggaKeuangan',function(){if(typeof TanggaKeuangan!=='undefined')TanggaKeuangan.render();});
 });
 }
 

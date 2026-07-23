@@ -336,6 +336,7 @@ document.getElementById('billActionsList').innerHTML=`
 openQS('qsBillActions');
 }
 let billCalYear=null, billCalMonth=null, billCalSelectedDate=null;
+let billStatMonth=null, billStatYear=null;
 const BILLCAL_MAX_ITER=600;
 function getBillOccurrencesInRange(b,rangeStart,rangeEnd){
 const occurrences=[];
@@ -409,10 +410,10 @@ billCalSelectedDate=dateStr;
 renderBillCalendar();
 }
 /* moved to modules-render.js: renderBillCalendar */
-function getBillStats(){
-const now=new Date(),m=now.getMonth(),y=now.getFullYear();
+function getBillStats(month,year){
+const now=new Date(),m=(month!=null?month:now.getMonth()),y=(year!=null?year:now.getFullYear());
 const today=new Date();today.setHours(0,0,0,0);
-const monthTotal=D.bills.filter(b=>{const d=new Date(b.nextDue);return d.getMonth()===m&&d.getFullYear()===y;}).reduce((s,b)=>s+b.amount,0);
+const monthTotal=D.bills.reduce((sum,b)=>sum+getBillOccurrencesInMonth(b,y,m).reduce((s2,o)=>s2+(b.amount||0),0),0);
 const withDiff=D.bills.map(b=>({b,diff:Math.ceil((new Date(b.nextDue)-today)/(1000*60*60*24))}));
 const overdue=withDiff.filter(x=>x.diff<0);
 const soon=withDiff.filter(x=>x.diff>=0&&x.diff<=7);
@@ -420,11 +421,20 @@ const outstanding=D.bills.filter(b=>b.kind==='cicilan'&&b.sisaTenor!=null).reduc
 const nearest=[...withDiff].sort((a,b)=>a.diff-b.diff).slice(0,3);
 return{monthTotal,overdueCount:overdue.length,soonCount:soon.length,outstanding,nearest};
 }
+function changeBillStatMonth(dir){
+if(billStatMonth===null){const now=new Date();billStatMonth=now.getMonth();billStatYear=now.getFullYear();}
+billStatMonth+=dir;
+if(billStatMonth<0){billStatMonth=11;billStatYear--;}
+else if(billStatMonth>11){billStatMonth=0;billStatYear++;}
+updateBillStatGrid('keuBill');
+}
 function updateBillStatGrid(prefix){
-const s=getBillStats();
+if(billStatMonth===null){const now=new Date();billStatMonth=now.getMonth();billStatYear=now.getFullYear();}
+const s=getBillStats(billStatMonth,billStatYear);
 const mt=document.getElementById(prefix+'MonthTotal'); if(mt)mt.textContent=fmt(s.monthTotal);
 const sc=document.getElementById(prefix+'SoonCount'); if(sc)sc.textContent=s.soonCount;
 const os=document.getElementById(prefix+'Outstanding'); if(os)os.textContent=fmt(s.outstanding);
+const ml=document.getElementById(prefix+'MonthLabel'); if(ml)ml.textContent=MONTHS_FULL[billStatMonth]+' '+billStatYear;
 }
 // getBillAnomalyInfo — dipakai renderBillList() utk kasih badge peringatan "⚠️ Naik X% dari
 // biasanya" di tagihan yang nominal terbarunya (b.amount, dipakai sbg preset saat markBillPaid())
