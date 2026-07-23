@@ -53,3 +53,36 @@ test('parseWalletScreen() — teks kosong/tidak ada Rp -> nominal null, confiden
   assert.equal(result.nominal, null);
   assert.equal(result.confidence, 0);
 });
+
+// BUGFIX S169 (laporan user, foto asli GoPay): teks di bawah ini persis hasil OCR
+// (tesseract) thd screenshot GoPay asli yang dilaporkan salah baca -- simbol "Rp" di
+// depan saldo utama "154.8540" TIDAK kebaca sama sekali (cuma angkanya polos), sementara
+// "Rp937.000 udah terpakai di Juli" di bawahnya kebaca lengkap dgn "Rp". Sebelum
+// perbaikan ini, parseWalletScreen() cuma nemu 1 kandidat ("Rp" wajib) -- si angka
+// pengeluaran -- dan salah pilih itu jadi saldo.
+test('parseWalletScreen() — saldo tanpa prefix "Rp" (OCR gagal baca simbol Rp) tetap terbaca, BUKAN angka "terpakai"', () => {
+  const ctx = makeCtx();
+  const text = '@ gopay Perlindungan kuat ®\n154.8540 — 7 «C\nTop up\n500 Coins\nRp937.000 udah terpakai di Juli Tarik Tunai\n';
+  const result = ctx.parseWalletScreen(text);
+  assert.equal(result.nama, 'GoPay');
+  // grup terakhir "8540" (4 digit, harusnya selalu 3) dianggap kenoise 1 digit OCR ->
+  // dipotong jadi "854" -> nominal 154854 (BUKAN 937000 angka pengeluaran, dan BUKAN
+  // salah pindah skala 1548540).
+  assert.equal(result.nominal, 154854);
+  assert.notEqual(result.nominal, 937000);
+});
+
+test('parseWalletScreen() — angka polos (tanpa Rp) dapat confidence lebih rendah drpd yang ber-"Rp"', () => {
+  const ctx = makeCtx();
+  const bare = ctx.parseWalletScreen('GoPay\n154.834\n');
+  const withRp = ctx.parseWalletScreen('GoPay\nRp154.834\n');
+  assert.equal(bare.nominal, 154834);
+  assert.equal(withRp.nominal, 154834);
+  assert.ok(bare.confidence < withRp.confidence);
+});
+
+test('parseWalletScreen() — angka 4 digit polos tanpa pemisah ribuan (mis. jam/tahun) TIDAK ikut kehitung sbg saldo', () => {
+  const ctx = makeCtx();
+  const result = ctx.parseWalletScreen('GoPay\n0854\nRp250.000\n');
+  assert.equal(result.nominal, 250000);
+});
