@@ -215,16 +215,31 @@ Debt.renderList();renderKekayaanBersih();hitungZakatMaal();renderBillList();chec
 },
 totalValue(){return(D.debts||[]).filter(d=>!d.lunas).reduce((s,d)=>s+(d.nilai||0),0);},
 totalCicilanBulanan(){return(D.debts||[]).filter(d=>!d.lunas).reduce((s,d)=>s+(d.cicilanBulanan||0),0);},
+// billCicilanAktif() — KW-170: cicilan barang aktif dari Buku Tagihan
+// (D.bills kind:'cicilan', sisaTenor>0) — dianggap "utang beneran": ikut
+// tampil sbg baris di Buku Utang & ikut disimulasikan pelunasannya di
+// DebtStrategy (lihat DebtStrategy.billCicilanAsDebtLike()). Filter SAMA
+// PERSIS dgn yg sudah dipakai DebtStrategy.computeDSR() (totalCicilanLain)
+// & DebtOptimizerAPI._overview() (billCicilan) — 0 filter baru, 1 sumber.
+// Langganan (kind:'langganan') SENGAJA tidak ikut — tidak punya sisaTenor/
+// tenor, tidak ada "pokok" yang bisa dilunasi, jadi tidak cocok masuk
+// model utang (konsisten sama computeDSR() yg juga selalu exclude langganan).
+billCicilanAktif(){
+return(D.bills||[]).filter(b=>b.kind==='cicilan'&&b.sisaTenor!=null&&b.sisaTenor>0);
+},
 renderList(){
 if(typeof PiutangUtangInsight!=='undefined')PiutangUtangInsight.render();
 const el=document.getElementById('debtList');
 if(!el)return;
 const list=D.debts||[];
-document.getElementById('debtTotalVal').textContent=fmtFull(Debt.totalValue());
-document.getElementById('debtCicilanVal').textContent=fmtFull(Debt.totalCicilanBulanan());
-if(!list.length){el.innerHTML='<div class="empty"><div class="empty-icon">📕</div><div class="empty-text">Belum ada utang tercatat</div></div>';return;}
+const billCicilan=Debt.billCicilanAktif();
+const billOutstanding=billCicilan.reduce((s,b)=>s+(b.amount||0)*(b.sisaTenor||0),0);
+const billBulanan=billCicilan.reduce((s,b)=>s+(b.amount||0),0);
+document.getElementById('debtTotalVal').textContent=fmtFull(Debt.totalValue()+billOutstanding);
+document.getElementById('debtCicilanVal').textContent=fmtFull(Debt.totalCicilanBulanan()+billBulanan);
+if(!list.length&&!billCicilan.length){el.innerHTML='<div class="empty"><div class="empty-icon">📕</div><div class="empty-text">Belum ada utang tercatat</div></div>';return;}
 const today=new Date().toISOString().slice(0,10);
-el.innerHTML=list.map(d=>{
+const debtRowsHtml=list.map(d=>{
 const overdue=!d.lunas&&d.jatuhTempo&&d.jatuhTempo<today;
 const metaParts=[];
 if(d.jenis&&Debt.JENIS_DEFAULTS[d.jenis]&&d.jenis!=='lainnya')metaParts.push(Debt.JENIS_DEFAULTS[d.jenis].label);
@@ -234,6 +249,18 @@ if(d.jatuhTempo)metaParts.push((overdue?'⚠️ Lewat jatuh tempo ':'Jatuh tempo
 if(d.catatan)metaParts.push(escapeHtml(d.catatan));
 return `<div class="tx-item u-pointer" data-action="openDebtModal" data-args="${escapeHtml(JSON.stringify([d.id]))}"><div class="tx-icon" style="background:var(--accent2-soft)">📕</div><div class="tx-info"><div class="tx-name">${escapeHtml(d.name)}${d.lunas?' <span style=\\"font-size:10px;color:var(--accent3);border:1px solid var(--accent3);border-radius:6px;padding:1px 5px;margin-left:4px\\">Lunas</span>':(overdue?' <span style=\\"font-size:10px;color:var(--accent2);border:1px solid var(--accent2);border-radius:6px;padding:1px 5px;margin-left:4px\\">Jatuh Tempo</span>':'')}</div><div class="tx-meta">${metaParts.join(' · ')}</div></div><div class="tx-amount${d.lunas?'':' red'}">${fmt(d.nilai)}</div><button class="tx-del" data-stop="1" data-action="delDebt" data-args="${escapeHtml(JSON.stringify([d.id]))}" aria-label="Hapus">🗑</button></div>`;
 }).join('');
+// KW-170: baris cicilan barang — read-only dari sini (edit/hapus/riwayat
+// pembayaran tetap lewat alur Tagihan yang sudah ada, krn datanya D.bills
+// bukan D.debts). Klik baris -> Riwayat Pembayaran (openBillHistory, sama
+// persis alur yg sudah dipakai utk cicilan di Buku Tagihan).
+const billRowsHtml=billCicilan.map(b=>{
+const overdue=b.nextDue&&b.nextDue<today;
+const outstanding=(b.amount||0)*(b.sisaTenor||0);
+const metaParts=['🛒 Cicilan Barang','Cicilan '+fmt(b.amount)+'/bln','Sisa '+b.sisaTenor+'x'];
+if(b.nextDue)metaParts.push((overdue?'⚠️ Lewat jatuh tempo ':'Jatuh tempo ')+b.nextDue);
+return `<div class="tx-item u-pointer" data-action="openBillHistory" data-args="${escapeHtml(JSON.stringify([b.id]))}"><div class="tx-icon" style="background:var(--accent2-soft)">🛒</div><div class="tx-info"><div class="tx-name">${escapeHtml(b.name)}${overdue?' <span style=\\"font-size:10px;color:var(--accent2);border:1px solid var(--accent2);border-radius:6px;padding:1px 5px;margin-left:4px\\">Jatuh Tempo</span>':''}</div><div class="tx-meta">${metaParts.join(' · ')}</div></div><div class="tx-amount red">${fmt(outstanding)}</div></div>`;
+}).join('');
+el.innerHTML=debtRowsHtml+billRowsHtml;
 if(typeof DebtStrategy!=='undefined')DebtStrategy.render();
 }
 };
@@ -253,7 +280,32 @@ save();
 DebtStrategy.render();
 },
 activeDebts(){
-return(D.debts||[]).filter(d=>!d.lunas&&(d.nilai||0)>0);
+const real=(D.debts||[]).filter(d=>!d.lunas&&(d.nilai||0)>0);
+return real.concat(DebtStrategy.billCicilanAsDebtLike());
+},
+// billCicilanAsDebtLike() — KW-170: map cicilan barang aktif (Debt.
+// billCicilanAktif(), Buku Tagihan kind:'cicilan') jadi bentuk mirip
+// D.debts biar bisa ikut computeOrder()/simulate() APA ADANYA (0 rumus
+// baru di simulate() sendiri, cuma titik masuk data tambahan).
+// bunga SENGAJA di-set 0: bunga cicilan barang itu bunga flat SEKALI di
+// awal, sudah dibakar ke nominal cicilan/bulan (amount) sejak dibuat di
+// transaksi.js — beda dari Debt.bunga (%/tahun, dihitung MAJEMUK tiap
+// bulan oleh simulate()). Kalau ikut dipakein compounding simulate(),
+// bunganya kehitung dobel. nilai ("pokok" versi simulasi) = amount ×
+// sisaTenor, SAMA PERSIS formula outstanding di getBillStats()
+// (tagihan-kalender.js) — 0 rumus baru.
+billCicilanAsDebtLike(){
+if(typeof Debt==='undefined')return[];
+return Debt.billCicilanAktif().map(b=>({
+id:'bill:'+b.id,
+name:b.name,
+bunga:0,
+cicilanBulanan:b.amount,
+nilai:(b.amount||0)*(b.sisaTenor||0),
+lunas:false,
+_isBillCicilan:true,
+_billId:b.id
+}));
 },
 computeOrder(list,method){
 const arr=list.slice();
@@ -337,7 +389,7 @@ if(d.cicilanBulanan)meta.push('Cicilan '+fmt(d.cicilanBulanan)+'/bln');
 else meta.push('Belum ada cicilan/bulan diisi');
 return`<div class="u-flex u-aic u-gap10" style="padding:8px 0;border-bottom:1px solid var(--border)">
         <div class="u-bgaccsoft u-flex u-aic u-jcc u-fs12 u-fw700" style="width:24px;height:24px;border-radius:50%;flex-shrink:0">${i+1}</div>
-        <div class="u-flex1"><div class="u-fs13 u-fw600">${escapeHtml(d.name)}</div><div class="u-fs11 u-t2">${meta.join(' · ')}</div></div>
+        <div class="u-flex1"><div class="u-fs13 u-fw600">${escapeHtml(d.name)}${d._isBillCicilan?' <span class="u-fs10 u-t2" style="border:1px solid var(--border);border-radius:6px;padding:1px 5px;margin-left:2px">🛒 Cicilan Barang</span>':''}</div><div class="u-fs11 u-t2">${meta.join(' · ')}</div></div>
         <div class="u-fw700 u-fs13" style="white-space:nowrap;padding-left:8px">${fmt(d.nilai)}</div>
       </div>`;
 }).join('');

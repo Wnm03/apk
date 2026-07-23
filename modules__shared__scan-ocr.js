@@ -1078,26 +1078,71 @@ return{nama:nama||'Rekening Bank',nominal:Math.round(nominalRaw),confidence:Math
 // gampang salah ambil angka pengeluaran ini alih-alih saldo. WALLET_SPEND_CONTEXT_RE
 // dipakai utk menyaring kandidat semacam ini SEBELUM pilih nominal.
 const WALLET_SPEND_CONTEXT_RE=/terpakai|pemakaian|pengeluaran|dipakai|digunakan|penggunaan|transaksi\s*(?:bulan|bln)|spent/i;
+// BUGFIX S169 (laporan user, foto asli GoPay -- dites pakai tesseract thd screenshot
+// asli): saldo utama biasa ditulis besar/bold di layar sementara simbol "Rp" di
+// depannya kecil/tipis -- OCR NYATA sering gagal baca "Rp" itu sama sekali, jadi angka
+// saldo nongol di teks OCR TANPA prefix "Rp", sementara baris "Rp937.000 sudah terpakai
+// di Juli" di bawahnya (font lebih kecil/reguler) kebaca lengkap dgn "Rp"-nya. Akibatnya
+// walletAmtRe lama (wajib "Rp" di depan) cuma nemu 1 kandidat -- si angka pengeluaran --
+// dan itu yang kepilih. WALLET_BARE_AMT_RE nangkep angka berformat ribuan (ada titik/koma
+// pemisah) TANPA prefix "Rp" sbg kandidat tambahan, supaya saldo yang "Rp"-nya tidak
+// kebaca tetap ikut bersaing (via urutan-kemunculan + filter WALLET_SPEND_CONTEXT_RE yang
+// sama). Syarat "ada pemisah ribuan" sengaja dipasang biar tidak nyangkut angka lain yang
+// kebetulan 4+ digit tanpa pemisah (jam "0854", tahun "2026", dll).
+const WALLET_BARE_AMT_RE=/\b(\d{1,3}(?:[.,]\d{3}){0,3}[.,]\d{3,4})\b/g;
+// parseWalletNominal(raw) -- dipakai KHUSUS di parseWalletScreen() (bukan
+// normalizeOcrNumber() generik), krn saldo e-wallet SELALU bilangan bulat (tidak pernah
+// ada sen/desimal beneran) -- beda dgn normalizeOcrNumber() yang sengaja punya heuristik
+// deteksi desimal (dipakai jenis nilai lain, mis. imbal hasil/nilai investasi). Heuristik
+// itu salah kalau dipaksakan ke saldo: grup terakhir 4 digit (mis. noise OCR nempel di
+// akhir) malah ditafsir jadi desimal. Guard: kalau grup terakhir kebetulan 4+ digit
+// (seharusnya SELALU tepat 3 di format ribuan yang valid -- berarti nyangkut 1 digit
+// noise OCR, mis. ikon di sebelah angka kebaca jadi tambahan digit), buang digit
+// terakhirnya SEBELUM dirangkai jadi bilangan bulat.
+function parseWalletNominal(raw){
+if(!raw)return NaN;
+let s=String(raw).trim();
+const lastSepIdx=Math.max(s.lastIndexOf('.'),s.lastIndexOf(','));
+if(lastSepIdx>-1){
+const lastGroup=s.slice(lastSepIdx+1);
+if(/^\d{4,}$/.test(lastGroup))s=s.slice(0,lastSepIdx+1)+lastGroup.slice(0,3);
+}
+const digits=s.replace(/[^\d]/g,'');
+return digits?parseInt(digits,10):NaN;
+}
 // parseWalletScreen(text) -- 1 akun: nama e-wallet ditebak dari brand yang kedetek
-// (GoPay/DANA/OVO/ShopeePay), nominal dari angka "Rp..." pertama yang BUKAN rekap
-// pengeluaran (lihat WALLET_SPEND_CONTEXT_RE di atas) -- biasanya saldo besar di
-// bagian atas layar.
+// (GoPay/DANA/OVO/ShopeePay), nominal dari angka "Rp..." ATAU angka polos berformat
+// ribuan (lihat WALLET_BARE_AMT_RE di atas) pertama yang BUKAN rekap pengeluaran (lihat
+// WALLET_SPEND_CONTEXT_RE di atas) -- biasanya saldo besar di bagian atas layar.
 function parseWalletScreen(text){
 if(!text)return null;
 const walletAmtRe=/Rp\.?\s*(\d[\d.,]*)/gi;
-let wm,walletCandidates=[];
+let wm,walletCandidates=[],rpSpans=[];
 while((wm=walletAmtRe.exec(text))){
 const ctxEnd=Math.min(text.length,wm.index+wm[0].length+30);
 const context=text.slice(wm.index,ctxEnd);
-walletCandidates.push({raw:wm[1],index:wm.index,isSpend:WALLET_SPEND_CONTEXT_RE.test(context),endsLine:/^\s*(?:\n|$)/.test(text.slice(wm.index+wm[0].length,wm.index+wm[0].length+2))});
+rpSpans.push([wm.index,wm.index+wm[0].length]);
+walletCandidates.push({raw:wm[1],index:wm.index,fromRp:true,isSpend:WALLET_SPEND_CONTEXT_RE.test(context),endsLine:/^\s*(?:\n|$)/.test(text.slice(wm.index+wm[0].length,wm.index+wm[0].length+2))});
 }
+let bm;
+WALLET_BARE_AMT_RE.lastIndex=0;
+while((bm=WALLET_BARE_AMT_RE.exec(text))){
+// lewati kalau posisi ini sudah tercakup match "Rp..." di atas (hindari 1 angka
+// kehitung 2x sbg kandidat terpisah, mis. "Rp937.000" juga kena WALLET_BARE_AMT_RE).
+if(rpSpans.some(([s,e])=>bm.index>=s&&bm.index<e))continue;
+const ctxEnd=Math.min(text.length,bm.index+bm[0].length+30);
+const context=text.slice(bm.index,ctxEnd);
+walletCandidates.push({raw:bm[1],index:bm.index,fromRp:false,isSpend:WALLET_SPEND_CONTEXT_RE.test(context),endsLine:/^\s*(?:\n|$)/.test(text.slice(bm.index+bm[0].length,bm.index+bm[0].length+2))});
+}
+walletCandidates.sort((a,b)=>a.index-b.index);
 // Prioritas: (1) kandidat non-spend yang diikuti akhir baris (pola saldo paling umum),
-// (2) kandidat non-spend manapun (urutan kemunculan), (3) fallback ke kandidat pertama
-// apa adanya (termasuk yang isSpend) SUPAYA tidak berubah jadi tidak ketemu sama sekali
-// kalau semua kandidat kebetulan ke-flag salah (lebih baik dari sebelumnya, tidak lebih buruk).
+// (2) kandidat non-spend manapun (urutan kemunculan -- termasuk yang tanpa "Rp", lihat
+// WALLET_BARE_AMT_RE di atas), (3) fallback ke kandidat pertama apa adanya (termasuk yang
+// isSpend) SUPAYA tidak berubah jadi tidak ketemu sama sekali kalau semua kandidat
+// kebetulan ke-flag salah (lebih baik dari sebelumnya, tidak lebih buruk).
 const nonSpend=walletCandidates.filter(c=>!c.isSpend);
 const chosen=(nonSpend.find(c=>c.endsLine))||nonSpend[0]||walletCandidates[0];
-const nominalRaw=chosen?normalizeOcrNumber(chosen.raw):NaN;
+const nominalRaw=chosen?parseWalletNominal(chosen.raw):NaN;
 let nama='E-Wallet',brandMatched=false;
 if(/gopay/i.test(text)){nama='GoPay';brandMatched=true;}
 else if(/\bdana\b/i.test(text)){nama='DANA';brandMatched=true;}
@@ -1106,9 +1151,12 @@ else if(/shopeepay/i.test(text)){nama='ShopeePay';brandMatched=true;}
 // confidence (Batch 19 item 1): brand e-wallet kedetek (GoPay/DANA/OVO/ShopeePay) +
 // nominal via pola "Rp... di akhir baris" (biasanya saldo besar paling atas) = 0.9;
 // brand tidak kedetek (fallback nama generik "E-Wallet") atau nominal via fallback "Rp..."
-// bebas posisi = confidence lebih rendah.
+// bebas posisi = confidence lebih rendah. S169: kandidat TANPA "Rp" (WALLET_BARE_AMT_RE)
+// kurangi sedikit confidence -- OCR tidak ikut mengonfirmasi ini beneran nominal uang
+// (bukan mis. angka lain) krn simbol "Rp"-nya sendiri tidak lolos kebaca.
 if(isNaN(nominalRaw))return{nama,nominal:null,confidence:0};
-let confidence=(brandMatched?0.7:0.4)+((chosen&&chosen.endsLine&&!chosen.isSpend)?0.2:0);
+let confidence=(brandMatched?0.7:0.4)+((chosen&&chosen.endsLine&&!chosen.isSpend)?0.2:0)-((chosen&&!chosen.fromRp)?0.1:0);
+confidence=Math.max(0,confidence);
 return{nama,nominal:Math.round(nominalRaw),confidence:Math.round(Math.min(1,confidence)*100)/100};
 }
 // parseBibitScreen(text) -- 1 akun: nominal dari "Total Investasi"/"Portofolio"/"Total

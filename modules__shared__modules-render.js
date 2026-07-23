@@ -2,7 +2,7 @@
 // Dipindah ke modules/shared/modules-render.js (Sesi 17-18 restrukturisasi folder — lihat docs/FILE-MAP.md & RENCANA-SESI.md; isi & nama file TIDAK berubah, cuma lokasi folder).
 // Semua fungsi ini murni definisi function global (bukan module), jadi tetap bisa dipanggil dari file manapun
 // yang loadnya belakangan (sama seperti modules-calc.js/features-*.js).
-const MODULE_RENDER_VERSION='kw167-fix-monthtotal-cleanup-3';
+const MODULE_RENDER_VERSION='kw171-vehicle-daily-brief-redundansi-628';
 
 function renderPageContent(name){
 if(name==='dashboard')renderDashboard();
@@ -877,7 +877,6 @@ cardEl.classList.add('u-dnone');cardEl.style.display='none';
 }
 }
 function renderKeuangan(){
-if(typeof KeuanganInsight!=='undefined')KeuanganInsight.render();
 document.getElementById('monthLabel').textContent=MONTHS_FULL[curMonth]+' '+curYear;
 renderKeuAbsensiGajiCard();
 const txM=D.transactions.filter(t=>{const d=new Date(t.date);return d.getMonth()===curMonth&&d.getFullYear()===curYear;});
@@ -886,6 +885,16 @@ const exp=txM.filter(t=>t.type==='expense'||t.type==='transfer_out').reduce((s,t
 const incReal=txM.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
 const expReal=txM.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
 const net=incReal-expReal;
+// PERF: KeuanganInsight.compute() dipanggil SETELAH txM/inc/exp di atas dihitung, supaya bisa
+// dioper sbg ctx (0 scan ulang D.transactions) -- TAPI cuma kalau curMonth/curYear yg lagi
+// dibuka user == bulan berjalan asli (sama dgn asumsi default compute() tanpa ctx). Kalau user
+// lagi lihat bulan lain (paging), biarkan fallback tanpa ctx spy hasil insight TETAP soal bulan
+// berjalan asli, bukan ikut bulan yg sedang dibuka -- 0 perubahan hasil, murni hindari scan dobel.
+if(typeof KeuanganInsight!=='undefined'){
+const now=new Date();
+const isCurMonth=curMonth===now.getMonth()&&curYear===now.getFullYear();
+KeuanganInsight.render(isCurMonth?{now,m:curMonth,y:curYear,txM,inc:incReal,exp:expReal}:undefined);
+}
 document.getElementById('mIncome').textContent=fmtFull(incReal);
 document.getElementById('mExpense').textContent=fmtFull(expReal);
 const nEl=document.getElementById('mNet');nEl.textContent=(net<0?'-':'')+fmtFull(net);nEl.className='stat-val '+(net>=0?'green':'red');
@@ -924,23 +933,23 @@ moreWrap.querySelector('button').textContent=`⬇️ Tampilkan lebih banyak (${s
 } else moreWrap.style.display='none';
 }
 updateKfBadge();
+// PERF (unblock tab-Keuangan freeze, permintaan eksplisit user): Budget/BudgetReko/Pensiun/
+// Renov/SewaKios + 10 presenter finansial di bawah ini (Finance Dashboard/Forecast/Budget
+// Reco/Cashflow Proj/Financial Goal/Invest Planner/Debt Optimizer/Retirement Planner/Health
+// Score/Risk Dashboard — Sesi 75/91-99, DIPINDAH ke #page-keuangan di Sesi 133) SEBELUMNYA
+// jalan SINKRON, sebelum stat cards (mIncome/mExpense/mNet) & list transaksi (#allTx) sempat
+// digambar — jadi user nunggu semuanya kelar duluan sebelum konten inti tab Keuangan yang
+// paling sering dilihat kelihatan. Sekarang bagian inti di atas tetap 100% sinkron (0
+// perubahan logika/hasil), sedangkan widget2 ini disusulkan lewat runDeferredOrNow() yang
+// sama dengan yang dipakai showMain() (Sesi 135) — supaya browser sempat nge-paint konten
+// inti dulu baru widget tambahan nyusul. 0 perubahan logika/rumus masing-masing presenter —
+// murni KAPAN dipanggil.
+runDeferredOrNow(function(){
 renderBudgets();
 BudgetReko.init();
 Pensiun.render();
 Renov.render();
 SewaKios.render();
-// PERF (unblock tab-Keuangan freeze, permintaan eksplisit user): 10 presenter finansial di
-// bawah ini (Finance Dashboard/Forecast/Budget Reco/Cashflow Proj/Financial Goal/Invest
-// Planner/Debt Optimizer/Retirement Planner/Health Score/Risk Dashboard — Sesi 75/91-99,
-// DIPINDAH ke #page-keuangan di Sesi 133) SEBELUMNYA jalan SINKRON di paling ATAS
-// renderKeuangan(), sebelum stat cards (mIncome/mExpense/mNet), list transaksi (#allTx), dan
-// Budget/BudgetReko/Pensiun/Renov/SewaKios sempat digambar — jadi user nunggu 10 presenter
-// berat ini kelar duluan sebelum konten inti tab Keuangan yang paling sering dilihat kelihatan.
-// Sekarang bagian inti di atas tetap 100% sinkron (0 perubahan logika/hasil), sedangkan 10
-// presenter ini disusulkan lewat runDeferredOrNow() yang sama dengan yang dipakai showMain()
-// (Sesi 135) — supaya browser sempat nge-paint konten inti dulu baru widget tambahan nyusul.
-// 0 perubahan logika/rumus masing-masing presenter — murni KAPAN dipanggil.
-runDeferredOrNow(function(){
 if(typeof FinanceDashboard!=='undefined')FinanceDashboard.render();
 if(typeof FinancialForecastPresenter!=='undefined')FinancialForecastPresenter.render();
 if(typeof BudgetRecommendationPresenter!=='undefined')BudgetRecommendationPresenter.render();
@@ -1214,7 +1223,17 @@ if(typeof MobilInsight!=='undefined')MobilInsight.render();
 // (#vehdashWrap dst) juga sudah dipindah ke #page-carnotes.
 if(typeof VehicleDashboard!=='undefined')VehicleDashboard.render();
 if(typeof VehicleInsightPresenter!=='undefined')VehicleInsightPresenter.render();
-if(typeof VehicleDailyBrief!=='undefined')VehicleDailyBrief.render();
+// Sesi 171 (temuan audit, permintaan eksplisit user): VehicleDailyBrief.render()
+// TIDAK LAGI dipanggil di sini — semua angka yang disusunnya (totalVehicles/
+// avgHealth/totalOverdue via VehicleDashboard, reminder.total/overdueCount via
+// VehicleInsightPresenter) SUDAH tampil sbg card di halaman Car Notes ini
+// (sumbernya sama: VehicleAIHook.fleetSummary()), jadi narasi teksnya 100%
+// presentasi ganda — pola sama persis alasan VehicleAlertPanel/VehicleInsightFeed
+// di Sesi 156b (lihat komentar di bawah). File
+// modules/vehicle/vehicle-daily-brief.js & tests/vehicle-daily-brief.test.js
+// TIDAK dihapus (test itu me-load file sendirian, tidak lewat sini) — hanya
+// wiring live-nya yg dicabut. #vehBriefWrap turut disembunyikan (lihat
+// index.html/app_production.html) supaya tidak nongol sbg card kosong.
 // Sesi 156b (permintaan eksplisit user): VehicleAlertPanel.render()/
 // VehicleInsightFeed.render() TIDAK LAGI dipanggil terpisah di sini —
 // digabung jadi satu panggilan VehicleAttentionPresenter.render() bareng
