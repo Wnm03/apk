@@ -79,8 +79,8 @@
 <link rel="preconnect" href="https://accounts.google.com" crossorigin>
 <link rel="dns-prefetch" href="https://accounts.google.com">
 <title>Keluarga W</title>
-<link rel="stylesheet" href="styles.css?v=622">
-<link rel="stylesheet" href="modern-ui-layer.css?v=622">
+<link rel="stylesheet" href="styles.css?v=628">
+<link rel="stylesheet" href="modern-ui-layer.css?v=628">
 <script>
 /* Debug console (Eruda) — aktifkan sekali lewat ?debug=1 di URL, nempel via localStorage.
    Matikan lagi lewat ?debug=0. Tidak aktif buat user biasa. */
@@ -133,8 +133,8 @@ b.appendChild(closeBtn);
 }catch(_e){ console.error('Gagal tampilkan banner error modul:',_e); }
 };
 </script>
-<script src="app-bundle-a.min.js?v=622" onerror="window.__moduleLoadFail('app-bundle-a.min.js')"></script>
-<script src="modules/shared/smoke-test.js?v=622" defer></script>
+<script src="app-bundle-a.min.js?v=628" onerror="window.__moduleLoadFail('app-bundle-a.min.js')"></script>
+<script src="modules/shared/smoke-test.js?v=628" defer></script>
 <link rel="manifest" id="pwaManifestLink" href="manifest.json">
 </head>
 <body data-theme="fresh">
@@ -1357,8 +1357,13 @@ b.appendChild(closeBtn);
        (FuelCard) — dua-duanya sama-sama soal BBM kendaraan aktif, jadi
        digabung jadi SATU card, bukan 2 card berurutan. #vehBriefBody
        sekarang HANYA berisi ringkasan armada harian (jumlah kendaraan,
-       skor kesehatan, reminder aktif). -->
-  <div class="dashhub-wrap card u-mb12" id="vehBriefWrap">
+       skor kesehatan, reminder aktif).
+       DISEMBUNYIKAN (Sesi 171, temuan audit): angka2 di atas 100% presentasi
+       ganda dari #vehdashWrap/#vehinsightWrap (sumber sama, VehicleAIHook.
+       fleetSummary()) — VehicleDailyBrief.render() sudah tidak dipanggil lagi
+       (lihat modules-render.js renderCnTab()), wrap ini disembunyikan via CSS
+       supaya tidak nongol sbg card kosong. Markup TIDAK dihapus. -->
+  <div class="dashhub-wrap card u-mb12" id="vehBriefWrap" style="display:none">
     <div id="vehBriefBody"></div>
   </div>
   </div>
@@ -3160,6 +3165,7 @@ b.appendChild(closeBtn);
         <div class="stat-box"><div class="stat-label">Estimasi Gaji Minggu Ini</div><div class="stat-val green" id="dashAbsensiGajiTotal">Rp 0</div></div>
       </div>
       <div id="dashAbsensiPendingBadge"></div>
+      <div id="dashAbsensiBudgetSync"></div>
       </div>
     </div>
   </div>
@@ -3413,6 +3419,6 @@ b.appendChild(closeBtn);
 <script>document.write(MODAL_HTML[74]);</script><!-- modal:fuelBarCorrectionModal -->
 <script>document.write(MODAL_HTML[75]);</script><!-- modal:fuelTankProfileModal -->
 
-<script src="app-bundle-b.min.js?v=622" onerror="window.__moduleLoadFail('app-bundle-b.min.js')"></script>
+<script src="app-bundle-b.min.js?v=628" onerror="window.__moduleLoadFail('app-bundle-b.min.js')"></script>
 </body>
 </html>

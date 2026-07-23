@@ -1,3 +1,172 @@
+# Changelog — Sesi 171: PiutangUtangInsight ikut cek cicilan barang jatuh tempo
+
+## Konteks
+
+Temuan audit halaman Car Notes (`renderCnTab()`): `VehicleDailyBrief` (card
+"🚗 Ringkasan Harian Kendaraan", `#vehBriefWrap`) menyusun narasi teks yang
+100% mengulang angka yang sudah tampil sbg card di halaman yang sama —
+`totalVehicles`/`avgHealth`/`totalOverdue` sudah ada di `VehicleDashboard`,
+`reminder.total`/`reminder.overdueCount` sudah ada di
+`VehicleInsightPresenter`. Sumbernya sama persis:
+`VehicleAIHook.fleetSummary()`. Bukan bug hitung ulang — presentasi ganda
+(kartu + narasi) utk angka identik, pola sama persis yg sudah pernah
+dibereskan utk VehicleAlertPanel/VehicleInsightFeed (Sesi 156b, digabung ke
+VehicleAttentionPresenter).
+
+## Perubahan
+
+**2 file diubah** (`modules/shared/modules-render.js`, `index.html` +
+`app_production.html` disinkron), **0 file baru** (tidak ada test yang
+perlu diubah — `tests/vehicle-daily-brief.test.js` me-load
+`vehicle-daily-brief.js` sendirian, tidak lewat wiring `renderCnTab()`):
+
+- `renderCnTab()` — `VehicleDailyBrief.render()` TIDAK LAGI dipanggil.
+  File `modules/vehicle/vehicle-daily-brief.js` TIDAK dihapus/diubah (kode
+  & test tetap ada, cuma sudah tidak live-wired) — pola sama persis
+  VehicleAlertPanel/VehicleInsightFeed di Sesi 156b.
+- `#vehBriefWrap` (index.html, app_production.html) — ditambah
+  `style="display:none"` supaya wrap kosong (sekarang tidak pernah diisi)
+  tidak nongol sbg card kosong di halaman.
+- 435/435 test lolos (regresi tidak berubah — tidak ada test yg menyentuh
+  wiring `VehicleDailyBrief` di `renderCnTab()`).
+
+## Konteks
+
+Follow-up Sesi 170. `PiutangUtangInsight` (widget "🩺 Insight Cepat" & kartu
+insight halaman) sebelumnya cuma cek `D.debts` buat insight "utang jatuh
+tempo dekat", padahal cicilan barang sekarang sudah dianggap "utang beneran"
+di Buku Utang — jadi cicilan barang yang mau jatuh tempo minggu ini tidak
+kepegang di insight ini.
+
+## Perubahan
+
+**1 file diubah** (`modules/ai/feature-insights.js`), **1 file baru**
+(`tests/piutang-utang-insight-bill-cicilan.test.js`):
+
+- `PiutangUtangInsight.compute()` poin (2) — gabungkan kandidat "jatuh tempo
+  dekat" dari `D.debts` DAN `Debt.billCicilanAktif()` (nextDue-nya), ambil
+  yang paling dekat dari keduanya. DSR (poin 3) sudah aman sejak Sesi 170
+  (pakai `DebtStrategy.computeDSR()`, otomatis ikut).
+- `PiutangUtangInsight.render()` — `hasData` ikut hitung cicilan barang
+  aktif, biar card insight tidak disembunyikan kalau user cuma punya
+  cicilan barang tanpa utang formal di `D.debts`.
+- +3 test baru. 435/435 test lolos, build
+  `kw171-insight-cicilan-barang-jatuh-tempo` (`?v=625`).
+
+
+
+## Konteks
+
+User minta cicilan barang (Buku Tagihan, `D.bills` `kind:'cicilan'`, yang
+punya sisa tenor) otomatis ikut muncul sbg baris di 📕 Buku Utang, dan ikut
+disimulasikan pelunasannya (avalanche/snowball) + dapat rekomendasi —
+sebelumnya cicilan barang cuma ikut dihitung di DSR
+(`DebtStrategy.computeDSR()`), TIDAK ikut tampil di Buku Utang & TIDAK ikut
+`DebtStrategy.simulate()` (payoff plan). Langganan (`kind:'langganan'`)
+SENGAJA dikecualikan — tidak punya `sisaTenor`/tenor, tidak ada "pokok" yang
+bisa dilunasi, jadi tidak cocok masuk model utang (konsisten sama
+`computeDSR()` yg juga selalu exclude langganan).
+
+## Perubahan
+
+**3 file diubah** (`modules/finance/piutang-utang.js`,
+`modules/finance/debt-optimizer-api.js`), **1 file baru**
+(`tests/debt-bill-cicilan.test.js`):
+
+- `Debt.billCicilanAktif()` (baru) — filter cicilan barang aktif
+  (`kind:'cicilan'` & `sisaTenor>0`), SAMA PERSIS filter yg sudah dipakai
+  `computeDSR()`/`DebtOptimizerAPI` (1 sumber, 0 filter baru).
+- `Debt.renderList()` — baris Buku Utang sekarang gabungan D.debts +
+  cicilan barang aktif (baris kedua ini read-only dari situ, klik -> Riwayat
+  Pembayaran `openBillHistory()`, sama persis alur yg sudah ada utk cicilan
+  di Buku Tagihan). Total header (`debtTotalVal`/`debtCicilanVal`) ikut
+  ditambah nilai cicilan barang biar konsisten sama baris yang tampil.
+- `DebtStrategy.billCicilanAsDebtLike()` (baru) — map cicilan barang jadi
+  bentuk mirip D.debts biar ikut `computeOrder()`/`simulate()` APA ADANYA.
+  `bunga` SENGAJA di-set 0 (bunga cicilan barang itu flat sekali di awal,
+  sudah dibakar ke nominal cicilan/bulan — beda dari `Debt.bunga` yg
+  %/tahun & dihitung majemuk tiap bulan oleh `simulate()`, kalau ikut
+  dipakein rumus itu bunganya kehitung dobel). `nilai` = amount × sisaTenor
+  (sama formula `outstanding` di `getBillStats()`).
+- `DebtStrategy.activeDebts()` — sekarang gabung D.debts aktif + hasil
+  `billCicilanAsDebtLike()`, otomatis kepakai `DebtStrategy.render()` (badge
+  "🛒 Cicilan Barang" ditambahkan di baris payoff plan) dan
+  `DebtOptimizerAPI.payoffPlan()` tanpa perubahan di file itu.
+- `DebtOptimizerAPI._overview()` — **fix double-count**: sebelumnya
+  `activeCount` = `activeDebts().length` (dulu cuma D.debts) + jumlah bill
+  cicilan dihitung manual lagi terpisah. Karena `activeDebts()` sekarang
+  sudah gabungan, dihitung manual itu dihapus (activeCount = 1x
+  `activeDebts().length`). `totalValue` ikut ditambah outstanding cicilan
+  barang (baru, additive) biar konsisten sama total Buku Utang.
+  `totalCicilanBulanan` — rumus TIDAK berubah (tetap dijumlah dari 2 sumber,
+  sudah benar sejak awal, tidak ada dobel hitung di situ).
+- +5 test baru `tests/debt-bill-cicilan.test.js` (filter, mapping,
+  gabungan `activeDebts()`, simulasi lunas tepat waktu tanpa bunga
+  tambahan, fix double-count `activeCount`). 432/432 test lolos, build
+  `kw170-cicilan-barang-buku-utang` (`?v=624`).
+
+
+
+## Konteks
+
+User melaporkan Scan Universal Akun (foto layar GoPay) ke-baca saldo
+"Rp937.000" (angka "sudah terpakai di Juli" / rekap pengeluaran bulan
+ini), padahal saldo asli ~Rp154.834. Root cause dicek langsung pakai
+`tesseract` thd screenshot asli yang dilampirkan: simbol "Rp" di depan
+saldo utama (font besar/bold) TIDAK kebaca OCR sama sekali, sedangkan
+baris "Rp937.000 udah terpakai di Juli" (font reguler di bawahnya)
+kebaca lengkap dgn "Rp"-nya. `parseWalletScreen()` sebelumnya cuma
+mencari angka yang diawali "Rp" (`walletAmtRe`) — begitu saldo utama
+kehilangan prefix itu di teks OCR, cuma 1 kandidat tersisa (si angka
+pengeluaran), dan itu yang kepilih.
+
+## Perubahan
+
+**2 file diubah** (`modules/shared/scan-ocr.js`, `tests/scan-ocr-wallet.test.js`):
+
+- `WALLET_BARE_AMT_RE` (baru) — nangkep angka berformat ribuan (ada
+  titik/koma pemisah) TANPA prefix "Rp" sbg kandidat tambahan di
+  `parseWalletScreen()`. Syarat "ada pemisah ribuan" sengaja dipasang
+  supaya tidak nyangkut angka lain yang kebetulan 4+ digit tanpa
+  pemisah (jam, tahun, dll).
+- `parseWalletNominal()` (baru, khusus wallet — BUKAN ganti
+  `normalizeOcrNumber()` yang dipakai parser lain) — parse integer
+  murni (saldo e-wallet selalu bilangan bulat), dgn guard: kalau grup
+  ribuan terakhir kebetulan 4+ digit (harusnya selalu tepat 3 — brati
+  ada noise 1 digit nyangkut dari OCR, mis. ikon di sebelah angka),
+  buang digit terakhirnya sebelum dirangkai.
+- Kandidat digabung & diurutkan ulang berdasar posisi kemunculan di
+  teks (bukan cuma kandidat "Rp" saja), lalu difilter
+  `WALLET_SPEND_CONTEXT_RE` seperti sebelumnya. Kandidat tanpa "Rp"
+  dapat pengurangan confidence (-0.1) krn OCR tidak ikut mengonfirmasi
+  simbol mata uangnya.
+- +3 test baru `tests/scan-ocr-wallet.test.js`, salah satunya pakai
+  teks OCR ASLI hasil `tesseract` thd screenshot yang dilaporkan user
+  (bukan teks ideal buatan tangan) supaya kasus ini kepegang beneran di
+  regresi ke depan.
+
+## Verifikasi
+
+```
+node --test tests/*.test.js
+# 427/427 pass (naik dari 424 — 3 test baru)
+
+node scripts/build.js kw169-gopay-scan-noRp-fix
+# ✅ Build selesai & lolos cek sintaks (node --check), ?v=623
+# index.html & app_production.html identik (0 diff)
+```
+
+**ZIP:** `kw_release_sesi169_gopay_scan_fix_v623.zip`
+
+**Catatan ukuran ZIP (ditanyakan user):** ukuran ZIP antar-sesi selama
+ini beda-beda krn folder `backups/` (snapshot bundle lama, dibuat
+otomatis tiap `node scripts/build.js`) ikut ter-zip dgn isi yang beda
+tiap kali — kadang beberapa MB, kadang kosong tergantung kapan folder
+itu terakhir dibersihkan sebelum di-zip. Isi kode (`modules/`, HTML,
+`docs/`) sendiri konsisten. ZIP rilis sesi ini SENGAJA tidak
+menyertakan `backups/` supaya ukurannya stabil & representatif dari isi
+kode saja.
+
 # Changelog — Sesi 158b: Deep-link Sub-tab Insight AI & BBM + Bugfix CN_TAB_IDX
 
 ## Konteks
