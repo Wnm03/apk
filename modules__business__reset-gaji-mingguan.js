@@ -108,6 +108,7 @@ _wrLastStart=null;_wrLastEnd=null;
 save();
 closeModal('weeklyResetModal');
 renderWorkDays();
+Payroll.renderDashMini();
 renderDashboard();
 if(incomeSaved) renderKeuangan();
 }

@@ -69,9 +69,14 @@ out.push({id:'budget-'+r.b.id,level:over?'danger':'warning',icon:over?'🔴':'�
 }catch(e){console.warn('KeuanganInsight: gagal cek anggaran',e);}
 return out;
 },
-render(){
+// render(ctx) — ctx opsional {now,m,y,txM,inc,exp}, dioper dari renderKeuangan()
+// (modules-render.js) KALAU bulan yg lagi dibuka user == bulan berjalan asli,
+// supaya txM/inc/exp yg sudah dihitung di sana tidak discan ulang. Tanpa ctx
+// (page lain sedang lihat bulan lampau/depan) tetap fallback hitung sendiri
+// via compute() apa adanya — PERSIS perilaku lama, 0 perubahan hasil.
+render(ctx){
 const hasData=!!((D.transactions&&D.transactions.length)||(D.budgets&&D.budgets.length));
-FeatureInsightUI.renderInto('keuanganInsightCard','keuanganInsightBody',hasData,KeuanganInsight.compute(),'Belum ada insight khusus — kondisi keuangan kamu bulan ini terlihat aman.');
+FeatureInsightUI.renderInto('keuanganInsightCard','keuanganInsightBody',hasData,KeuanganInsight.compute(ctx),'Belum ada insight khusus — kondisi keuangan kamu bulan ini terlihat aman.');
 }
 };
 
@@ -142,11 +147,16 @@ out.push({id:'piutang-due-'+p.id,level:late?'danger':'warning',icon:late?'🔴':
 });
 }catch(e){console.warn('PiutangUtangInsight: gagal cek piutang',e);}
 // (2) Utang jatuh tempo dekat (<=7 hari)/lewat, belum lunas — sama seperti FinCoach lama #6.
+// KW-170: ikut cek cicilan barang aktif (Debt.billCicilanAktif(), sudah dianggap "utang beneran"
+// di Buku Utang), digabung & diambil yang paling dekat jatuh temponya dari kedua sumber.
 try{
-const soonDebt=(D.debts||[]).filter(d=>!d.lunas&&d.jatuhTempo).map(d=>({d,diff:daysUntilDate(d.jatuhTempo)})).filter(x=>x.diff!==null&&x.diff<=7).sort((a,b)=>a.diff-b.diff);
-if(soonDebt.length){
-const x=soonDebt[0],late=x.diff<0;
-out.push({id:'debt-due-'+x.d.id,level:late?'danger':'warning',icon:late?'🔴':'🟠',text:`Utang "${escapeHtml(x.d.name)}" (${fmtFull(x.d.nilai)}) ${late?'sudah lewat '+Math.abs(x.diff)+' hari dari':x.diff===0?'jatuh tempo hari ini':x.diff+' hari lagi ke'} tanggal jatuh tempo.`,action:{label:'Lihat Utang',page:'pajak',navIdx:5}});
+const soonDebt=(D.debts||[]).filter(d=>!d.lunas&&d.jatuhTempo).map(d=>({id:'debt-due-'+d.id,name:d.name,nilai:d.nilai,diff:daysUntilDate(d.jatuhTempo)}));
+const billCicilan=(typeof Debt!=='undefined'&&typeof Debt.billCicilanAktif==='function')?Debt.billCicilanAktif():[];
+const soonBill=billCicilan.filter(b=>b.nextDue).map(b=>({id:'debt-due-bill-'+b.id,name:b.name,nilai:b.amount,diff:daysUntilDate(b.nextDue)}));
+const soon=soonDebt.concat(soonBill).filter(x=>x.diff!==null&&x.diff<=7).sort((a,b)=>a.diff-b.diff);
+if(soon.length){
+const x=soon[0],late=x.diff<0;
+out.push({id:x.id,level:late?'danger':'warning',icon:late?'🔴':'🟠',text:`Utang "${escapeHtml(x.name)}" (${fmtFull(x.nilai)}) ${late?'sudah lewat '+Math.abs(x.diff)+' hari dari':x.diff===0?'jatuh tempo hari ini':x.diff+' hari lagi ke'} tanggal jatuh tempo.`,action:{label:'Lihat Utang',page:'pajak',navIdx:5}});
 }
 }catch(e){console.warn('PiutangUtangInsight: gagal cek utang',e);}
 // (3) DSR (beban cicilan/bulan dibanding rata-rata pemasukan) sudah berat (>=35%).
@@ -161,7 +171,8 @@ out.push({id:'debt-dsr-tinggi',level:dsr.pct>=50?'danger':'warning',icon:dsr.pct
 return out;
 },
 render(){
-const hasData=!!((D.piutang&&D.piutang.length)||(D.debts&&D.debts.length));
+const billCicilanCount=(typeof Debt!=='undefined'&&typeof Debt.billCicilanAktif==='function')?Debt.billCicilanAktif().length:0;
+const hasData=!!((D.piutang&&D.piutang.length)||(D.debts&&D.debts.length)||billCicilanCount);
 FeatureInsightUI.renderInto('piutangUtangInsightCard','piutangUtangInsightBody',hasData,PiutangUtangInsight.compute(),'Belum ada insight khusus — piutang & utang kamu sejauh ini aman.');
 }
 };

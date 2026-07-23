@@ -49,14 +49,21 @@ _overview() {
   }
   let totalValue, totalCicilanBulanan, activeCount;
   try {
-    // Utang formal (Buku Utang / D.debts)
-    const debtCount = DebtStrategy.activeDebts().length;
-    totalValue = Debt.totalValue();
+    // KW-170: DebtStrategy.activeDebts() SEKARANG SUDAH gabung Utang
+    // formal (D.debts) + cicilan barang aktif (Buku Tagihan
+    // kind:'cicilan', lihat DebtStrategy.billCicilanAsDebtLike()) — 1
+    // sumber utk activeCount, TIDAK dijumlah manual lagi di sini spy
+    // tidak dobel hitung (sebelum KW-170 ini masih dijumlah terpisah,
+    // krn dulu activeDebts() cuma D.debts).
+    activeCount = DebtStrategy.activeDebts().length;
     // Cicilan non-utang (Buku Tagihan kind:'cicilan') — filter SAMA
     // PERSIS dgn DebtStrategy.computeDSR() (totalCicilanLain), 0 rumus
-    // baru, biar Ringkasan Utang & DSR konsisten sumbernya.
+    // baru, biar Ringkasan Utang & DSR konsisten sumbernya. totalValue
+    // ikut ditambah outstanding-nya (amount×sisaTenor, sama persis
+    // formula di Debt.renderList()/getBillStats()) biar konsisten sama
+    // total yang sekarang tampil di header Buku Utang.
     const billCicilan = (D.bills || []).filter(b => b.kind === 'cicilan' && b.sisaTenor != null);
-    activeCount = debtCount + billCicilan.length;
+    totalValue = Debt.totalValue() + billCicilan.reduce((s, b) => s + (b.amount || 0) * (b.sisaTenor || 0), 0);
     totalCicilanBulanan = Debt.totalCicilanBulanan() + billCicilan.reduce((s, b) => s + (b.amount || 0), 0);
   } catch (e) {
     return { ok: false, reason: 'Debt/DebtStrategy gagal dipanggil' };

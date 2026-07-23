@@ -90,7 +90,7 @@ D.workDays=D.workDays.filter(w=>w.date!==date);
 D.workDays.push({id:Payroll.editId!==null?Payroll.editId:uid(),date,masuk:'',pulang:'',istMulai:'',istSelesai:'',istirahatMin:0,totalJam:0,jamLembur:0,jenis,pokok:Math.round(borTotal),lembur:0,potongan,tambahan,total,borNote,gajiHariInput:null});
 const wasEdit=Payroll.editId!==null;
 Payroll.cancelEditWorkDay();
-save();Payroll.renderWorkDays();toast(wasEdit?'✅ Absensi diperbarui: '+fmtFull(total):'✅ Absensi borongan tersimpan: '+fmtFull(total));
+save();Payroll.renderWorkDays();Payroll.renderDashMini();toast(wasEdit?'✅ Absensi diperbarui: '+fmtFull(total):'✅ Absensi borongan tersimpan: '+fmtFull(total));
 return;
 }
 const masuk=document.getElementById('whMasuk').value;
@@ -131,7 +131,7 @@ D.workDays=D.workDays.filter(w=>w.date!==date);
 D.workDays.push({id:Payroll.editId!==null?Payroll.editId:uid(),date,masuk,pulang,istMulai:istMulaiStr,istSelesai:istSelesaiStr,istirahatMin,totalJam:Math.round(totalJam*100)/100,jamLembur:Math.round(jamLembur*100)/100,jenis,pokok,lembur:Math.round(lembur),potongan,tambahan,total:Math.round(total),gajiHariInput:gajiHari,borNote:''});
 const wasEdit=Payroll.editId!==null;
 Payroll.cancelEditWorkDay();
-save();Payroll.renderWorkDays();toast(wasEdit?'✅ Absensi diperbarui: '+fmtFull(total):'✅ Absensi tersimpan: '+fmtFull(total));
+save();Payroll.renderWorkDays();Payroll.renderDashMini();toast(wasEdit?'✅ Absensi diperbarui: '+fmtFull(total):'✅ Absensi tersimpan: '+fmtFull(total));
 },
 editWorkDay(id){
 const w=D.workDays.find(x=>x.id===id);
@@ -190,7 +190,7 @@ async delWorkDay(id){
 if(!await askConfirm('Hapus catatan absensi ini?'))return;
 D.workDays=D.workDays.filter(w=>w.id!==id);
 if(Payroll.editId===id)Payroll.cancelEditWorkDay();
-save();Payroll.renderWorkDays();toast('🗑 Absensi dihapus');
+save();Payroll.renderWorkDays();Payroll.renderDashMini();toast('🗑 Absensi dihapus');
 },
 renderWorkDays(){
 const start=new Date(Payroll.weekStart);
@@ -439,6 +439,27 @@ const pendingBadgeEl=document.getElementById('dashAbsensiPendingBadge');
 if(pendingBadgeEl){
 const info=Payroll.pendingOldWeeksInfo();
 pendingBadgeEl.innerHTML=info?`<div class="u-fs11" style="margin-top:8px;color:var(--accent4);font-weight:600">⚠️ ${info.weekCount} minggu lalu belum di-reset (${fmtFull(info.total)})</div>`:'';
+}
+// Sync Budget Mingguan <-> Gaji Absensi (kartu sync sederhana). Murni baca budget yang
+// sudah dibuat user sendiri lewat modul Budget (period==='mingguan') — TIDAK membuat/
+// mengasumsikan budget tertentu (mis. nama "Belanja"), TIDAK ada rumus baru: limit &
+// used 100% dari Budget.getEffectiveLimit()/getUsed() apa adanya. CATATAN: definisi
+// "minggu" di sini beda dgn Budget.matchesPeriod() (Payroll: Minggu–Sabtu via
+// getWeekRange, Budget mingguan: Senin–Minggu) — masing-masing pakai definisi
+// minggunya sendiri, tidak dipaksa disamakan (di luar scope kartu sync ini).
+const budgetSyncEl=document.getElementById('dashAbsensiBudgetSync');
+if(budgetSyncEl){
+const mingguanBudgets=(D.budgets||[]).filter(b=>b.period==='mingguan');
+if(!mingguanBudgets.length||typeof Budget==='undefined'){
+budgetSyncEl.innerHTML='';
+} else {
+const totalLimit=mingguanBudgets.reduce((s,b)=>s+Budget.getEffectiveLimit(b),0);
+const totalUsed=mingguanBudgets.reduce((s,b)=>s+Budget.getUsed(b),0);
+const sisaBudget=totalLimit-totalUsed;
+const cukup=totalGaji>=totalLimit;
+const statusLine=cukup?`<div class="u-fs11" style="color:var(--accent3);font-weight:600">✅ Gaji minggu ini cukup nutup budget belanja</div>`:`<div class="u-fs11" style="color:var(--accent4);font-weight:600">⚠️ Gaji minggu ini kurang ${fmtFull(totalLimit-totalGaji)} dari budget belanja</div>`;
+budgetSyncEl.innerHTML=`<div class="u-fs11 u-t2" style="margin-top:8px">🛒 Budget Mingguan: ${fmtFull(totalUsed)} / ${fmtFull(totalLimit)} (sisa ${fmtFull(sisaBudget)})</div>${statusLine}`;
+}
 }
 }
 };
