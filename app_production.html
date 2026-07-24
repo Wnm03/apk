@@ -79,8 +79,8 @@
 <link rel="preconnect" href="https://accounts.google.com" crossorigin>
 <link rel="dns-prefetch" href="https://accounts.google.com">
 <title>Keluarga W</title>
-<link rel="stylesheet" href="styles.css?v=628">
-<link rel="stylesheet" href="modern-ui-layer.css?v=628">
+<link rel="stylesheet" href="styles.css?v=646">
+<link rel="stylesheet" href="modern-ui-layer.css?v=646">
 <script>
 /* Debug console (Eruda) — aktifkan sekali lewat ?debug=1 di URL, nempel via localStorage.
    Matikan lagi lewat ?debug=0. Tidak aktif buat user biasa. */
@@ -116,6 +116,7 @@ function ensureJsPDF(){return _loadScriptOnce('https://cdnjs.cloudflare.com/ajax
 function ensureHtml2Canvas(){return _loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');}
 function ensureGoogleGSI(){return _loadScriptOnce('https://accounts.google.com/gsi/client');}
 function ensureXLSX(){return _loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');}
+function ensureZXing(){return _loadScriptOnce('https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js');}
 </script>
 <script>
 window.__moduleLoadFail=function(name){
@@ -133,8 +134,8 @@ b.appendChild(closeBtn);
 }catch(_e){ console.error('Gagal tampilkan banner error modul:',_e); }
 };
 </script>
-<script src="app-bundle-a.min.js?v=628" onerror="window.__moduleLoadFail('app-bundle-a.min.js')"></script>
-<script src="modules/shared/smoke-test.js?v=628" defer></script>
+<script src="app-bundle-a.min.js?v=646" onerror="window.__moduleLoadFail('app-bundle-a.min.js')"></script>
+<script src="modules/shared/smoke-test.js?v=646" defer></script>
 <link rel="manifest" id="pwaManifestLink" href="manifest.json">
 </head>
 <body data-theme="fresh">
@@ -1250,6 +1251,7 @@ b.appendChild(closeBtn);
     <button class="btn btn-ghost btn-sm" data-action="openKmModal" aria-label="Edit/Buka">📏 Update KM</button>
   </div>
   <button class="btn btn-ghost btn-full btn-sm u-mb12" data-action="openVehicleModal" aria-label="Edit/Buka">+ Kelola Kendaraan</button>
+  <button class="btn btn-ghost btn-full btn-sm u-mb12" data-action="VehicleCatalogUI.open" aria-label="Buka">📦 Katalog Suku Cadang</button>
 
   <!-- Sesi 157 (permintaan eksplisit user): pecah page-carnotes jadi 4
        cn-tabs (Insight AI / BBM / Servis / Pajak & SIM) — pola SAMA PERSIS
@@ -2550,6 +2552,7 @@ b.appendChild(closeBtn);
       <div class="qs-section-title">🏍️ Kendaraan</div>
       <div class="qs-grid2">
         <div class="qs-action" data-onclick="closeQS('qsCarnotes');openVehicleModal()"><div class="qs-action-icon">🏍️</div><div class="qs-action-label">Kelola Kendaraan</div></div>
+        <div class="qs-action" data-onclick="closeQS('qsCarnotes');VehicleCatalogUI.open()"><div class="qs-action-icon">📦</div><div class="qs-action-label">Katalog Suku Cadang</div></div>
         <div class="qs-action" data-onclick="closeQS('qsCarnotes');openKmModal()"><div class="qs-action-icon">📏</div><div class="qs-action-label">Update KM</div></div>
       </div>
     </div>
@@ -3418,7 +3421,9 @@ b.appendChild(closeBtn);
 <script>document.write(MODAL_HTML[73]);</script><!-- modal:universalOcrModal -->
 <script>document.write(MODAL_HTML[74]);</script><!-- modal:fuelBarCorrectionModal -->
 <script>document.write(MODAL_HTML[75]);</script><!-- modal:fuelTankProfileModal -->
+<script>document.write(MODAL_HTML[76]);</script><!-- modal:catalogModal -->
+<script>document.write(MODAL_HTML[77]);</script><!-- modal:vehCatalogImportModal -->
 
-<script src="app-bundle-b.min.js?v=628" onerror="window.__moduleLoadFail('app-bundle-b.min.js')"></script>
+<script src="app-bundle-b.min.js?v=646" onerror="window.__moduleLoadFail('app-bundle-b.min.js')"></script>
 </body>
 </html>

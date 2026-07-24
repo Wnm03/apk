@@ -292,12 +292,85 @@ const wrap=document.getElementById('servisPartQtyWrap');
 if(!sel||!wrap)return;
 wrap.style.display=sel.value?'block':'none';
 },
+/** Muat daftar part Vehicle Catalog ke dropdown `servisCatalogPartId` (Tahap 6
+ * Sesi 2 — UI picker, reuse VehicleCatalog.getAll() apa adanya, TIDAK ada
+ * filter/rekomendasi otomatis berdasar jenis kendaraan/servis). Async karena
+ * VehicleCatalog.getAll() async (baca IDBStore) — dipanggil fire-and-forget
+ * dari openModal() (pola sama beberapa populate async lain di app), select
+ * tetap kosong dulu sampai promise resolve. Guard typeof supaya modal servis
+ * tetap berfungsi normal kalau VehicleCatalog belum sempat dimuat. */
+populateCatalogPartSelect(selectedCatalogId){
+const sel=document.getElementById('servisCatalogPartId');
+if(!sel)return;
+const hasCatalog=typeof VehicleCatalog!=='undefined'&&VehicleCatalog&&typeof VehicleCatalog.getAll==='function';
+if(!hasCatalog){
+sel.innerHTML='<option value="">Tidak pakai part katalog</option>';
+sel.value='';
+Servis.onCatalogPartChange();
+return;
+}
+VehicleCatalog.getAll().then(items=>{
+const opts=(items||[]).map(it=>`<option value="${escapeHtml(it.id)}" data-oem="${escapeHtml(it.oemCode||'')}">${escapeHtml(it.partName||'(Tanpa nama)')}${it.oemCode?' — '+escapeHtml(it.oemCode):''}</option>`).join('');
+sel.innerHTML='<option value="">Tidak pakai part katalog</option>'+opts;
+sel.value=selectedCatalogId||'';
+Servis.onCatalogPartChange();
+}).catch(()=>{
+sel.innerHTML='<option value="">Tidak pakai part katalog</option>';
+sel.value='';
+Servis.onCatalogPartChange();
+});
+},
+onCatalogPartChange(){
+const sel=document.getElementById('servisCatalogPartId');
+const wrap=document.getElementById('servisCatalogPartQtyWrap');
+if(!sel||!wrap)return;
+wrap.style.display=sel.value?'block':'none';
+},
+/** Muat & tampilkan area rekomendasi part katalog (Tahap 6 Sesi 4 — chip
+ * list, TIDAK mengubah dropdown/qty/servisLogs/stok apa pun, murni saran
+ * yang bisa diklik). Reuse VehicleCatalog.recommend() apa adanya, dasar
+ * rekomendasi: kendaraan aktif (curVehicleId) + isi field "Jenis Servis/
+ * Item" saat ini. Guard typeof supaya modal servis tetap berfungsi normal
+ * kalau VehicleCatalog belum sempat dimuat. Async (fire-and-forget, pola
+ * sama populateCatalogPartSelect) — area disembunyikan dulu sampai
+ * promise resolve & ada hasil. */
+renderCatalogRecommendations(){
+const wrap=document.getElementById('servisCatalogRecoWrap');
+const list=document.getElementById('servisCatalogRecoList');
+if(!wrap||!list)return;
+wrap.style.display='none';
+list.innerHTML='';
+const hasCatalog=typeof VehicleCatalog!=='undefined'&&VehicleCatalog&&typeof VehicleCatalog.recommend==='function';
+if(!hasCatalog)return;
+const itemEl=document.getElementById('servisItem');
+const item=itemEl?itemEl.value.trim():'';
+VehicleCatalog.recommend({vehicleId:curVehicleId,item}).then(items=>{
+if(!items||!items.length)return;
+list.innerHTML=items.map(it=>`<button type="button" class="chip-btn" style="font-size:11px" data-action="Servis.selectCatalogRecommendation" data-args="${escapeHtml(JSON.stringify([it.id]))}">${escapeHtml(it.partName||'(Tanpa nama)')}${it.oemCode?' · '+escapeHtml(it.oemCode):''}</button>`).join('');
+wrap.style.display='block';
+}).catch(()=>{});
+},
+/** Klik 1 chip rekomendasi -> otomatis pilih part itu di dropdown
+ * `servisCatalogPartId` (kalau opsinya sudah termuat) & tampilkan field
+ * qty (reuse onCatalogPartChange() apa adanya). TIDAK menyimpan apa pun
+ * (belum mengubah servisLogs/stok — sesuai cakupan sesi ini), murni bantu
+ * isi form. */
+selectCatalogRecommendation(catalogId){
+const sel=document.getElementById('servisCatalogPartId');
+if(!sel)return;
+const hasOption=Array.from(sel.options||[]).some(o=>o.value===String(catalogId));
+if(!hasOption)return;
+sel.value=String(catalogId);
+Servis.onCatalogPartChange();
+},
 onItemAutofillInterval(){
 const item=document.getElementById('servisItem').value.trim();
 const intervalEl=document.getElementById('servisInterval');
-if(!intervalEl||intervalEl.dataset.manual==='1')return;
+if(intervalEl&&intervalEl.dataset.manual!=='1'){
 const matched=item?D.sparepartCats.find(c=>c.name.toLowerCase()===item.toLowerCase()):null;
 intervalEl.value=matched?matched.intervalKm:'';
+}
+Servis.renderCatalogRecommendations();
 },
 openModal(editId,prefillItem){
 Sparepart.populateDatalist();
@@ -320,6 +393,11 @@ document.getElementById('servisNote').value=s.note||'';
 if(servisAccEl&&s.accountId)servisAccEl.value=s.accountId;
 Servis.populatePartSelect(s.usedPartId);
 document.getElementById('servisPartQty').value=s.usedPartQty||1;
+const catalogRefs=(typeof VehicleCatalogServisLink!=='undefined'&&VehicleCatalogServisLink&&typeof VehicleCatalogServisLink.getServisRefs==='function')?VehicleCatalogServisLink.getServisRefs(s.id):[];
+const firstCatalogRef=catalogRefs&&catalogRefs[0];
+Servis.populateCatalogPartSelect(firstCatalogRef?firstCatalogRef.catalogId:'');
+document.getElementById('servisCatalogPartQty').value=firstCatalogRef?firstCatalogRef.qty:1;
+Servis.renderCatalogRecommendations();
 const linkedCat=(s.categoryId&&D.sparepartCats.find(c=>c.id===s.categoryId))||D.sparepartCats.find(c=>c.name.toLowerCase()===s.item.toLowerCase());
 if(intervalEl)intervalEl.value=linkedCat?linkedCat.intervalKm:'';
 } else {
@@ -329,11 +407,15 @@ document.getElementById('servisKm').value=getVehicleKm(curVehicleId)||'';
 if(intervalEl)intervalEl.value='';
 Servis.populatePartSelect('');
 document.getElementById('servisPartQty').value=1;
+Servis.populateCatalogPartSelect('');
+document.getElementById('servisCatalogPartQty').value=1;
 if(prefillItem){
 document.getElementById('servisItem').value=prefillItem;
 Servis.onItemAutofillInterval();
 const matchStock=D.partsStock.find(p=>p.name.toLowerCase()===prefillItem.toLowerCase()||p.name.toLowerCase().includes(prefillItem.toLowerCase())||prefillItem.toLowerCase().includes(p.name.toLowerCase()));
 if(matchStock)Servis.populatePartSelect(matchStock.id);
+} else {
+Servis.renderCatalogRecommendations();
 }
 }
 openModal('servisModal');
@@ -369,6 +451,17 @@ const veh=D.vehicles.find(v=>v.id===curVehicleId);
 const noteFull=item+(veh?' - '+veh.name:'')+(note?' - '+note:'');
 const usedPartId=document.getElementById('servisPartId')?document.getElementById('servisPartId').value:'';
 const usedPartQty=usedPartId?(parseFloat(document.getElementById('servisPartQty').value)||0):0;
+const catalogPartSelEl=document.getElementById('servisCatalogPartId');
+const catalogPartId=catalogPartSelEl?catalogPartSelEl.value:'';
+const catalogPartQty=catalogPartId?(parseFloat(document.getElementById('servisCatalogPartQty').value)||1):0;
+// Sesi 180 (Tahap 6B2): snapshot ringan opsional {catalogPartId,catalogPartQty,
+// catalogPartOemCode} langsung di D.servisLogs (pola sama usedPartId/usedPartQty
+// di bawah) -- TIDAK menggantikan/mengubah mekanisme catalogPartRefs (Tahap 6
+// Sesi 1, VehicleCatalogServisLink) yang tetap dipanggil apa adanya di bawah.
+// catalogPartOemCode diambil dari atribut data-oem opsi terpilih (diisi
+// populateCatalogPartSelect()) -- sinkron, TIDAK memanggil VehicleCatalog
+// lagi di sini, supaya tidak dobel-sumber-kebenaran/dobel call IDB.
+const catalogPartOemCode=(catalogPartId&&catalogPartSelEl&&catalogPartSelEl.selectedOptions&&catalogPartSelEl.selectedOptions[0]&&catalogPartSelEl.selectedOptions[0].dataset)?(catalogPartSelEl.selectedOptions[0].dataset.oem||''):'';
 const itemIsVehicleName=!!matchingVehicleName(item);
 let catIdForLog=matched?matched.id:null;
 let newCatCreated=false;
@@ -395,10 +488,13 @@ if(intervalKm&&intervalKm>0&&!matched&&s.categoryId){
 const linkedCat=D.sparepartCats.find(c=>c.id===s.categoryId);
 if(linkedCat){linkedCat.intervalKm=intervalKm;catIdForLog=linkedCat.id;}
 }
-Object.assign(s,{date,item,categoryId:catIdForLog||s.categoryId,km,cost,note,accountId:accId,usedPartId:usedPartId||null,usedPartQty:usedPartId?usedPartQty:0});
+Object.assign(s,{date,item,categoryId:catIdForLog||s.categoryId,km,cost,note,accountId:accId,usedPartId:usedPartId||null,usedPartQty:usedPartId?usedPartQty:0,catalogPartId:catalogPartId||null,catalogPartQty:catalogPartId?catalogPartQty:0,catalogPartOemCode:catalogPartId?catalogPartOemCode:''});
 if(s.txLinkId){
 const tx=D.transactions.find(t=>t.id===s.txLinkId);
 if(tx)Object.assign(tx,{amount:cost,date,accountId:accId,note:noteFull});
+}
+if(typeof VehicleCatalogServisLink!=='undefined'&&VehicleCatalogServisLink&&typeof VehicleCatalogServisLink.attachToServis==='function'){
+VehicleCatalogServisLink.attachToServis(s.id,catalogPartId?[{catalogId:catalogPartId,qty:catalogPartQty}]:[]);
 }
 save();closeModal('servisModal');renderCnTab();renderDashboard();renderKeuangan();Sparepart.renderStockList();Sparepart.renderCatList();toast('✅ Catatan servis diperbarui'+(intervalKm?' & interval pengingat disinkron':''));
 return;
@@ -407,7 +503,10 @@ if(usedPartId&&!await Servis.applyStockUsage(usedPartId,usedPartQty))return;
 const servisId=uid();
 const txId=uid();
 D.transactions.push({id:txId,type:'expense',amount:cost,category:resolveVehicleTxCategory(veh),subcategory:'Servis & Oli',accountId:accId,payMethod:'tunai',note:noteFull,date,servisLinkId:servisId});
-D.servisLogs.push({id:servisId,vehicleId:curVehicleId,date,item,categoryId:catIdForLog,km,cost,note,accountId:accId,txLinkId:txId,usedPartId:usedPartId||null,usedPartQty:usedPartId?usedPartQty:0});
+D.servisLogs.push({id:servisId,vehicleId:curVehicleId,date,item,categoryId:catIdForLog,km,cost,note,accountId:accId,txLinkId:txId,usedPartId:usedPartId||null,usedPartQty:usedPartId?usedPartQty:0,catalogPartId:catalogPartId||null,catalogPartQty:catalogPartId?catalogPartQty:0,catalogPartOemCode:catalogPartId?catalogPartOemCode:''});
+if(typeof VehicleCatalogServisLink!=='undefined'&&VehicleCatalogServisLink&&typeof VehicleCatalogServisLink.attachToServis==='function'){
+VehicleCatalogServisLink.attachToServis(servisId,catalogPartId?[{catalogId:catalogPartId,qty:catalogPartQty}]:[]);
+}
 save();closeModal('servisModal');renderCnTab();renderDashboard();renderKeuangan();Sparepart.renderStockList();Sparepart.renderCatList();
 if(newCatCreated){
 toast(`✅ Catatan servis tersimpan, "${item}" ditambahkan ke Pengingat Servis (tiap ${intervalKm.toLocaleString('id-ID')} km)`);

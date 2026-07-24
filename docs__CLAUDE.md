@@ -10343,3 +10343,29 @@ region antara `#eieWrap`→`#crossDashWrap` & `#lifePriorityWrap`→
 `#dashboardHubPinnedWrap` tempat 6 id ini ditemukan — audit id lain di
 luar 2 region itu belum dilakukan, kandidat sesi lanjutan kalau user
 masih merasa panjang setelah fix ini).
+
+---
+
+## Catatan kerja — Sesi 173b (2026-07-23): Daftarkan 5 modal ke sweep test (coverage 91/91)
+
+**Target:** Hasil "Tes Buka/Tutup Modal" user lapor 1 bermasalah — 5 modal
+ada di halaman tapi belum terdaftar ke sweep manapun: `fuelIntelModal`,
+`billMultiScanModal`, `universalOcrModal`, `fuelBarCorrectionModal`,
+`fuelTankProfileModal`.
+
+**Fix (`self-test.js`, `MODULE_METHOD_MODAL_SPECS`):** 5 entri baru.
+`FuelModal.open()`/`FuelBarCorrection.open()`/`FuelTankProfileUI.open()`
+dipanggil dgn `D.vehicles[0].id` (pola sama openers kendaraan lain yg
+sudah ada) — kalau belum ada profil tangki/kendaraan, otomatis kena
+`needsContext` (wajar, sama seperti 9 modal lain). `BillMultiScan`/
+`UniversalScan` alur aslinya nunggu file input (`onchange`), tidak bisa
+disimulasikan sweep tanpa file sungguhan — dipanggil `openModal()`/
+`closeModal()` langsung (bypass alur OCR, pola sama `openWaShare()` di
+`RISKY_OPENER_SPECS`), sweep memang cuma cek mekanika buka/tutup overlay.
+
+**Diverifikasi:** `node --test tests/*.test.js` → **447/447 pass, 0
+fail**. `node scripts/build.js` → sukses, versi naik 628→629, 3
+lint-guard bawaan lolos, kedua bundle lolos `node --check` sintaks,
+`index.html`/`app_production.html` identik, `FILE-MAP.md` diregenerasi.
+
+**Known Issue:** esbuild tetap tidak terpasang, bundle belum diminify.

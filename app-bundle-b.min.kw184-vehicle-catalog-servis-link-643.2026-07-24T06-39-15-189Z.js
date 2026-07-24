@@ -82,8 +82,8 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1')return true;
 }catch(e){ /* anggap bukan dev mode kalau gagal deteksi */ }
 return false;
 }
-const APP_BUILD_VERSION = 'kw184-vehicle-catalog-servis-link-646';
-const PRODUCTION_BUILD_SYNCED_VERSION = 'kw184-vehicle-catalog-servis-link-646';
+const APP_BUILD_VERSION = 'kw184-vehicle-catalog-servis-link-643';
+const PRODUCTION_BUILD_SYNCED_VERSION = 'kw184-vehicle-catalog-servis-link-643';
 let D = {
 schemaVersion:SCHEMA_VERSION,
 transactions:[],cobek:[],products:[],produsen:[],cobekKategori:JSON.parse(JSON.stringify(DEFAULT_COBEK_KATEGORI)),targets:[],eduFunds:[],reminders:[],bills:[],billsArchive:[],
@@ -9718,56 +9718,6 @@ async function vehicleCatalogHandleOcrLabel(text) {
 }
 
 // ------------------------------------------------------------------------
-// Tahap 6, Sesi 4 (ringkas) — rekomendasi part katalog berdasar kompatibilitas
-// kendaraan (vehicleId, dari D.vehicles — TIDAK dibaca langsung di sini,
-// sama seperti compatibleVehicleIds lainnya, cuma dicocokkan sebagai id
-// string) & jenis servis/kata kunci bebas (item, mis. isi field "Jenis
-// Servis/Item" di modal Servis). Pure read (reuse getAll() apa adanya,
-// TIDAK ada skema/store baru), dipakai UI Sesi 2 utk area rekomendasi
-// chip/list di servisModal.
-// ------------------------------------------------------------------------
-
-/** Rekomendasikan part katalog yang relevan untuk 1 kendaraan & (opsional)
- * jenis servis. `opts`: `{vehicleId, item, limit}` — semua opsional, tapi
- * kalau vehicleId & item dua-duanya kosong hasilnya array kosong (tidak
- * ada dasar rekomendasi apa pun, daripada menampilkan katalog acak).
- * Skoring ringan & murni (bukan ML/AI):
- * - Part yang compatibleVehicleIds-nya memuat vehicleId -> +2.
- * - Nama part ATAU kategori memuat kata kunci `item` (substring,
- *   case-insensitive) -> +1.
- * Part draft (isDraft:true) tidak pernah direkomendasikan (belum lengkap
- * datanya). Hasil disortir skor desc lalu nama part A-Z, dibatasi `limit`
- * (default 5, cukup utk chip list di 1 layar mobile). Async karena baca
- * IDBStore lewat ensureLoaded()/getAll() yang sudah ada. */
-async function vehicleCatalogRecommend(opts) {
-  opts = opts || {};
-  const vehicleId = (opts.vehicleId !== undefined && opts.vehicleId !== null && opts.vehicleId !== '')
-    ? String(opts.vehicleId) : '';
-  const itemQuery = (opts.item || '').toString().trim().toLowerCase();
-  const limit = (Number.isFinite(opts.limit) && opts.limit > 0) ? opts.limit : 5;
-  if (!vehicleId && !itemQuery) return [];
-  await vehicleCatalogEnsureLoaded();
-  const scored = VehicleCatalogStore.items
-    .filter((it) => !it.isDraft)
-    .map((it) => {
-      let score = 0;
-      const compat = Array.isArray(it.compatibleVehicleIds) ? it.compatibleVehicleIds : [];
-      if (vehicleId && compat.some((id) => sameId(id, vehicleId))) score += 2;
-      if (itemQuery) {
-        const inName = (it.partName || '').toLowerCase().includes(itemQuery);
-        const inCat = (it.category || '').toLowerCase().includes(itemQuery);
-        if (inName || inCat) score += 1;
-      }
-      return { item: it, score };
-    })
-    .filter((row) => row.score > 0)
-    .sort((a, b) => b.score - a.score || (a.item.partName || '').localeCompare(b.item.partName || ''))
-    .slice(0, limit)
-    .map((row) => row.item);
-  return scored;
-}
-
-// ------------------------------------------------------------------------
 // Namespace publik — pola sama seperti AIBus/AIContext (const object,
 // perlu expose eksplisit ke window karena Node vm & browser non-module
 // script TIDAK otomatis menempelkan binding const/let ke global object).
@@ -9787,7 +9737,6 @@ const VehicleCatalog = {
   resolveDraft: vehicleCatalogResolveDraft,
   parseLabelText: vehicleCatalogParseLabelText,
   handleOcrLabel: vehicleCatalogHandleOcrLabel,
-  recommend: vehicleCatalogRecommend,
   ensureLoaded: vehicleCatalogEnsureLoaded,
   getStore: vehicleCatalogGetStore,
   invalidateCache: vehicleCatalogInvalidateCache,

@@ -1,3 +1,461 @@
+# Changelog — Sesi 180 (Tahap 6B2): snapshot catalogPartId/catalogPartQty/catalogPartOemCode di D.servisLogs
+
+Target sesi ini (dari `kw_release_sesi179_tahap6B1.zip`, sempit &
+eksplisit): simpan referensi katalog ke `D.servisLogs` sebagai 3 field
+opsional — `catalogPartId`, `catalogPartQty`, `catalogPartOemCode`. Tidak
+audit ulang repo, tidak bikin blueprint/ACR, tidak ubah BP-015/ADR/
+Governance/business logic existing (`usedPartId`, mekanisme stok,
+backup lama tidak disentuh).
+
+Ini TERPISAH & ADDITIF dari mekanisme `catalogPartRefs` (array
+`{catalogId, qty}[]`, Tahap 6 Sesi 1, `modules/vehicle/vehicle-catalog-servis-link.js`
+— TIDAK diubah sesi ini, tetap dipanggil apa adanya). `catalogPartRefs`
+tetap jadi sumber kebenaran untuk multi-part + resolve live ke
+`VehicleCatalog`; 3 field flat baru ini murni snapshot ringan langsung di
+`D.servisLogs` (pola sama persis `usedPartId`/`usedPartQty` yang sudah
+ada sejak awal Car Notes), supaya nama/OEM code part yang dipakai tetap
+terbaca cepat/langsung dari 1 catatan servis tanpa resolve async, bahkan
+kalau part itu nanti dihapus dari katalog.
+
+Perubahan di `car-notes.js` (`Servis._saveInner`, jalur simpan BARU &
+EDIT):
+- `catalogPartId`: id part katalog terpilih (dari elemen
+  `servisCatalogPartId`, sudah ada) atau `null` kalau tidak pilih.
+- `catalogPartQty`: jumlah (dari `servisCatalogPartQty`) atau `0` kalau
+  `catalogPartId` kosong.
+- `catalogPartOemCode` (BARU): kode OEM part terpilih — dibaca SINKRON
+  dari atribut `data-oem` opsi `<option>` yang sedang terpilih (bukan
+  panggilan `VehicleCatalog` baru/async tambahan, supaya tidak ada
+  risiko IDB/timing baru di jalur simpan). `Servis.populateCatalogPartSelect()`
+  ditambah 1 atribut `data-oem="..."` per `<option>` (sebelumnya cuma
+  ditampilkan sbg teks di label opsi) supaya bisa dibaca balik saat
+  simpan.
+
+`VehicleCatalogServisLink.attachToServis()` (mekanisme `catalogPartRefs`)
+tetap dipanggil persis seperti sebelumnya, tidak diubah. `usedPartId`/
+`usedPartQty`/`Servis.applyStockUsage()`/`Servis.revertStockUsage()`
+(mekanisme stok `D.partsStock`) tidak disentuh sama sekali — diverifikasi
+lewat test baru.
+
+`tests/vehicle-catalog-servis-snapshot.test.js` (**baru**, 7 test): load
+`car-notes.js` ASLI (bukan reimplementasi) via `helpers/loadSource.js`,
+mock DOM ringan (pola sama `tests/tx-bbm-finance-integration.test.js`).
+Cakupan: part dipilih -> 3 field tersimpan sesuai form; tidak pilih part
+-> optional (`null`/`0`/`''`, bukan `undefined`); `usedPartId`/stok
+`D.partsStock` tidak terpengaruh field katalog baru; `VehicleCatalogServisLink.attachToServis`
+tetap terpanggil (mekanisme lama tidak hilang); edit entri existing ->
+field ter-update di tempat (bukan entri baru), termasuk kasus hapus
+pilihan part saat edit; guard elemen `servisCatalogPartId` tidak ada di
+DOM -> tidak error, default optional.
+
+`node --test tests/*.test.js`: **551/551 PASS** (naik dari 544, 2x —
+sebelum & sesudah build). `node scripts/build.js`: SUKSES, lolos semua
+lint guard, `?v=646`, `index.html`/`app_production.html` identik. Tidak
+ada file backup lama yang diubah/dihapus (backup baru dari build
+ditambahkan apa adanya ke `backups/`, mekanisme build yang sudah ada,
+tidak diubah sesi ini).
+
+# Changelog — Vehicle Catalog Tahap 6 (Sesi 1/3): jembatan D.servisLogs <-> VehicleCatalog (murni logic, TANPA UI)
+
+Konteks: User minta Tahap 6 ("integrasi Vehicle Catalog ke Car Notes riwayat
+servis: pilih part dari katalog saat catat servis, simpan referensi part/
+jumlah/kode OEM, rekomendasi part berdasar jenis kendaraan & jenis servis")
+dipecah jadi 3 sesi, ringan dulu. Dipecah jadi: **Sesi 1 (ini)** — simpan
+referensi part/jumlah/kode OEM, murni logic tanpa UI; **Sesi 2** — UI picker
+"Pilih dari Katalog" di `servisModal` + tampilan part terlampir; **Sesi 3** —
+rekomendasi part berdasar jenis kendaraan & jenis servis (engine baru).
+
+File baru: `modules/vehicle/vehicle-catalog-servis-link.js` — jembatan MURNI
+LOGIC antara `D.servisLogs` (dimiliki car-notes.js, field baru opsional
+additive `catalogPartRefs: {catalogId, qty}[]`) dan `VehicleCatalog`
+(IDBStore terpisah, hanya dibaca lewat `getById()`, guard typeof, TIDAK
+pernah ditulis dari sini — konsisten ACR-001). 5 fungsi publik
+(`VehicleCatalogServisLink`): `normalizeRefs()` (murni, validasi+default
+qty), `getServisRefs()`/`attachToServis()`/`detachFromServis()` (baca/tulis
+`D.servisLogs` langsung, TIDAK memanggil `save()` global — caller yang
+menyimpan, supaya 1 titik `save()` per alur nanti di Sesi 2 & modul ini
+tetap dites tanpa mock `save()`), `resolveServisParts()` (async, resolve
+referensi jadi data part LENGKAP live dari `VehicleCatalog.getById()` —
+part yang sudah dihapus dari katalog dilaporkan jujur `item:null`, BUKAN
+otomatis dibuang dari `catalogPartRefs` supaya qty/riwayat tidak hilang
+diam-diam). Tidak ada perubahan skema/storage `VehicleCatalog` itu sendiri,
+tidak ada perubahan `car-notes.js`/`sparepart-servis.js` (dipakai mulai
+Sesi 2), tidak ada modal/UI baru.
+
+Registrasi baru di `scripts/build.js` (GROUP_B, setelah
+`vehicle-catalog-import-ui.js`).
+
+`tests/vehicle-catalog-servis-link.test.js` (**baru**, 18 test): D & Vehicle
+Catalog di-mock via `extraGlobals` — cakupan normalisasi ref, backward
+compatibility (entri servis lama tanpa `catalogPartRefs`), replace-total
+attach, idempotent detach, resolve live (termasuk part terhapus & guard
+`VehicleCatalog`/`D.servisLogs` belum ada). Catatan teknis: dipakai helper
+`deq()` (bandingkan lewat `JSON.stringify`) alih-alih
+`assert.deepEqual`/`deepStrictEqual` langsung untuk array of objects hasil
+dari sandbox `vm` — objek yang dibuat DI DALAM `vm.Script` memakai
+Object/Array prototype REALM `vm` itu sendiri (beda identity dari realm
+Node test biasa walau propertinya identik), jadi `deepStrictEqual`
+(dipakai `node:assert/strict`) gagal palsu kalau dibandingkan objek demi
+objek. Pola `Array.from()` yang sudah dipakai `tests/vehicle-catalog.test.js`
+cukup untuk array primitif, tapi tidak cukup untuk array of objects — jadi
+sesi ini menambah helper JSON-based yang lebih umum.
+
+`node --test tests/*.test.js`: **539/539 PASS** (naik dari 521, 2x —
+sebelum & sesudah build). `node scripts/build.js kw184-vehicle-catalog-servis-link-642`:
+SUKSES, lolos semua lint guard, `?v=642`, `index.html`/`app_production.html`
+identik.
+
+Tahap 6 Sesi 2 (UI picker) & Sesi 3 (rekomendasi part) belum dikerjakan di
+sesi ini.
+
+# Changelog — Vehicle Catalog Tahap 5: Import Katalog (PDF → OCR → Parser → Preview → Import)
+
+Project Decision sesi ini: menu **"Import Katalog"** baru di dalam
+`catalogModal`, alur PDF → OCR → Parser → Preview → Import, TIDAK
+langsung mengubah database tanpa preview & konfirmasi user.
+
+2 file baru:
+- `modules/vehicle/vehicle-catalog-import.js` (logic murni): lazy-load
+  pdf.js (`@zxing/library`-style CDN pattern, keputusan teknis wajib
+  krn repo belum pernah baca PDF sama sekali — didokumentasikan di
+  header file, sama pola dgn keputusan ZXing di Tahap 2).
+  `extractPdfText(file)` coba text layer natif pdf.js per halaman dulu,
+  fallback render-ke-canvas + `ocrRecognize()` (Tesseract, REUSE penuh
+  dari `scan-ocr.js`, guard typeof) kalau halaman itu hasil scan/gambar
+  (teks natif < 10 karakter). `parseCatalogRow(line)`/`parseCatalogRows(text)`
+  — 1 baris = 1 kandidat part, REUSE `VehicleCatalog.parseLabelText()`
+  utk OEM code/barcode (guard typeof), + 1 regex baru khusus harga
+  ("Rp50.000"/"35rb"). `commitRows(rows)` — commit HANYA baris yang
+  dikirim (tanggung jawab UI mengirim baris yang sudah dicentang user
+  setelah preview), reuse `VehicleCatalog.create()` apa adanya per baris,
+  0 validasi/skema baru.
+- `modules/vehicle/vehicle-catalog-import-ui.js` (presenter DOM saja):
+  modal baru `vehCatalogImportModal` (`MODAL_HTML[77]`, aditif — index
+  0-76 lama tidak berubah) — pilih file PDF → status baca → preview
+  per-baris (checkbox include, default tercentang, nama/OEM/harga bisa
+  diedit inline) → tombol "Import yang Dicentang" (pakai `askConfirm()`
+  yang sudah ada) baru memanggil `commitRows()`. Tombol entry point
+  "📋 Import Katalog" ditambah di baris tombol Scan/Tambah Manual
+  `catalogModal` (aditif, tombol lama tidak diubah).
+
+`tests/vehicle-catalog-import.test.js` (**baru**, 10 test): cakupan
+`parseCatalogRow()`/`parseCatalogRows()`/`commitRows()` — bagian
+PDF.js/OCR/kamera sungguhan tetap di luar cakupan harness `node:vm`
+(butuh browser nyata), konsisten pola existing (lihat catatan di file
+itu & `vehicle-scanner.test.js`).
+
+`node --test tests/*.test.js`: **521/521 PASS** (sebelum & sesudah
+build). `node scripts/build.js`: SUKSES, build
+`kw183-vehicle-catalog-ocr-label-parse-641`, guard lint (escapeHtml/
+u-dnone/Tesseract) semua PASS. Registrasi baru di `scripts/build.js`
+(GROUP_B, domain vehicle) & `MODAL_HTML` di `modules/shared/modals.js`
+— TIDAK ada perubahan pada `BP-015.md`, ADR, Governance, atau business
+logic existing (`VehicleCatalog.create()`/storage/skema part TIDAK
+diubah, hanya dipanggil apa adanya dari `commitRows()`).
+
+Tahap 6 (integrasi Vehicle Catalog ke Car Notes — pilih part dari
+katalog saat catat servis, simpan referensi part/jumlah/kode OEM,
+rekomendasi part berdasar jenis kendaraan & jenis servis) belum
+dikerjakan di sesi ini.
+
+# Changelog — Vehicle Catalog Tahap 2: Scanner kamera FULLSCREEN (Project Decision)
+
+Project Decision sesi ini menetapkan detail Tahap 2 yang sebelumnya
+"ringkas" (single-shot file input): **kamera fullscreen, live continuous
+scan**, mendukung **Barcode + QR Code + DataMatrix**. `modules/vehicle/
+vehicle-scanner.js` diubah total dari pola 1-foto (`input[type=file]` +
+`decodeFromImageUrl`) menjadi:
+- `reader.decodeFromConstraints({video:{facingMode:'environment'}}, ...)`
+  (fallback `decodeFromVideoDevice(undefined,...)` kalau constraints
+  ditolak) — live scan terus-menerus sampai kode ketemu atau user tutup.
+- Hint eksplisit `ZXing.DecodeHintType.POSSIBLE_FORMATS` mencakup
+  QR_CODE + DATA_MATRIX + barcode 1D umum (CODE_128/CODE_39/EAN_13/
+  EAN_8/UPC_A/UPC_E/ITF/CODABAR) + `TRY_HARDER:true` — DataMatrix TIDAK
+  aktif secara default di ZXing tanpa hint ini.
+- Overlay fullscreen dibuat dinamis (`vehicleScannerBuildOverlay()`):
+  `<video>` + bingkai target + tombol tutup, dilepas total dari DOM
+  setelah scan selesai/dibatalkan. CSS baru aditif di `styles.css`
+  (`.vehicle-scanner-fullscreen` dkk, token `--z-scanner` baru + token
+  spacing/warna/radius yang sudah ada) — tidak ada selector lama diubah.
+- `vehicleScannerHandleResult(code)` / integrasi ke `VehicleCatalog.
+  handleScan()` & `VehicleCatalogUI.onScanResult()` **tidak diubah**.
+- `vehicleScannerErrorMessage()` ditambah 1 cabang (`NotAllowedError`/
+  izin kamera ditolak → pesan jelas), cabang lain tetap sama.
+
+`tests/vehicle-scanner.test.js`: +5 test (9, naik dari 4) — cakupan
+`vehicleScannerBuildHints()` (format & TRY_HARDER) + cabang izin kamera
+di `vehicleScannerErrorMessage()`. Bagian kamera/video sungguhan tetap
+di luar cakupan harness `node:vm` (butuh browser nyata), konsisten
+dengan pola existing (lihat komentar di file test).
+
+`node --test tests/*.test.js`: **511/511 PASS**. `node scripts/build.js`:
+SUKSES, build `kw183-vehicle-catalog-ocr-label-parse-640`. Tidak ada
+perubahan pada `BP-015.md`, ADR, Governance, atau business logic
+existing (`VehicleCatalog.handleScan()`, storage, dsb) — sesuai batasan
+sesi ini.
+
+Tahap 5 (Import Katalog: PDF → OCR → Parser → Preview → Import) dan
+Tahap 6 (integrasi Vehicle Catalog ke Car Notes riwayat servis) belum
+dikerjakan di sesi ini — di luar cakupan giliran kerja saat ini.
+
+# Changelog — TASK-007: Vehicle Catalog — Tahap 3 OCR label kemasan (logic saja, ringkas)
+
+Lanjutan ringkas. Tambah 2 fungsi murni ke
+`modules/vehicle/vehicle-catalog.js`:
+- `parseLabelText(text)` — regex saja, cari OEM Code (token alfanumerik
+  campuran huruf+angka, 5-30 karakter) & barcode (deret 8-14 digit) dari
+  teks. Tidak ketemu -> string kosong, tidak error.
+- `handleOcrLabel(text)` — reuse `parseLabelText()` + `findByCode()`,
+  pola SAMA PERSIS `handleScan()` (TASK-005): kode cocok part existing
+  -> `{found:true, item}`; tidak cocok -> draft otomatis (`isDraft:true`,
+  oemCode/barcode apa adanya, TIDAK ada data imajinasi lain) ->
+  `{found:false, item, draft:true}`; tidak ada kode terdeteksi -> tidak
+  membuat apa pun, `{found:false, item:null, error}`.
+
+Reuse OCR engine yang SUDAH ADA (`ocrRecognize()`/Tesseract,
+`modules/shared/scan-ocr.js`) — TIDAK ada library/keputusan produk baru
+(beda dari Tahap 2 Scanner kamera sungguhan yang MASIH butuh pilihan
+library barcode/QR). Kamera/upload foto label & pemanggilan
+`ocrRecognize()` itu sendiri TETAP di luar cakupan (butuh UI Phase 2).
+
+`tests/vehicle-catalog.test.js` +7 test (55, naik dari 48). Catatan
+teknis: 1 assersi hasil objek kosong lintas-realm sandbox `vm` diganti
+dari `deepEqual` jadi perbandingan field satu-satu (pola sama masalah
+array-kosong Sesi 78/84). `node --test`: **506/506 PASS** (2x — sebelum
+& sesudah build). `node scripts/build.js`: SUKSES, build
+`kw183-vehicle-catalog-ocr-label-parse-639`.
+
+Tahap 2 (kamera/library scan sungguhan), Tahap 5 (import massal PDF),
+Tahap 6 (integrasi Car Notes) tetap butuh UI/wiring page baru &
+keputusan produk — di luar cakupan ringkas.
+
+---
+
+# Changelog — TASK-006: Vehicle Catalog — getDrafts()/resolveDraft() (lanjutan ringan)
+
+Lanjutan ringan dari TASK-005. `handleScan()` sudah otomatis buat draft
+part kalau kode tidak ditemukan, tapi belum ada cara mensurvei atau
+menyelesaikan draft itu. Tambah 2 fungsi murni ke
+`modules/vehicle/vehicle-catalog.js`:
+- `getDrafts()` — daftar part dgn `isDraft:true` saja.
+- `resolveDraft(id, patch)` — merge `patch` (mis. `partName`/`category`
+  asli) ke draft lalu paksa `isDraft:false`; reuse `update()`/
+  `validate()` apa adanya (0 validasi baru). id tidak ditemukan atau
+  part bukan draft -> ditolak eksplisit, tidak menulis apa pun.
+
+Skema/storage key/backup-restore/build.js TIDAK berubah. `tests/
+vehicle-catalog.test.js` +5 test (48, naik dari 43). `node --test`:
+**499/499 PASS** (2x, sebelum & sesudah build, naik dari 494 total).
+`node scripts/build.js`: SUKSES, build
+`kw182-vehicle-catalog-draft-helpers-638`.
+
+Tahap 2 (kamera/library scan sungguhan), 3 (OCR), 5 (import massal PDF),
+6 (integrasi Car Notes) tetap butuh UI/wiring page baru & keputusan
+produk — di luar cakupan ringkas.
+
+---
+
+# Changelog — TASK-005: Vehicle Catalog — Tahap 2 (logic hasil scan, ringkas)
+
+Lanjutan ringkas. Tambah `VehicleCatalog.handleScan(code)` di
+`modules/vehicle/vehicle-catalog.js` — terima STRING kode hasil decode
+scanner (barcode/QR/DataMatrix), BUKAN implementasi kamera/library scan
+itu sendiri (itu butuh keputusan produk terpisah, di luar cakupan
+"ringkas"). Reuse `findByCode()`: kode cocok -> `{found:true, item}`
+(part existing). Kode tidak cocok -> otomatis buat draft part via
+`create()` (`isDraft:true`, `partName:'Draft — belum diberi nama'`,
+`category:'Belum Dikategorikan'`, `barcode`=kode apa adanya, TIDAK ada
+data imajinasi lain) -> `{found:false, item, draft:true}`. Kode kosong
+-> tidak membuat apa pun, `{found:false, item:null, error}`. Field
+`isDraft` (boolean, default `false`) ditambah ke skema.
+`tests/vehicle-catalog.test.js` +4 test (43, naik dari 39). `node
+--test`: **490/490 PASS**. `node scripts/build.js`: SUKSES, build
+`kw171-vehicle-daily-brief-redundansi-634`.
+
+Sisa (Tahap 2 kamera/library scan sungguhan, Tahap 3 OCR, Tahap 5
+import massal PDF, Tahap 6 integrasi Car Notes) tetap butuh UI/wiring
+page baru & keputusan produk — di luar cakupan ringkas.
+
+---
+
+# Changelog — TASK-004: Vehicle Catalog — Tahap 4 (kelengkapan field database part, ringkas)
+
+Lanjutan ringkas dari TASK-003. Tambah field opsional ke skema part di
+`modules/vehicle/vehicle-catalog.js`: `aftermarketCode`, `price`
+(angka >= 0), `supplier`, `location`, `serviceNotes` — sesuai Tahap 4
+roadmap ("OEM Code, Aftermarket Code, ..., Harga, Supplier, Lokasi
+penyimpanan, ..., Catatan servis"). Semua opsional, kosong -> `''`/
+`null` (bukan halusinasi data). Storage key/CRUD/search/backup-restore/
+build.js TIDAK berubah. `tests/vehicle-catalog.test.js` +9 test (39,
+naik dari 35). `node --test`: **486/486 PASS**. `node scripts/build.js`:
+SUKSES, build `kw171-vehicle-daily-brief-redundansi-633`.
+
+Tahap 2 (Scanner), 3 (OCR), 5 (import massal PDF), 6 (integrasi Car
+Notes) tetap belum dikerjakan — butuh UI/wiring page baru & keputusan
+produk (library scanner, lokasi tab UI, dsb).
+
+---
+
+# Changelog — TASK-003: Vehicle Catalog Milestone 0 Phase 1 — pivot ke katalog SUKU CADANG (Tahap 1)
+
+## Konteks (sesi ini)
+
+Permintaan user: roadmap 6 tahap fitur suku cadang (Fondasi CRUD+search+
+filter+foto+backup, Scanner barcode/QR/DataMatrix, OCR label kemasan,
+Database OEM Honda, Import massal PDF, Integrasi Car Notes). Verifikasi
+ulang menemukan `modules/vehicle/vehicle-catalog.js` (TASK-002, Phase 1
+sebelumnya) menyimpan skema **katalog referensi KENDARAAN**
+(name/jenis/brand/year/plateNumber) — TIDAK cocok dengan Tahap 1 yang
+diminta (search nama part/OEM Code/barcode, filter kendaraan+kategori,
+multi foto). Dikonfirmasi ke user: pilih **ubah/perluas modul existing**
+(bukan modul terpisah baru) menjadi katalog suku cadang.
+
+## Perubahan
+
+- `modules/vehicle/vehicle-catalog.js` — skema item diganti total:
+  `partName`, `category`, `oemCode`, `barcode`, `compatibleVehicleIds[]`
+  (referensi id ke `D.vehicles`, disimpan sbg string, TIDAK divalidasi ke
+  `D` dari modul ini — tetap sesuai batasan ACR-001 "tidak pernah
+  menyentuh D"), `photos[]` (maks 8, `VEHICLE_CATALOG_MAX_PHOTOS`),
+  `notes`. Field lama (jenis/brand/year/plateNumber) & konstanta
+  `VEHICLE_CATALOG_JENIS` **dihapus** (breaking change disengaja, sesuai
+  keputusan user — belum ada UI/data produksi yang bergantung padanya,
+  Phase 1 sebelumnya belum pernah dipakai/wired ke UI).
+  - `search(query, opts)` — substring case-insensitive di
+    `partName`/`oemCode`/`barcode`; `opts.category` (exact,
+    case-insensitive) & `opts.vehicleId` (cocok `compatibleVehicleIds`)
+    sebagai filter, bisa digabung (AND) dengan query.
+  - `findByCode(code)` **baru** — exact match (bukan substring) di
+    `barcode`/`oemCode`, disiapkan sbg bekal Tahap 2 Scanner ("jika kode
+    ditemukan -> buka data part").
+  - Storage key (`vehicle-catalog:store`), pola load/cache/save/
+    `invalidateCache`, serta integrasi `scripts/build.js` &
+    `modules/shared/backup-restore.js` **TIDAK berubah** — keduanya
+    bekerja di level store/file generik (JSON blob), bukan level skema
+    item, jadi tidak perlu disentuh ulang.
+- `tests/vehicle-catalog.test.js` — ditulis ulang penuh mengikuti skema
+  baru (35 test, naik dari 30 — tambahan cakupan `findByCode()` &
+  filter `category`/`vehicleId`).
+
+## Cakupan sesi ini vs roadmap 6 tahap
+
+Sesuai permintaan eksplisit user ("kerjakan yg ringan dulu"), HANYA
+Tahap 1 (Fondasi) yang dikerjakan: CRUD, search (nama part/OEM
+Code/barcode), filter (kendaraan/kategori), field foto (array, belum
+ada UI upload), integrasi backup/restore (sudah otomatis lewat store
+key generik). Tahap 2 (Scanner barcode/QR/DataMatrix), Tahap 3 (OCR
+label kemasan), Tahap 4 (kelengkapan field database OEM Honda: harga,
+supplier, lokasi penyimpanan, aftermarket code, catatan servis), Tahap
+5 (import massal PDF->OCR->parser->JSON), Tahap 6 (integrasi tampilan
+Car Notes) **BELUM dikerjakan** — semuanya butuh UI/wiring page baru
+(Phase 2+) yang di luar cakupan "ringan dulu" & butuh keputusan lokasi
+UI (kandidat: tab baru di `page:'carnotes'`, per rekomendasi
+`FOUNDATION_AUDIT.md` §4 — belum ada keputusan eksplisit).
+
+## Build & Test
+
+`node --test tests/*.test.js`: **482/482 PASS** (477 lama − 30 test
+lama file ini + 35 test baru, 2x — sebelum & sesudah build). `node
+scripts/build.js`: SUKSES, lolos semua lint guard, sintaks kedua bundle
+valid, `index.html`/`app_production.html` identik & `?v=` sinkron,
+build `kw171-vehicle-daily-brief-redundansi-632`.
+
+---
+
+# Changelog — TASK-002: Vehicle Catalog Milestone 0 Phase 1 (storage/CRUD/validation/search)
+
+## Konteks
+
+Sesi ini melanjutkan dari `docs/ai/AI_HANDOFF.md` (terakhir: TASK-001C,
+Blueprint Consolidation Plan). Verifikasi ulang terhadap repository
+menemukan **Vehicle Catalog belum pernah diimplementasikan** (tidak ada
+`vehicle-catalog.js`, test, atau entri build sebelumnya) — konsisten
+dengan `docs/ai/FOUNDATION_AUDIT.md` yang menyatakan hal sama.
+
+Sebelum menulis kode, ditemukan blocker arsitektur yang sudah tercatat di
+`BLUEPRINT_CONSOLIDATION_PLAN.md` §10 (lapisan bridge/adapter antara
+modul BP-015-compliant baru dan 358 file window-global existing —
+"Belum dimulai", "Blocking Milestone 0? Ya") beserta kontradiksi pola
+antara §7 (pola adapter existing) vs §9 (BP-015 forward-only, class/
+factory/`#field`/Registry). Dibuat `docs/architecture/ACR-001-vehicle-
+catalog-bridge.md`, dieskalasi ke Pemilik OS, **diputuskan: Opsi A**
+(pola existing repository — `window.X` + adapter function-call +
+`IDBStore` generik) khusus untuk fitur Vehicle Catalog. ACR-001 ditutup
+sebagai **Accepted by Project Owner**. Tidak ada perubahan pada
+`BP-015.md`/`ADR-022.md`..`ADR-026.md`/`IS-001.md`/`AR-001.md`/
+`DoD-001.md`/Governance.
+
+## Perubahan
+
+**2 file baru**, **3 file diubah** (di luar hasil `node scripts/build.js`
+yang menyentuh bundle/HTML/`sw.js`/`docs/FILE-MAP.md` secara otomatis):
+
+- `modules/vehicle/vehicle-catalog.js` (baru) — modul Vehicle Catalog
+  Milestone 0 Phase 1, fondasi murni (storage + CRUD + validation +
+  search), TANPA UI/tab baru (lihat catatan Phase 1 di bawah):
+  - Storage: `IDBStore.get/set('vehicle-catalog:store')` — reuse
+    `IDBStore` generik existing (`modules/asset/aset.js`), TIDAK
+    membuat IndexedDB/object store baru. Pola load/cache/save/
+    invalidateCache SAMA PERSIS `AIStore`/`LifeOSStore`/`EIEStore`
+    (`aiLoad`/`aiSave`/`aiGetStore`/`aiInvalidateCache` di
+    `ai-core.js`).
+  - CRUD: `create`/`update`/`remove`/`getAll`/`getById`, semua async,
+    validasi dijalankan sebelum tulis, `uid()`/`sameId()` di-reuse
+    (bukan skema id baru).
+  - Validation: `name` wajib (≤100 char), `jenis` wajib salah satu
+    `motor|mobil|listrik` (reuse taksonomi `vehicle-core.js`), `year`
+    opsional (1950–tahun berjalan+1), `brand`/`plateNumber`/`notes`
+    opsional dgn batas panjang.
+  - Search: substring case-insensitive di `name`/`brand`/`plateNumber`,
+    filter opsional `jenis`.
+  - Diekspos via `window.VehicleCatalog` (const object + explicit
+    window export, pola sama `AIBus`/`AIContext`).
+  - TIDAK menyentuh `D`, `D.vehicles`, `curVehicleId`/`selectVehicle()`
+    — data Vehicle Catalog terpisah total dari data operasional
+    kendaraan existing (proteksi sesuai `FOUNDATION_AUDIT.md` §6).
+- `tests/vehicle-catalog.test.js` (baru) — 30 test: storage key, validasi
+  (lengkap semua field & batas), create/update/remove, getAll/getById,
+  search (query/jenis/gabungan), caching load (`ensureLoaded`/
+  `invalidateCache`), normalisasi data korup dari versi lama.
+- `scripts/build.js` — 1 entri baru di GROUP_B:
+  `modules/vehicle/vehicle-catalog.js`, ditaruh setelah
+  `vehicle-core.js` (dependency `uid()`/`sameId()`/`IDBStore` sudah
+  dimuat lebih dulu di blok atas).
+- `modules/shared/backup-restore.js` — `vehicle-catalog:store`
+  didaftarkan manual ke `buildBackupPayload()` (field
+  `_vehicleCatalogStore`) & `applyRestoredData()` (tulis ulang ke
+  IndexedDB + `vehicleCatalogInvalidateCache()` via guard
+  `typeof===  'function'`), pola SAMA PERSIS `lifeos:store`/`eie:store`
+  — wajib manual sesuai `FOUNDATION_AUDIT.md` §3, kalau tidak data tidak
+  ikut backup/restore.
+- `docs/architecture/ACR-001-vehicle-catalog-bridge.md` (baru) — ACR
+  yang dieskalasi & ditutup Accepted (lihat Konteks di atas).
+
+## Catatan Phase 1 (sengaja TANPA UI)
+
+Sesuai scope "Milestone 0 Phase 1" (storage/CRUD/validation/search),
+sesi ini **tidak** menambah tab baru di `page:'carnotes'`, tidak
+mengubah `index.html`/`app_production.html` isi HTML-nya (hanya
+`?v=` ikut naik lewat `build.js`, otomatis, bukan perubahan manual),
+dan tidak menyentuh `modules/dashboard-hub/dashboard-hub-registry.js`
+(`FEATURE_REGISTRY`) — konsisten dengan precedent `ai-core.js` Sesi 1
+("fondasi murni dulu, wiring UI menyusul di fase berikutnya") dan
+rekomendasi `FOUNDATION_AUDIT.md` §4 yang menyatakan keputusan lokasi
+UI final "menunggu Blueprint/Milestone 0" — bukan kelalaian, dicatat
+eksplisit sebagai lingkup Phase 2 berikutnya.
+
+## Test & Build
+
+- **477/477 test PASS** (447 lama + 30 baru, 0 regresi) —
+  `node --test tests/*.test.js`, dijalankan sebelum & sesudah build.
+- Build: `node scripts/build.js` sukses, lolos seluruh lint guard
+  (u-dnone, escapeHtml, OCR chicken-egg), sintaks kedua bundle valid,
+  `index.html`/`app_production.html` identik & sinkron `?v=`. Versi baru:
+  `kw171-vehicle-daily-brief-redundansi-631` (dari `629`, lalu re-run build menaikkan ke `631`).
+  Bundle terverifikasi memuat `VehicleCatalog`/`vehicle-catalog:store`.
+
+---
+
 # Changelog — Sesi 171: PiutangUtangInsight ikut cek cicilan barang jatuh tempo
 
 ## Konteks
