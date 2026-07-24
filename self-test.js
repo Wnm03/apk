@@ -1821,6 +1821,22 @@ call:()=>{ GoldImport.open(); }},
 call:()=>{ GoldZakat.open(); }},
 {label:'Etalase.openMergeModal()',id:'mergeProductModal',
 call:()=>{ Etalase.openMergeModal(); }},
+{label:'FuelModal.open()',id:'fuelIntelModal',
+call:()=>{ const v=D.vehicles[0]; FuelModal.open(v?v.id:undefined); }},
+{label:'FuelBarCorrection.open()',id:'fuelBarCorrectionModal',
+call:()=>{ const v=D.vehicles[0]; FuelBarCorrection.open(v?v.id:undefined); }},
+{label:'FuelTankProfileUI.open()',id:'fuelTankProfileModal',
+call:()=>{ const v=D.vehicles[0]; FuelTankProfileUI.open(v?v.id:undefined); }},
+// BillMultiScan/UniversalScan: alur asli nunggu file input (onchange), tidak bisa
+// disimulasikan sweep tanpa file sungguhan -- sweep cuma cek mekanika buka/tutup
+// overlay (bukan alur OCR-nya), jadi panggil openModal/closeModal langsung, pola
+// sama seperti openWaShare() di RISKY_OPENER_SPECS yang juga bypass alur aslinya.
+{label:'BillMultiScan (buka overlay)',id:'billMultiScanModal',
+call:()=>{ openModal('billMultiScanModal'); },
+close:()=>{ closeModal('billMultiScanModal'); }},
+{label:'UniversalScan (buka overlay)',id:'universalOcrModal',
+call:()=>{ openModal('universalOcrModal'); },
+close:()=>{ closeModal('universalOcrModal'); }},
 ];
 function computeModalSweepCoverageResults(){
 const allIds=Array.from(document.querySelectorAll('.overlay,.qs-modal-overlay,.calc-overlay'))

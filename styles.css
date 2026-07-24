@@ -19,7 +19,7 @@
 }
 [data-theme="fresh"] {  --bg:#f4f6fb;--surface:#ffffff;--surface2:#eef1fa;--surface3:#e6eaf6;--surface4:#dde2f2;  --accent:#6c7fee;--accent-soft:rgba(108,127,238,0.12);  --accent2:#ff8a80;--accent2-soft:rgba(255,138,128,0.12);  --accent3:#4fc9a8;--accent3-soft:rgba(79,201,168,0.12);  --accent4:#ffb454;--accent4-soft:rgba(255,180,84,0.12);  --text:#292d45;--text2:#6a7099;--text3:#5b6089;  --border:rgba(41,45,69,0.08);--border2:rgba(41,45,69,0.13);  --header-bg:rgba(244,246,251,0.85);--shadow-card:0 8px 24px rgba(99,102,241,0.10);
 }
-:root {  --z-chrome:100; --z-dropdown:150; --z-overlay:200; --z-overlay-qs:300; --z-overlay-calc:400; --z-security:900; --z-onboard:950; --z-toast:999;  --money-pos:#16a34a;--money-neg:#dc2626;--alert:#ff5050;--alert-soft:rgba(255,80,80,.15);  --sp-1: 4px; --sp-2: 6px; --sp-3: 8px; --sp-4: 10px; --sp-5: 14px;  --sp-6: 16px; --sp-7: 18px; --sp-8: 20px; --sp-9: 24px; --sp-10: 28px; --sp-11: 36px;  --r-xs: 8px; --r-sm: 10px; --r-md: 14px; --r-lg: 16px; --r-xl: 18px;  --r-2xl: 20px; --r-pill: 24px; --r-full: 999px;  --fs-caption: 11px; --fs-label: 12px; --fs-body: 13px; --fs-body-lg: 14px;  --fs-title-sm: 15px; --fs-icon: 16px; --fs-title: 17px; --fs-icon-lg: 18px; --fs-stat: 20px;
+:root {  --z-chrome:100; --z-dropdown:150; --z-overlay:200; --z-overlay-qs:300; --z-overlay-calc:400; --z-security:900; --z-onboard:950; --z-scanner:970; --z-toast:999;  --money-pos:#16a34a;--money-neg:#dc2626;--alert:#ff5050;--alert-soft:rgba(255,80,80,.15);  --sp-1: 4px; --sp-2: 6px; --sp-3: 8px; --sp-4: 10px; --sp-5: 14px;  --sp-6: 16px; --sp-7: 18px; --sp-8: 20px; --sp-9: 24px; --sp-10: 28px; --sp-11: 36px;  --r-xs: 8px; --r-sm: 10px; --r-md: 14px; --r-lg: 16px; --r-xl: 18px;  --r-2xl: 20px; --r-pill: 24px; --r-full: 999px;  --fs-caption: 11px; --fs-label: 12px; --fs-body: 13px; --fs-body-lg: 14px;  --fs-title-sm: 15px; --fs-icon: 16px; --fs-title: 17px; --fs-icon-lg: 18px; --fs-stat: 20px;
   --dur-fast: 100ms; --dur-base: 150ms; --dur-moderate: 200ms; --dur-slow: 250ms;
   --ease-standard: cubic-bezier(.2,0,0,1); --ease-emphasized: cubic-bezier(.3,0,.1,1); --ease-emphasized-accel: cubic-bezier(.3,0,.8,.15);
   /* === Polish pass (kw-visual-refresh): sistem elevasi 2-lapis (ambient + contact) & gradient
@@ -1214,6 +1214,20 @@ textarea.fi { resize: vertical; min-height: 80px; }
 @keyframes slideDown { from { transform: translateY(0); opacity: 1; } to { transform: translateY(40px); opacity: .4; } }
 .overlay.closing, .calc-overlay.closing { animation: overlayOut var(--dur-moderate) var(--ease-standard) forwards; }
 .overlay.closing .modal, .calc-overlay.closing .calc-modal { animation: slideDown var(--dur-slow) var(--ease-emphasized) forwards; }
+
+/* ===== Vehicle Catalog — Tahap 2: Scanner kamera fullscreen (Barcode/QR/
+   DataMatrix, ZXing-JS) =====
+   Aditif murni, pakai token yang sudah ada (--z-scanner/--sp-*/--r-*/
+   --fs-*/--accent/--surface3/--border2/--dur-*/--ease-*). Tidak ada
+   selector lama yang diubah. Dibuat dinamis lewat JS (vehicle-scanner.js),
+   bukan markup statis index.html — konsisten dengan pola elemen dinamis
+   lain (mis. input file di scan-ocr.js). */
+.vehicle-scanner-fullscreen{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;background:#000;z-index:var(--z-scanner);display:flex;flex-direction:column;}
+.vehicle-scanner-video{flex:1;width:100%;height:100%;object-fit:cover;background:#000;}
+.vehicle-scanner-frame{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(78vw,320px);height:min(48vw,200px);border:3px solid var(--accent);border-radius:var(--r-lg);box-shadow:0 0 0 2000px rgba(0,0,0,0.45);pointer-events:none;}
+.vehicle-scanner-hint{position:absolute;top:calc(50% + min(28vw,116px));left:50%;transform:translateX(-50%);color:#fff;font-size:var(--fs-body);font-weight:600;text-align:center;text-shadow:0 1px 4px rgba(0,0,0,0.6);padding:0 var(--sp-6);}
+.vehicle-scanner-close{position:absolute;top:calc(var(--sp-9) + env(safe-area-inset-top,0px));right:var(--sp-9);width:40px;height:40px;border-radius:var(--r-full);background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:#fff;font-size:var(--fs-icon-lg);display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(6px);}
+.vehicle-scanner-close:active{transform:scale(0.92);}
 
 /* ===== Finance 2.0 — Sprint 2 Tahap 1: FAB Halaman Keuangan =====
    Aditif murni, 100% pakai token yang sudah ada (--sp-*/--r-full/--r-lg/
