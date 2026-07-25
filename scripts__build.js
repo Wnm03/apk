@@ -283,6 +283,20 @@ const GROUP_B = [
   // di atas) & openModal/closeModal/askConfirm/toast/escapeHtml sudah
   // dimuat lebih dulu.
   'modules/vehicle/vehicle-catalog-import-ui.js',
+  // vehicle-catalog-web-import.js (Tahap 6 — Import Katalog dari URL Web:
+  // fetch(url) -> Parser HTML -> Preview -> Import). App ini PWA
+  // client-side murni tanpa backend/proxy, jadi fetch(url) ke situs
+  // katalog pihak ketiga besar kemungkinan diblokir CORS — fallback-nya
+  // paste HTML manual, 1 parser dipakai utk kedua jalur (lihat komentar
+  // desain lengkap di file ini). Reuse VehicleCatalogImport.
+  // filterCompleteRows()/commitRows() (Tahap 5, file di atas) apa adanya
+  // utk preview-filter & commit — TIDAK ada logic commit baru.
+  'modules/vehicle/vehicle-catalog-web-import.js',
+  // vehicle-catalog-web-import-ui.js: lapisan DOM/presenter modal
+  // "vehCatWebImportModal" saja, dependency VehicleCatalogWebImport (file
+  // di atas), VehicleCatalogImport (Tahap 5) & openModal/closeModal/
+  // askConfirm/toast/escapeHtml sudah dimuat lebih dulu.
+  'modules/vehicle/vehicle-catalog-web-import-ui.js',
   // vehicle-catalog-servis-link.js (Vehicle Catalog Tahap 6, Sesi 1/3 —
   // jembatan MURNI LOGIC D.servisLogs <-> VehicleCatalog, TANPA UI).
   // Dependency: D (data-default.js) & VehicleCatalog (vehicle-catalog.js)

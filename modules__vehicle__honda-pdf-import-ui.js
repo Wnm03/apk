@@ -107,9 +107,19 @@ async function hondaPdfImportUiOpenPreview(id) {
   if (!record) return;
   _hondaImportCurrentId = id;
   const rows = Array.isArray(record.parsedRows) ? record.parsedRows : [];
-  _hondaImportRows = rows.map((r) => Object.assign({}, r, { included: true }));
+  // Hanya tampilkan baris yang sudah punya kode part DAN harga lengkap —
+  // reuse VehicleCatalogImport.filterCompleteRows() (vehicle-catalog-import.js),
+  // pola sama vehicle-catalog-import-ui.js, TIDAK ada logic filter baru di sini.
+  const completeRows = (typeof VehicleCatalogImport !== 'undefined' && VehicleCatalogImport && typeof VehicleCatalogImport.filterCompleteRows === 'function')
+    ? VehicleCatalogImport.filterCompleteRows(rows)
+    : rows.filter((r) => r && r.oemCode && typeof r.price === 'number' && !isNaN(r.price));
+  const skippedIncomplete = rows.length - completeRows.length;
+  _hondaImportRows = completeRows.map((r) => Object.assign({}, r, { included: true }));
   const wrap = document.getElementById('hondaPdfImportPreviewWrap');
   if (wrap) wrap.style.display = '';
+  _hondaImportSetStatus(_hondaImportRows.length
+    ? ('✅ ' + _hondaImportRows.length + ' part dgn kode+harga lengkap' + (skippedIncomplete ? ', ' + skippedIncomplete + ' dilewati (kode/harga tidak lengkap)' : ''))
+    : '⚠️ Tidak ada part dgn kode part + harga lengkap dari file ini.');
   hondaPdfImportUiRenderPreview();
 }
 

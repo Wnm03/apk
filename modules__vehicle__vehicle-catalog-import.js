@@ -100,9 +100,15 @@ async function vehicleImportExtractPdfText(file) {
   return pageTexts.join('\n');
 }
 
-// Harga: "Rp50.000" / "Rp 50000" / "50.000" / "50rb" di ujung baris —
-// SATU regex baru (tidak ada di parseLabelText, yang fokus OEM/barcode).
-const VEHICLE_IMPORT_PRICE_RE = /Rp\.?\s?([\d.,]{3,})|(\d[\d.,]{1,})\s?(rb|ribu)\b|\b(\d[\d.,]{3,})\b(?!.*\b\d[\d.,]{3,}\b)/i;
+// Harga: "Rp50.000" / "Rp 50000" / "50rb" / "50 ribu" — WAJIB ada penanda
+// eksplisit (Rp/rb/ribu). Versi sebelumnya punya fallback "angka berdiri
+// sendiri terakhir di baris" tanpa penanda apa pun — di data katalog PDF
+// sungguhan ini terbukti SALAH TANGKAP fragmen kode part (mis. "12310"
+// dari "12310-KZR-600" ikut kebaca sebagai harga, karena "-" dianggap
+// batas kata oleh regex). Fallback itu dibuang; tanpa "Rp"/"rb"/"ribu"
+// eksplisit, baris dianggap TIDAK punya harga (price: null) — lebih baik
+// kosong daripada harga palsu.
+const VEHICLE_IMPORT_PRICE_RE = /Rp\.?\s?([\d.,]{3,})|(\d[\d.,]{1,})\s?(rb|ribu)\b/i;
 
 function _vehicleImportParsePrice(line) {
   const m = line.match(VEHICLE_IMPORT_PRICE_RE);
@@ -111,7 +117,7 @@ function _vehicleImportParsePrice(line) {
     const num = parseFloat(m[2].replace(/[.,]/g, ''));
     return isNaN(num) ? null : num * 1000;
   }
-  const raw = m[1] || m[4];
+  const raw = m[1];
   if (!raw) return null;
   const num = parseInt(raw.replace(/[.,]/g, ''), 10);
   return isNaN(num) ? null : num;
@@ -194,6 +200,20 @@ async function vehicleImportCommitRows(rows) {
   return { imported, skipped, duplicates, errors };
 }
 
+/** filterCompleteRows(rows) — HANYA baris yang punya kode part (OEM code
+ * ATAU barcode — baris katalog dgn 1 kode angka murni bisa kedeteksi
+ * sbg barcode oleh parseLabelText(), bukan cuma oemCode, jadi tetap
+ * dihitung "ada kodepart") DAN harga valid (angka > 0; harga 0/negatif
+ * dianggap tidak valid, bukan harga sungguhan). Fungsi murni, TIDAK
+ * mengubah rows asli — dipanggil di layer UI (vehicle-catalog-import-ui.js
+ * & honda-pdf-import-ui.js) SETELAH parseCatalogRows(), supaya
+ * parseCatalogRows() sendiri tetap reusable apa adanya (mis. kalau ada
+ * kebutuhan lain yang butuh baris tidak lengkap juga, tahap depan). */
+function vehicleImportFilterCompleteRows(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  return list.filter((r) => r && (r.oemCode || r.barcode) && typeof r.price === 'number' && !isNaN(r.price) && r.price > 0);
+}
+
 // ------------------------------------------------------------------------
 // Namespace publik — pola sama seperti VehicleCatalog/VehicleScanner.
 // ------------------------------------------------------------------------
@@ -202,6 +222,7 @@ const VehicleCatalogImport = {
   extractPdfText: vehicleImportExtractPdfText,
   parseCatalogRow: vehicleImportParseCatalogRow,
   parseCatalogRows: vehicleImportParseCatalogRows,
+  filterCompleteRows: vehicleImportFilterCompleteRows,
   commitRows: vehicleImportCommitRows,
 };
 

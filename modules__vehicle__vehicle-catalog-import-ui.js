@@ -47,11 +47,16 @@ async function catalogImportUiOnFileChange(e) {
   try {
     const text = await VehicleCatalogImport.extractPdfText(file);
     const rows = VehicleCatalogImport.parseCatalogRows(text);
-    _vehImportRows = rows.map((r) => Object.assign({}, r, { included: true }));
+    // Hanya tampilkan baris yang sudah punya kode part DAN harga lengkap —
+    // baris lain (header tabel, teks tanpa kode/harga) disembunyikan dari
+    // preview supaya user tidak perlu menyaring manual.
+    const completeRows = VehicleCatalogImport.filterCompleteRows(rows);
+    const skippedIncomplete = rows.length - completeRows.length;
+    _vehImportRows = completeRows.map((r) => Object.assign({}, r, { included: true }));
     if (!_vehImportRows.length) {
-      _vehImportSetStatus('⚠️ Tidak ada baris terbaca dari PDF ini — coba file lain atau pastikan halaman cukup jelas.');
+      _vehImportSetStatus('⚠️ Tidak ada part dgn kode part + harga lengkap dari PDF ini' + (rows.length ? ' (' + rows.length + ' baris terbaca, tapi tidak ada yang lengkap kode+harga)' : '') + ' — coba file lain atau pastikan halaman cukup jelas.');
     } else {
-      _vehImportSetStatus('✅ ' + _vehImportRows.length + ' baris terbaca — cek & sesuaikan dulu di bawah sebelum import.');
+      _vehImportSetStatus('✅ ' + _vehImportRows.length + ' part dgn kode+harga lengkap' + (skippedIncomplete ? ', ' + skippedIncomplete + ' baris dilewati (kode/harga tidak lengkap)' : '') + ' — cek & sesuaikan dulu di bawah sebelum import.');
     }
     catalogImportUiRenderPreview();
   } catch (err) {
