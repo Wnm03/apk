@@ -237,6 +237,18 @@ btn.textContent=Aset._zakatableState?'✓ Aktif':'Nonaktif';
 btn.className='chip-btn'+(Aset._zakatableState?' active':'');
 Aset.renderJenisFields(a);
 Aset.updateProfitPreview();
+// Ownership (S231) — reuse OwnershipEngine, sama pola dgn Akun/Kendaraan. Aset lama tanpa
+// field ownership: resolve() fallback ke SELF/DEFAULT (backward compatible).
+const ownSel=document.getElementById('assetOwnership');
+if(ownSel){
+if(typeof OwnershipEngine!=='undefined'){
+ownSel.innerHTML=OwnershipEngine.TYPES.map(t=>'<option value="'+t+'">'+escapeHtml(OwnershipEngine.label(t))+'</option>').join('');
+ownSel.value=OwnershipEngine.resolve(a||{}).type;
+}else{
+ownSel.innerHTML='<option value="SELF">Milik Sendiri</option>';
+ownSel.value='SELF';
+}
+}
 openModal('assetModal');
 },
 // FITUR BARU (permintaan user): input Buku Aset dibedakan sesuai kategori --
@@ -318,6 +330,9 @@ D.accounts.push(newAcc);
 accountId=newAcc.id;
 _createdNewAcc=true;
 }
+// Ownership (S231) — dibaca dari dropdown, divalidasi/dinormalisasi via OwnershipEngine.
+const ownRawA=document.getElementById('assetOwnership')?.value;
+const ownership=(typeof OwnershipEngine!=='undefined'&&OwnershipEngine.isValidType(ownRawA))?OwnershipEngine.normalize(ownRawA):(typeof OwnershipEngine!=='undefined'?OwnershipEngine.DEFAULT:'SELF');
 const keuntungan=modalInvestasi?(nilai-modalInvestasi):null;
 const keuntunganPct=modalInvestasi?((nilai-modalInvestasi)/modalInvestasi*100):null;
 const extra={modalInvestasi,hargaBeli,jumlahUnit,keuntungan,keuntunganPct};
@@ -347,9 +362,9 @@ extra.goldKadar=gk&&gk.value?(parseInt(gk.value,10)||null):null;
 if(Aset.editId){
 const a=D.assets.find(x=>sameId(x.id,Aset.editId));
 if(!a){toast('⚠️ Aset tidak ditemukan, coba tutup dan buka lagi');return;}
-Object.assign(a,{name,jenis,lokasi,nilai,tanggal,zakatable:Aset._zakatableState,accountId},extra);
+Object.assign(a,{name,jenis,lokasi,nilai,tanggal,zakatable:Aset._zakatableState,accountId,ownership},extra);
 } else {
-D.assets.push(Object.assign({id:uid(),name,jenis,lokasi,nilai,tanggal,zakatable:Aset._zakatableState,accountId},extra));
+D.assets.push(Object.assign({id:uid(),name,jenis,lokasi,nilai,tanggal,zakatable:Aset._zakatableState,accountId,ownership},extra));
 }
 save();
 if(typeof AIBus!=="undefined")AIBus.emit("asset.updated",{jenis,nilai,editId:Aset.editId});
@@ -368,7 +383,19 @@ Aset.renderList();renderKekayaanBersih();hitungZakatMaal();renderAccGrid();rende
 renderList(){
 const el=document.getElementById('assetList');
 if(!el)return;
-const list=D.assets||[];
+// Ownership Filter UI (S235) — reuse OwnershipEngine.filterByType() apa adanya, TIDAK ada
+// filter/logic baru. HANYA memfilter daftar yang DIRENDER di sini; totalValue()/
+// renderDashboard()/dst di bawah TETAP dihitung dari D.assets penuh lewat pemanggilan
+// masing2 (Jangan mengubah perhitungan). Ini juga mencakup item Investasi (jenis
+// "Deposito/Investasi"/"Saham"/"Reksadana"/"Kripto" ikut tampil & difilter di sini,
+// karena project ini belum punya daftar Investasi terpisah dari Buku Aset).
+const assetOwnFilterEl=document.getElementById('assetOwnFilter');
+const assetOwnFilterVal=assetOwnFilterEl?assetOwnFilterEl.value:'ALL';
+let list=D.assets||[];
+if(assetOwnFilterVal&&assetOwnFilterVal!=='ALL'&&typeof OwnershipEngine!=='undefined'){
+const assetOwnFiltered=OwnershipEngine.filterByType(list,assetOwnFilterVal);
+if(assetOwnFiltered.ok)list=assetOwnFiltered.items;
+}
 if(!list.length){el.innerHTML='<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Belum ada aset tercatat</div></div>';Aset.renderDashboard();Aset.renderInvestasi();Penyusutan.renderList();PajakAset.renderList();LaporanAset.renderList();AssetInsight.render();return;}
 el.innerHTML=list.map(a=>{
 const hasPct=a.keuntunganPct!=null&&isFinite(a.keuntunganPct);
@@ -376,7 +403,18 @@ const pctBadge=hasPct?` <span style="font-size:10px;color:${a.keuntunganPct>=0?'
 const linkedAcc=a.accountId?D.accounts.find(x=>sameId(x.id,a.accountId)):null;
 const linkMeta=linkedAcc?(' · 🔗 '+escapeHtml(linkedAcc.name)):(a.accountId?' · 🔗 (akun terhapus)':'');
 const histBtn=linkedAcc?`<button class="tx-del" style="margin-right:2px" title="Riwayat Transaksi akun ini" data-stop="1" data-action="Aset.openTxHistory" data-args="${escapeHtml(JSON.stringify([a.id]))}" aria-label="Riwayat Transaksi">📜</button>`:'';
-return `<div class="tx-item u-pointer" data-action="openAssetModal" data-args="${escapeHtml(JSON.stringify([a.id]))}"><div class="tx-icon u-bgaccsoft">${Aset.ICON[a.jenis]||'📦'}</div><div class="tx-info"><div class="tx-name">${escapeHtml(a.name)}${a.zakatable?' <span class="u-fs10 u-cacc3 u-r6 u-ml4" style="border:1px solid var(--accent3);padding:1px 5px">Zakat</span>':''}</div><div class="tx-meta">${a.jenis}${Aset.extraLabel(a)?' · '+escapeHtml(Aset.extraLabel(a)):''}${a.lokasi?' · '+escapeHtml(a.lokasi):''}${linkMeta}${pctBadge}</div></div><div class="tx-amount">${fmt(a.nilai)}</div>${histBtn}<button class="tx-del" style="margin-right:2px" title="Update cepat via scan" data-stop="1" data-action="quickScanAsset" data-args="${escapeHtml(JSON.stringify([a.id]))}" aria-label="Update cepat via scan">⚡</button><button class="tx-del" data-stop="1" data-action="delAsset" data-args="${escapeHtml(JSON.stringify([a.id]))}" aria-label="Hapus">🗑</button></div>`;
+// Ownership Badge (S233) — upgrade dari teks sederhana (S232) jadi badge, reuse class
+// "acc-chip" yang SUDAH ADA di project ini (styles.css) — TIDAK ada style baru. Data
+// diambil HANYA dari OwnershipEngine.resolve()/label() (0 rumus baru). Ditaruh sbg span
+// terpisah (bukan digabung ke tx-meta pakai ' · ') supaya tampil sbg badge/chip, bukan teks
+// inline biasa. Data lama tanpa field ownership: resolve() fallback ke SELF/DEFAULT.
+// Ownership Detail View (S234) — SATU pemanggilan OwnershipEngine.resolve(a) dipakai
+// bareng utk badge (S233, label Bahasa Indonesia) DAN detail view di bawahnya (kode tipe
+// mentah, mis. "SELF") — supaya TIDAK ada logic resolve/hitung ulang yang duplikat.
+const ownResolved=(typeof OwnershipEngine!=='undefined')?OwnershipEngine.resolve(a):null;
+const ownMeta=ownResolved?(' <span class="acc-chip">'+escapeHtml(OwnershipEngine.label(ownResolved.type))+'</span>'):'';
+const ownDetail=ownResolved?`<div class="u-fs10 u-t2">Ownership<br>${escapeHtml(ownResolved.type)}</div>`:'';
+return `<div class="tx-item u-pointer" data-action="openAssetModal" data-args="${escapeHtml(JSON.stringify([a.id]))}"><div class="tx-icon u-bgaccsoft">${Aset.ICON[a.jenis]||'📦'}</div><div class="tx-info"><div class="tx-name">${escapeHtml(a.name)}${a.zakatable?' <span class="u-fs10 u-cacc3 u-r6 u-ml4" style="border:1px solid var(--accent3);padding:1px 5px">Zakat</span>':''}</div><div class="tx-meta">${a.jenis}${Aset.extraLabel(a)?' · '+escapeHtml(Aset.extraLabel(a)):''}${a.lokasi?' · '+escapeHtml(a.lokasi):''}${linkMeta}${ownMeta}${pctBadge}</div>${ownDetail}</div><div class="tx-amount">${fmt(a.nilai)}</div>${histBtn}<button class="tx-del" style="margin-right:2px" title="Update cepat via scan" data-stop="1" data-action="quickScanAsset" data-args="${escapeHtml(JSON.stringify([a.id]))}" aria-label="Update cepat via scan">⚡</button><button class="tx-del" data-stop="1" data-action="delAsset" data-args="${escapeHtml(JSON.stringify([a.id]))}" aria-label="Hapus">🗑</button></div>`;
 }).join('');
 Aset.renderDashboard();
 Aset.renderInvestasi();

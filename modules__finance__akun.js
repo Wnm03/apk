@@ -158,6 +158,18 @@ const targetEl=document.getElementById('accTargetTanggal');
 if(targetEl)targetEl.value=a?(a.targetTanggalBuka||''):'';
 accIncludeState=a?(a.includeInBalance!==false):true;
 updateAccIncludeBtn();
+// Ownership (S231, reuse OwnershipEngine — single source of truth utk 5 tipe/label).
+// Data lama tanpa field ownership: resolve() fallback ke SELF (DEFAULT), sesuai spesifikasi.
+const ownSel=document.getElementById('accOwnership');
+if(ownSel){
+if(typeof OwnershipEngine!=='undefined'){
+ownSel.innerHTML=OwnershipEngine.TYPES.map(t=>`<option value="${t}">${escapeHtml(OwnershipEngine.label(t))}</option>`).join('');
+ownSel.value=OwnershipEngine.resolve(a||{}).type;
+}else{
+ownSel.innerHTML='<option value="SELF">Milik Sendiri</option>';
+ownSel.value='SELF';
+}
+}
 openModal('accModal');
 }
 function toggleAccInclude(){accIncludeState=!accIncludeState;updateAccIncludeBtn();}
@@ -178,16 +190,20 @@ const jenis=jenisEl?jenisEl.value:'kas_bebas';
 // yang tidak relevan disimpan kosong (undefined) supaya tidak nyimpen data basi kalau jenis diganti.
 const platform=jenis==='investasi'?(document.getElementById('accPlatform')?.value.trim()||''):'';
 const targetTanggalBuka=jenis==='dikunci'?(document.getElementById('accTargetTanggal')?.value||''):'';
+// Ownership (S231) — dibaca dari dropdown, divalidasi/dinormalisasi via OwnershipEngine.
+// Guard engine belum dimuat / value tidak valid: fallback DEFAULT (SELF), tidak pernah menolak simpan.
+const ownRaw=document.getElementById('accOwnership')?.value;
+const ownership=(typeof OwnershipEngine!=='undefined'&&OwnershipEngine.isValidType(ownRaw))?OwnershipEngine.normalize(ownRaw):(typeof OwnershipEngine!=='undefined'?OwnershipEngine.DEFAULT:'SELF');
 if(!name){toast('⚠️ Isi nama akun');return;}
 if(editAccIdx>=0){
 const a=D.accounts[editAccIdx];
-a.name=name;a.emoji=emoji;a.includeInBalance=accIncludeState;a.jenis=jenis;a.platform=platform;a.targetTanggalBuka=targetTanggalBuka;
+a.name=name;a.emoji=emoji;a.includeInBalance=accIncludeState;a.jenis=jenis;a.platform=platform;a.targetTanggalBuka=targetTanggalBuka;a.ownership=ownership;
 const txDelta=recalcAccBalance(a.id)-(a.baseBalance!==undefined?a.baseBalance:(a.balance||0));
 a.baseBalance=nominal-txDelta;
 a.balance=nominal;
 save();closeModal('accModal');renderAccGrid();populateAccFilters();renderDashAccList();renderLapAccList();toast('✅ Akun diperbarui');
 } else {
-D.accounts.push({id:'acc_'+Date.now(),name,emoji,baseBalance:nominal,balance:nominal,includeInBalance:accIncludeState,jenis,platform,targetTanggalBuka});
+D.accounts.push({id:'acc_'+Date.now(),name,emoji,baseBalance:nominal,balance:nominal,includeInBalance:accIncludeState,jenis,platform,targetTanggalBuka,ownership});
 save();closeModal('accModal');renderAccGrid();populateAccFilters();renderDashAccList();renderLapAccList();toast('✅ Akun ditambahkan');
 }
 }

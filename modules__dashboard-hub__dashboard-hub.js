@@ -393,6 +393,45 @@ const DashboardHubAnalytics = {
   },
 };
 
+// ================== DASHBOARD OWNERSHIP SUMMARY (Sesi 236) ==================
+// DashboardHubOwnershipSummary — MURNI TAMPILAN, 0 kalkulasi/engine baru.
+// Kartu kecil di Dashboard yang menampilkan hitungan 5 tipe kepemilikan
+// (SELF/INVESTOR/CUSTOMER/FAMILY/THIRD_PARTY). Reuse PENUH
+// OwnershipSettingsPresenter.summary() (S229-230, sudah menggabungkan
+// D.accounts/assets/investments/vehicles & memanggil
+// OwnershipEngine.countByType() apa adanya) — TIDAK ada agregasi/rumus
+// baru di sini, TIDAK ada perubahan apa pun di OwnershipEngine atau
+// OwnershipSettingsPresenter. `ORDER` di bawah CUMA urutan tampilan kartu
+// ini (spesifikasi eksplisit SELF/INVESTOR/CUSTOMER/FAMILY/THIRD_PARTY,
+// beda dari urutan internal OwnershipEngine.TYPES) — label tetap 100%
+// dari OwnershipEngine.label(), angka tetap 100% dari summary().counts.
+// Guard typeof (pola sama persis OwnershipSettingsPresenter.render()) ->
+// container/presenter belum ada = aman diam2, tidak throw.
+const DASHHUB_OWNERSHIP_SUMMARY_ORDER = ['SELF', 'INVESTOR', 'CUSTOMER', 'FAMILY', 'THIRD_PARTY'];
+
+const DashboardHubOwnershipSummary = {
+  render() {
+    const el = document.getElementById('dashHubOwnershipSummaryList');
+    if (!el) return;
+    if (typeof OwnershipSettingsPresenter === 'undefined') {
+      el.innerHTML = '<div class="u-hint10">Ownership Engine belum tersedia.</div>';
+      return;
+    }
+    const s = OwnershipSettingsPresenter.summary();
+    if (!s.ok) {
+      el.innerHTML = '<div class="u-hint10">Ownership Engine belum tersedia.</div>';
+      return;
+    }
+    const esc = typeof escapeHtml === 'function' ? escapeHtml : String;
+    el.innerHTML = DASHHUB_OWNERSHIP_SUMMARY_ORDER.map((t) => {
+      const label = (typeof OwnershipEngine !== 'undefined') ? OwnershipEngine.label(t) : t;
+      const count = s.counts[t] || 0;
+      return '<div class="setting-item"><div><div class="setting-label">' + esc(label) + '</div></div>'
+        + '<div class="u-fs14 u-fw600">' + count + '</div></div>';
+    }).join('');
+  },
+};
+
 const DashboardHub = {
   render() {
     const el = document.getElementById('dashboardHubGrid');
@@ -600,6 +639,22 @@ const DashboardHub = {
     // InventoryEngine/PurchaseEngine/ProfitEngine (S198, modules/shop/
     // *-engine.js), UI hanya presenter.
     if (typeof ShopBusinessEnginePresenter !== 'undefined') ShopBusinessEnginePresenter.render();
+
+    // Trip Presenter (S204-A, lihat #tripPresenterWrap di index.html/
+    // app_production.html). Tambahan murni, pola sama dgn
+    // ShopBusinessEnginePresenter.render() di atas — tidak mengubah baris
+    // manapun sebelum ini. 100% reuse field D.cobek yang sudah tersimpan
+    // (ongkir/delivered/marginPct) + getAIDeliveryThinMarginThreshold()
+    // (S9), UI hanya presenter.
+    if (typeof TripPresenter !== 'undefined') TripPresenter.render();
+
+    // Business Flow Presenter (S205, lihat #businessFlowWrap di
+    // index.html/app_production.html). WIRE ONLY: menyusun 4 tahap
+    // Purchase->Trip->Stock->Sale dari ShopBusinessEnginePresenter.
+    // summary() + TripPresenter.summary() yang SUDAH ADA — 0 rumus/
+    // engine baru. Tambahan murni, pola sama TripPresenter.render() di
+    // atas — tidak mengubah baris manapun sebelum ini.
+    if (typeof BusinessFlowPresenter !== 'undefined') BusinessFlowPresenter.render();
 
     // Tab switcher "Semua Fitur"/"Pinned Widgets" (dashHubMainTabsRow) sudah
     // DIHAPUS 2026-07-17 — #dashHubMainGridCard & #dashboardHubPinnedWrap

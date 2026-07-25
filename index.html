@@ -79,8 +79,8 @@
 <link rel="preconnect" href="https://accounts.google.com" crossorigin>
 <link rel="dns-prefetch" href="https://accounts.google.com">
 <title>Keluarga W</title>
-<link rel="stylesheet" href="styles.css?v=714">
-<link rel="stylesheet" href="modern-ui-layer.css?v=714">
+<link rel="stylesheet" href="styles.css?v=744">
+<link rel="stylesheet" href="modern-ui-layer.css?v=744">
 <script>
 /* Debug console (Eruda) — aktifkan sekali lewat ?debug=1 di URL, nempel via localStorage.
    Matikan lagi lewat ?debug=0. Tidak aktif buat user biasa. */
@@ -134,8 +134,8 @@ b.appendChild(closeBtn);
 }catch(_e){ console.error('Gagal tampilkan banner error modul:',_e); }
 };
 </script>
-<script src="app-bundle-a.min.js?v=714" onerror="window.__moduleLoadFail('app-bundle-a.min.js')"></script>
-<script src="modules/shared/smoke-test.js?v=714" defer></script>
+<script src="app-bundle-a.min.js?v=744" onerror="window.__moduleLoadFail('app-bundle-a.min.js')"></script>
+<script src="modules/shared/smoke-test.js?v=744" defer></script>
 <link rel="manifest" id="pwaManifestLink" href="manifest.json">
 </head>
 <body data-theme="fresh">
@@ -1266,6 +1266,24 @@ b.appendChild(closeBtn);
       <div class="card-title">⚙️ Ringkasan Business Engine</div>
       <div id="shopBizEngineBody"></div>
     </div>
+    <!-- S204-A (Trip Presenter): ringkasan pengiriman bulan berjalan
+         (trips/ongkir/margin) — diisi oleh TripPresenter.renderTab()
+         (dipanggil dari Laporan.renderTab() di cobek-order.js). 100%
+         reuse field D.cobek yang sudah tersimpan (ongkir/delivered/
+         marginPct) — TIDAK ada rumus baru, statistik di atas TIDAK
+         disentuh. -->
+    <div class="card u-mt12" id="tripPresenterCard">
+      <div class="card-title">🚚 Ringkasan Pengiriman</div>
+      <div id="tripPresenterBody"></div>
+    </div>
+    <!-- S205 (Business Flow Presenter): ringkasan alur Purchase->Trip->
+         Stock->Sale — diisi oleh BusinessFlowPresenter.renderTab()
+         (dipanggil dari Laporan.renderTab() di cobek-order.js). WIRE
+         ONLY, 0 rumus baru, statistik di atas TIDAK disentuh. -->
+    <div class="card u-mt12" id="businessFlowCard">
+      <div class="card-title">🔁 Alur Bisnis Shop</div>
+      <div id="businessFlowBody"></div>
+    </div>
   </div>
 </div>
 
@@ -1942,6 +1960,16 @@ b.appendChild(closeBtn);
       <div class="card-title">📋 Buku Aset <span class="u-flexc8"><span class="card-setting-btn u-pointer" data-action="openAssetModal">＋ Tambah Aset</span><span class="card-collapse-toggle" id="pzAsetCard-chev" data-action="toggleCardCollapse" data-args='["pzAsetCard","$event"]' aria-label="Buka/tutup bagian">▾</span></span></div>
       <div class="card-collapse-body" id="pzAsetCard-cbody">
       <div class="u-hint10">Catat tanah, rumah, kendaraan, emas, saham, reksadana, kripto, atau investasi lain di sini. Tandai "Hitung ke Zakat Maal" hanya untuk aset produktif/dagang (emas, deposito, saham, tanah investasi) — bukan rumah tinggal atau kendaraan pakai sehari-hari.</div>
+      <div class="fg" style="margin-bottom:10px"><label class="fl">Filter Kepemilikan</label>
+        <select class="fs" id="assetOwnFilter" onchange="Aset.renderList()">
+          <option value="ALL">Semua</option>
+          <option value="SELF">SELF</option>
+          <option value="INVESTOR">INVESTOR</option>
+          <option value="CUSTOMER">CUSTOMER</option>
+          <option value="FAMILY">FAMILY</option>
+          <option value="THIRD_PARTY">THIRD_PARTY</option>
+        </select>
+      </div>
       <div id="assetList"><div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Belum ada aset tercatat</div></div></div>
       <div class="u-grid2 u-mb10">
         <button class="btn btn-ghost btn-sm" data-action="Aset.exportXLSX">⬇️ Export Aset (Excel)</button>
@@ -2075,6 +2103,7 @@ b.appendChild(closeBtn);
   <button class="cn-tab tab-fixed-pad" data-action="setSettingsTab" data-args='["pengingat", "$el"]'>⏰ Pengingat</button>
   <button class="cn-tab tab-fixed-pad" data-action="setSettingsTab" data-args='["notifbackup", "$el"]'>🔔 Notif&amp;Backup</button>
   <button class="cn-tab tab-fixed-pad" data-action="setSettingsTab" data-args='["keamanan", "$el"]'>🔒 Keamanan</button>
+  <button class="cn-tab tab-fixed-pad" data-action="setSettingsTab" data-args='["kepemilikan", "$el"]'>🏷️ Kepemilikan</button>
   <button class="cn-tab tab-fixed-pad" data-action="setSettingsTab" data-args='["diagnostik", "$el"]'>🧪 Diagnostik</button>
 </div>
 
@@ -2267,6 +2296,16 @@ b.appendChild(closeBtn);
       <div><div style="font-size:13px;font-weight:600">Total Saldo Akun</div><div class="u-fs12t2" id="accGridTotalSub">— akun dihitung</div></div>
       <div class="stat-val" id="accGridTotal" style="font-size:17px">Rp 0</div>
     </div>
+    <div class="fg" style="margin-bottom:10px"><label class="fl">Filter Kepemilikan</label>
+      <select class="fs" id="accOwnFilter" onchange="renderAccGrid()">
+        <option value="ALL">Semua</option>
+        <option value="SELF">SELF</option>
+        <option value="INVESTOR">INVESTOR</option>
+        <option value="CUSTOMER">CUSTOMER</option>
+        <option value="FAMILY">FAMILY</option>
+        <option value="THIRD_PARTY">THIRD_PARTY</option>
+      </select>
+    </div>
     <div class="acc-grid" id="accGrid"></div>
     <button class="btn btn-primary btn-full btn-sm" data-action="openAccModal" aria-label="Edit/Buka">+ Tambah Akun</button>
   </div>
@@ -2426,6 +2465,22 @@ b.appendChild(closeBtn);
     <div class="card-title">⚙️ Keamanan & Lainnya</div>
     <div class="setting-item"><div><div class="setting-label">Ganti PIN</div><div class="setting-sub">Ubah PIN keamanan 4 digit</div></div><button class="btn btn-sm btn-ghost" data-action="gantiPin">Ganti</button></div>
     <div class="setting-item"><div><div class="setting-label">Reset Aplikasi</div><div class="setting-sub">Hapus semua data</div></div><button class="btn btn-sm btn-danger" data-action="resetApp">Reset</button></div>
+  </div>
+
+  </div>
+</div>
+
+<div class="stg-tabpanel u-dnone" id="stgGroup7" data-tab="kepemilikan">
+  <div class="stg-group-body-inner">
+
+  <div class="card">
+    <div class="card-title">🏷️ Kepemilikan</div>
+    <div class="u-hint10">Ringkasan kepemilikan (read-only) dari Akun/Aset/Investasi/Kendaraan — dibaca langsung dari Ownership Engine. Untuk ubah kepemilikan satu item, buka form item tsb di halaman masing-masing (Akun/Aset/Investasi/Kendaraan).</div>
+    <div id="ownershipSettingsList"></div>
+    <div class="setting-item u-mt8" style="border-top:1px solid var(--border);padding-top:8px">
+      <div><div class="setting-label">Total item terdata</div></div>
+      <div class="u-fs14 u-fw600" id="ownershipSettingsTotal">0</div>
+    </div>
   </div>
 
   </div>
@@ -2758,6 +2813,16 @@ b.appendChild(closeBtn);
        mengubah baris lain di atas/bawahnya (Hero Card, Quick Actions &
        Summary Cards tidak tersentuh). -->
   <div class="dashhub-analytics-row" id="dashHubAnalyticsRow"></div>
+  <!-- OWNERSHIP SUMMARY (Sesi 236). Kartu kecil, reuse komponen .card/
+       .setting-item yang sudah ada (pola sama persis Settings -> tab
+       Kepemilikan, #ownershipSettingsList). Diisi oleh
+       DashboardHubOwnershipSummary.render() (dashboard-hub.js), yang 100%
+       reuse OwnershipSettingsPresenter.summary() (S229-230) — 0 rumus/
+       engine baru. Tidak mengubah baris lain di atas/bawahnya. -->
+  <div class="card u-mb12" id="dashHubOwnershipSummaryCard">
+    <div class="card-title">🏷️ Ownership Summary</div>
+    <div id="dashHubOwnershipSummaryList"></div>
+  </div>
   <div class="dashhub-search-wrap">
     <input type="text" class="fi" id="dashHubSearchInput" placeholder="🔍 Cari fitur/menu... (mis. sewa kios, kasir, backup)" oninput="DashboardHubSearch.render(this.value)" aria-label="Cari fitur">
     <div class="dashhub-search-results u-dnone" id="dashHubSearchResults"></div>
@@ -2962,6 +3027,40 @@ b.appendChild(closeBtn);
       </div>
     </div>
     <div class="findash-grid" id="shopBusinessEngineGrid"></div>
+  </div>
+  <!-- TRIP PRESENTER (S204-A). Section di dalam Dashboard Hub, sama
+       seperti #shopBusinessEngineWrap di atas — diisi oleh
+       TripPresenter.render() (dipanggil dari DashboardHub.render() di
+       dashboard-hub.js), 100% reuse field D.cobek yang sudah tersimpan
+       (ongkir/delivered/marginPct) + getAIDeliveryThinMarginThreshold()
+       (S9). UI hanya presenter, tidak ada rumus baru di sini. CSS TIDAK
+       baru — reuse penuh class findash-grid/findash-card. -->
+  <div class="dashhub-wrap card u-mb12" id="tripPresenterWrap">
+    <div class="dashhub-cat-head">
+      <div class="dashhub-cat-icon">🚚</div>
+      <div>
+        <div class="dashhub-cat-label">Pengiriman Shop</div>
+        <div class="dashhub-cat-desc">Jumlah trip, ongkir &amp; margin pengiriman bulan ini — dari data yang sudah ada</div>
+      </div>
+    </div>
+    <div class="findash-grid" id="tripPresenterGrid"></div>
+  </div>
+  <!-- BUSINESS FLOW PRESENTER (S205). WIRE ONLY: menyusun 4 tahap
+       Purchase->Trip->Stock->Sale dari ShopBusinessEnginePresenter/
+       TripPresenter di atas — diisi oleh BusinessFlowPresenter.render()
+       (dipanggil dari DashboardHub.render() di dashboard-hub.js). 0
+       engine/rumus baru. CSS TIDAK baru — reuse penuh class findash-grid/
+       findash-card. -->
+  <div class="dashhub-wrap card u-mb12" id="businessFlowWrap">
+    <div class="dashhub-cat-head">
+      <div class="dashhub-cat-icon">🔁</div>
+      <div>
+        <div class="dashhub-cat-label">Alur Bisnis Shop</div>
+        <div class="dashhub-cat-desc">Purchase → Trip → Stock → Sale — dari data yang sudah ada</div>
+      </div>
+    </div>
+    <div class="findash-grid" id="businessFlowGrid"></div>
+    <div id="businessFlowTransferList" class="u-mt10"></div>
   </div>
   <!-- RENTAL MANAGEMENT FOUNDATION (S103, Batch 10 — presenter+UI
        ditambahkan Sesi 132). Section di dalam Dashboard Hub, sama
@@ -3516,7 +3615,8 @@ b.appendChild(closeBtn);
 <script>document.write(MODAL_HTML[77]);</script><!-- modal:vehCatalogImportModal -->
 <script>document.write(MODAL_HTML[78]);</script><!-- modal:sparepartOcrDetailModal -->
 <script>document.write(MODAL_HTML[79]);</script><!-- modal:hondaPdfImportModal -->
+<script>document.write(MODAL_HTML[81]);</script><!-- modal:inventoryTransferModal (S244) -->
 
-<script src="app-bundle-b.min.js?v=714" onerror="window.__moduleLoadFail('app-bundle-b.min.js')"></script>
+<script src="app-bundle-b.min.js?v=744" onerror="window.__moduleLoadFail('app-bundle-b.min.js')"></script>
 </body>
 </html>

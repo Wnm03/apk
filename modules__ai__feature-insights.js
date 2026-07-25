@@ -238,6 +238,43 @@ out.push({id:'shop-restock-modal',level:'warning',icon:'🟠',text:`${s.purchase
 }
 }
 }catch(e){console.warn('ShopInsight: gagal cek estimasi modal restock',e);}
+// (5) Rencana Pengiriman (S203, Delivery Plan UI) — 100% reuse
+// TripEngine.weight()/volume() (S198, delegasi PERSIS ke
+// weightCalculator()/volumeCalculator() cobek-etalase.js), TIDAK ada rumus
+// baru di sini. Murni deteksi: ada produk dgn data berat/dimensi terisi
+// (S203, field baru productModal) -> arahkan ke fitur baru itu.
+try{
+if(typeof TripEngine!=='undefined'){
+const withDims=products.filter(p=>(p.beratPerUnit>0)||(p.panjang>0&&p.lebar>0&&p.tinggi>0));
+if(withDims.length>0){
+out.push({id:'shop-delivery-plan',level:'info',icon:'🚚',text:`${withDims.length} produk sudah punya data berat/dimensi — pakai 🚚 Rencana Pengiriman di form Transaksi Baru buat cek ongkir & kapasitas kendaraan sebelum kirim pesanan besar.`,action:{label:'Lihat Shop',page:'shop',navIdx:2}});
+}
+}
+}catch(e){console.warn('ShopInsight: gagal cek rencana pengiriman',e);}
+// (6) Margin Tipis Pengiriman (S204-A, Trip Presenter) — 100% reuse
+// TripPresenter.summary() (agregasi field D.cobek yang sudah tersimpan:
+// delivered/ongkir/marginPct + getAIDeliveryThinMarginThreshold() S9),
+// TIDAK ada rumus baru di sini. Beda dari rule AI 'delivery-thin-margin'
+// (AIDecision, per-transaksi saat save()): item ini ringkasan BULANAN di
+// AI Insight Shop.
+try{
+if(typeof TripPresenter!=='undefined'){
+const s=TripPresenter.summary();
+if(s.ok&&s.thinMarginCount>0){
+out.push({id:'shop-trip-thin-margin',level:'warning',icon:'🟠',text:`${s.thinMarginCount} dari ${s.trips} pengiriman bulan ini bermargin tipis (di bawah ${s.thinThreshold}%).`,action:{label:'Lihat Shop',page:'shop',navIdx:2}});
+}
+}
+}catch(e){console.warn('ShopInsight: gagal cek margin tipis pengiriman',e);}
+// (7) Business KPI Recommendation (S211-212, Business Flow KPI) — 100%
+// reuse BusinessFlowPresenter.recommendation() (murni derived dari
+// businessKPI()/flow()/purchaseStatus() yang sudah ada, S205-S211), TIDAK
+// ada rumus baru di sini — cuma nyalurkan hasilnya ke feed AI Insight
+// Shop supaya satu sumber angka sama dgn kartu Dashboard KPI.
+try{
+if(typeof BusinessFlowPresenter!=='undefined'){
+BusinessFlowPresenter.recommendation().forEach(item=>out.push(item));
+}
+}catch(e){console.warn('ShopInsight: gagal cek business KPI recommendation',e);}
 return out;
 },
 render(){
