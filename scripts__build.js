@@ -131,6 +131,13 @@ const GROUP_B = [
   // sesi ini (sesuai batasan eksplisit user) — murni terdaftar biar ikut
   // ter-bundle.
   'modules/shared/ownership-engine.js',
+  // S229-230: Settings -> Ownership (read-only presenter). Ditaruh TEPAT
+  // setelah ownership-engine.js (dependency: OwnershipSettingsPresenter.
+  // summary()/render() memanggil OwnershipEngine.TYPES/label()/countByType()
+  // — semuanya method yang SUDAH ADA sejak S191, tidak ditambah/diubah sesi
+  // ini). Dipanggil dari renderSettings() (modules-render.js) via guard
+  // typeof, pola sama persis DashboardSettings.renderSettingsUI() (S129).
+  'modules/shared/ownership-settings-presenter.js',
   'modules/shared/features-helpers-global-security.js',
   'diagnostik-versi.js',
   'modules/shared/format-tema.js',
@@ -753,6 +760,13 @@ const GROUP_B = [
   'modules/shop/inventory-engine.js',
   'modules/shop/profit-engine.js',
 
+  // S203 (Continue — Delivery Plan UI): DeliveryPlanUI, presenter yang
+  // menutup gap TripEngine "Belum digunakan UI" dari S198 di atas. Ditaruh
+  // langsung setelah TripEngine (0 forward-reference: TripEngine sudah
+  // dimuat baris sebelumnya, requestAIRecommendation/calculateSmartDelivery
+  // sudah dimuat lebih dulu lewat GROUP_A/cobek-order.js).
+  'modules/shop/delivery-plan-ui.js',
+
   // S199 (Finalisasi Integrasi Shop): ShopBusinessEnginePresenter — menutup
   // gap "Belum digunakan UI. Belum dihubungkan ke Shop." dari S198 di atas.
   // Ditaruh langsung setelah ke-4 engine (pola sama persis
@@ -761,6 +775,22 @@ const GROUP_B = [
   // ProfitEngine sudah dimuat baris sebelumnya, isCobekOwnershipSelf sudah
   // dimuat lebih dulu di GROUP_A lewat ownership-engine.js).
   'modules/shop/shop-business-engine-presenter.js',
+
+  // S204-A: TripPresenter — menutup gap yang dicatat eksplisit di
+  // shop-business-engine-presenter.js ("TripEngine tidak dipakai di sini
+  // ... tidak ada ringkasan pengiriman yang relevan ditampilkan di
+  // Dashboard/Laporan"). Ditaruh langsung setelah ShopBusinessEnginePresenter
+  // (0 forward-reference: TripEngine sudah dimuat 2 baris di atas,
+  // isCobekOwnershipSelf & getAIDeliveryThinMarginThreshold sudah dimuat
+  // lebih dulu lewat GROUP_A/ownership-engine.js/cobek-pricing.js).
+  'modules/shop/trip-presenter.js',
+
+  // S205: BusinessFlowPresenter — WIRE ONLY, menyusun 4 tahap alur bisnis
+  // Purchase->Trip->Stock->Sale dari ShopBusinessEnginePresenter.summary()
+  // + TripPresenter.summary() (2 baris di atas) — 0 engine/rumus baru.
+  // Ditaruh langsung setelah TripPresenter (0 forward-reference: kedua
+  // presenter sumber sudah dimuat baris-baris sebelumnya).
+  'modules/shop/business-flow-presenter.js',
 
   // S195 (Managed Funds / Dana Kelolaan): reuse OwnershipEngine (S191) +
   // nilai per-entity yang sudah ada di akun.js/aset.js/investasi.js/

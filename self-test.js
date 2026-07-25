@@ -90,6 +90,7 @@ const targetAcc=D.accounts[0];
 const before=totalSaldoAkun();
 const dummyAsset={id:'__selftest_asset_link__',name:'Tes Diagnostik',jenis:'Reksadana',nilai:1000000,accountId:targetAcc.id};
 D.assets.push(dummyAsset);
+if(typeof invalidateAccBalCache==='function')invalidateAccBalCache();
 try{
 _selfTestAssert(isAccLinkedToAsset(targetAcc.id),'isAccLinkedToAsset() harus true setelah akun ditautkan dari 1 aset');
 const after=totalSaldoAkun();
@@ -97,6 +98,7 @@ const expected=before-recalcAccBalance(targetAcc.id);
 _selfTestAssert(after===expected,'totalSaldoAkun() setelah akun ditautkan ('+after+') harus '+expected+' (saldo akun yg ditautkan dikecualikan)');
 } finally {
 D.assets=D.assets.filter(a=>a.id!=='__selftest_asset_link__');
+if(typeof invalidateAccBalCache==='function')invalidateAccBalCache();
 }
 _selfTestAssert(totalSaldoAkun()===before,'totalSaldoAkun() harus balik ke nilai semula ('+before+') setelah tautan aset tes dihapus, dapat '+totalSaldoAkun());
 }},
@@ -236,12 +238,14 @@ const amt=1000;
 const txOut={id:'__selftest_trout__',type:'transfer_out',amount:amt,category:'Transfer',note:'tes diagnostik',date:todayStr(),accountId:accA.id};
 const txIn={id:'__selftest_trin__',type:'transfer_in',amount:amt,category:'Transfer',note:'tes diagnostik',date:todayStr(),accountId:accB.id};
 D.transactions.push(txOut,txIn);
+if(typeof invalidateAccBalCache==='function')invalidateAccBalCache();
 let balAAfter,balBAfter,err=null;
 try{
 balAAfter=recalcAccBalance(accA.id);
 balBAfter=recalcAccBalance(accB.id);
 }catch(e){ err=e; }
 D.transactions=D.transactions.filter(t=>t.id!=='__selftest_trout__'&&t.id!=='__selftest_trin__');
+if(typeof invalidateAccBalCache==='function')invalidateAccBalCache();
 _selfTestAssert(D.transactions.length===countBefore,'Transaksi sementara tes transfer gagal dibersihkan dari D.transactions');
 if(err) throw err;
 _selfTestAssert(balAAfter===balABefore-amt,'Saldo akun asal harus berkurang sesuai jumlah transfer');
@@ -1713,8 +1717,15 @@ const EXTRA_MODAL_SWEEP_SPECS=[
 {fn:'showQuickScanPicker',args:['__sweep_dummy_asset__',[1000,2000]],id:'quickScanModal'},
 {fn:'editBillHistoryTx',args:['__sweep_dummy_tx__'],id:'billHistoryEditModal'},
 {fn:'runDataHealthCheck',args:[],id:'dataHealthModal'},
-{fn:'VehicleCatalogUI.open',args:[],id:'catalogModal',close:()=>closeModal('catalogModal')},
-{fn:'VehicleCatalogImportUI.open',args:[],id:'vehCatalogImportModal',close:()=>closeModal('vehCatalogImportModal')},
+{label:'VehicleCatalogUI.open()',id:'catalogModal',
+call:()=>VehicleCatalogUI.open(),close:()=>closeModal('catalogModal')},
+{label:'VehicleCatalogImportUI.open()',id:'vehCatalogImportModal',
+call:()=>VehicleCatalogImportUI.open(),close:()=>closeModal('vehCatalogImportModal')},
+{label:'SparepartOcrCatalogDetail.open()',id:'sparepartOcrDetailModal',
+call:()=>{ SparepartOcrCatalogDetail.open({found:true,item:{partName:'(tes sweep)',oemCode:'',barcode:'',category:''},matchedBy:'oem'}); },
+close:()=>closeModal('sparepartOcrDetailModal')},
+{label:'HondaPdfImportUI.open()',id:'hondaPdfImportModal',
+call:()=>HondaPdfImportUI.open(),close:()=>closeModal('hondaPdfImportModal')},
 ];
 const RISKY_OPENER_SPECS=[
 {label:'LinkTx.open(renov)',id:'linkTxModal',

@@ -50,10 +50,16 @@ function hondaPdfExtractBase64ToArrayBuffer(dataUrl) {
  * (yang HANYA memanggil `file.arrayBuffer()`) — BUKAN implementasi baca-
  * PDF baru, murni adapter supaya reuse `extractPdfText()` apa adanya. */
 function hondaPdfExtractMakeFileLike(record) {
+  const dataBase64 = (record && record.dataBase64) || '';
+  let size = (record && typeof record.fileSize === 'number' && record.fileSize > 0) ? record.fileSize : 0;
+  if (!size && dataBase64) {
+    try { size = hondaPdfExtractBase64ToArrayBuffer(dataBase64).byteLength; } catch (err) { size = 0; }
+  }
   return {
     name: (record && record.fileName) || '',
     type: (record && record.mimeType) || 'application/pdf',
-    arrayBuffer: async () => hondaPdfExtractBase64ToArrayBuffer(record && record.dataBase64),
+    size,
+    arrayBuffer: async () => hondaPdfExtractBase64ToArrayBuffer(dataBase64),
   };
 }
 
