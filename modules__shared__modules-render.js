@@ -2,7 +2,7 @@
 // Dipindah ke modules/shared/modules-render.js (Sesi 17-18 restrukturisasi folder — lihat docs/FILE-MAP.md & RENCANA-SESI.md; isi & nama file TIDAK berubah, cuma lokasi folder).
 // Semua fungsi ini murni definisi function global (bukan module), jadi tetap bisa dipanggil dari file manapun
 // yang loadnya belakangan (sama seperti modules-calc.js/features-*.js).
-const MODULE_RENDER_VERSION='kw244-inventory-transfer-ui';
+const MODULE_RENDER_VERSION='sesi249-dana-titipan-aset-2';
 
 function renderPageContent(name){
 // KW perf fix: jaring pengaman selain hook di save() -- pastikan cache saldo akun juga fresh
@@ -22,7 +22,18 @@ if(name==='laporan'){populateCatFilter();populateAccFilters();renderLaporan();}
 if(name==='carnotes'){renderVehicleSelect();renderCnTab();}
 if(name==='ai')initChat();
 if(name==='pajak')renderPajakZakat();
-if(name==='aset'){renderAssetList();AlokasiAset.init();renderWealthSnapshots();}
+if(name==='aset'){
+renderAssetList();AlokasiAset.init();renderWealthSnapshots();
+// Property/Rental Management, Asset Portfolio, Asset Maintenance (S101-104)
+// — DIPINDAH dari DashboardHub.render() (dashboard-hub.js) ke sini, pola
+// sama Sesi 133 Finance/Vehicle (renderKeuangan()/renderCnTab()). 100%
+// reuse presenter yang sama, container-nya sekarang di tab "Manajemen"
+// #page-aset (lihat index.html).
+if(typeof PropertyManagementPresenter!=='undefined')PropertyManagementPresenter.render();
+if(typeof RentalManagementPresenter!=='undefined')RentalManagementPresenter.render();
+if(typeof AssetPortfolioPresenter!=='undefined')AssetPortfolioPresenter.render();
+if(typeof AssetMaintenancePresenter!=='undefined')AssetMaintenancePresenter.render();
+}
 if(name==='settings'){renderSettings();renderBillList();}
 }
 

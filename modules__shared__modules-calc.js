@@ -1,6 +1,6 @@
 
 // Dipindah ke modules/shared/modules-calc.js (Sesi 17-18 restrukturisasi folder — lihat docs/FILE-MAP.md & RENCANA-SESI.md; isi & nama file TIDAK berubah, cuma lokasi folder).
-const MODULE_CALC_VERSION='kw244-inventory-transfer-ui';
+const MODULE_CALC_VERSION='sesi249-dana-titipan-aset-2';
 const FI={
 assetScopeState:'zakatable',
 investmentAssetValue(){
