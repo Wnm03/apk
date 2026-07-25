@@ -101,6 +101,29 @@ test('makeFileLike() — arrayBuffer() balik ArrayBuffer hasil decode dataBase64
   assert.equal(Buffer.from(buf).toString('utf8'), original);
 });
 
+test('makeFileLike() — size terisi dari record.fileSize (bukan undefined) — BUGFIX: extractPdfText() asli throw "File PDF kosong atau tidak terbaca" kalau file.size falsy', () => {
+  const { ctx } = makeCtx();
+  const fileLike = ctx.HondaPdfImportExtract.makeFileLike({
+    fileName: 'test.pdf',
+    mimeType: 'application/pdf',
+    fileSize: 12345,
+    dataBase64: 'data:application/pdf;base64,SVNJIFBERiBQQUxTVQ==',
+  });
+  assert.equal(fileLike.size, 12345);
+});
+
+test('makeFileLike() — record.fileSize kosong/0 -> size dihitung dari decode dataBase64 (tetap > 0, bukan undefined)', () => {
+  const { ctx } = makeCtx();
+  const original = 'ISI PDF PALSU YANG LEBIH PANJANG SUPAYA JELAS > 0';
+  const b64 = Buffer.from(original, 'utf8').toString('base64');
+  const fileLike = ctx.HondaPdfImportExtract.makeFileLike({
+    fileName: 'test.pdf',
+    mimeType: 'application/pdf',
+    dataBase64: 'data:application/pdf;base64,' + b64,
+  });
+  assert.equal(fileLike.size, original.length);
+});
+
 // ------------------------------------------------------------------------
 // previewText() — murni
 // ------------------------------------------------------------------------
