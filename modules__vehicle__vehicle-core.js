@@ -14,6 +14,28 @@
 // dari file ini).
 /* moved to modules-render.js: renderVehicleSelect */
 function selectVehicle(id){curVehicleId=id;renderVehicleSelect();renderCnTab();}
+// isVehicleOwnershipSelf(vehicleId) — helper REUSE dari OwnershipEngine (Sesi 196,
+// Ownership Sync Vehicle/Car Notes/Fuel/Servis/Reminder/Dashboard/Report/AI).
+// Balikin true kalau kepemilikan EFEKTIF kendaraan ini SELF (termasuk kendaraan
+// lama yg belum punya field `ownership` sama sekali — via OwnershipEngine.resolve()
+// otomatis fallback ke SELF/DEFAULT, jadi 100% backward compatible, TIDAK ada
+// kendaraan existing yang tiba-tiba ke-exclude). Balikin false kalau ownership-nya
+// salah satu dari INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY — dikecualikan dari agregat
+// LINTAS-KENDARAAN (fleetSummary/reminder fleet-wide/cost trend fleet-wide/
+// Dashboard/AI briefing) — TAPI TIDAK dari tampilan per-kendaraan (Car Notes tab
+// kendaraan terpilih, vehicleOverview(vehicleId)/fuel-dashboard dst tetap normal
+// kalau diakses langsung by id), sama persis pola isAccOwnershipSelf/
+// isAssetOwnershipSelf/isHoldingOwnershipSelf/isCobekOwnershipSelf (Sesi 192-194).
+// Guard typeof OwnershipEngine/D: kalau engine/data belum dimuat, fallback true
+// (anggap SELF/tidak exclude apa pun) — pola sama persis guard fungsi lain di file
+// ini.
+function isVehicleOwnershipSelf(vehicleId){
+if(typeof OwnershipEngine==='undefined')return true;
+if(typeof D==='undefined'||!D.vehicles)return true;
+const v=D.vehicles.find(x=>x.id===vehicleId);
+if(!v)return true;
+return OwnershipEngine.resolve(v).type==='SELF';
+}
 /* moved to modules-render.js: renderCarImportVehicleSelect */
 let vehEditIdx=null;
 // Field per Jenis Kendaraan (KW-165, lanjutan sesi KW-164 — sebelumnya cuma 1 field generik

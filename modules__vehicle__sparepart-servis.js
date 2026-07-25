@@ -161,16 +161,154 @@ if(!prefix){codeEl.value='';return;}
 const seq=D.partsStock.filter(p=>p.code&&p.code.startsWith(prefix+'-')).length+1;
 codeEl.value=prefix+'-'+String(seq).padStart(3,'0');
 },
+calcDashboardStats(partsStock,servisLogs){
+const list=partsStock||[];
+const low=list.filter(p=>p.minStock>0&&p.qty>0&&p.qty<=p.minStock);
+const habis=list.filter(p=>p.qty<=0);
+const usageCount={};
+(servisLogs||[]).forEach(s=>{
+if(s.usedPartId)usageCount[s.usedPartId]=(usageCount[s.usedPartId]||0)+1;
+if(s.catalogPartLinkedStockId)usageCount[s.catalogPartLinkedStockId]=(usageCount[s.catalogPartLinkedStockId]||0)+1;
+});
+let topPart=null,topCount=0;
+Object.keys(usageCount).forEach(id=>{if(usageCount[id]>topCount){topCount=usageCount[id];topPart=list.find(p=>p.id===id)||null;}});
+const nilaiPersediaan=list.reduce((s,p)=>s+(p.qty>0?p.qty*(p.price||0):0),0);
+const priced=list.filter(p=>p.price>0);
+const avgPrice=priced.length?priced.reduce((s,p)=>s+p.price,0)/priced.length:0;
+let lastPurchase=null;
+list.forEach(p=>{
+if(!p.lastPurchaseDate)return;
+if(!lastPurchase||p.lastPurchaseDate>lastPurchase.lastPurchaseDate)lastPurchase=p;
+});
+const chartData=list.filter(p=>p.qty>0&&p.price>0).map(p=>({name:p.name,value:p.qty*(p.price||0)})).sort((a,b)=>b.value-a.value).slice(0,5);
+return{low,habis,topPart,topCount,nilaiPersediaan,avgPrice,lastPurchase,chartData};
+},
+// calcFinanceStats(partsStock,servisLogs) — Tahap 8D: cakupan utk integrasi
+// Dashboard Keuangan + Sparepart (kartu ringkasan). MURNI (array in ->
+// object out, tidak sentuh DOM), sama pola dgn calcDashboardStats() di atas.
+// 100% REUSE data yang sudah ada (p.priceHistory diisi applyStockPurchase()
+// di tx-stok-sparepart.js Tahap 8A, p.price/p.qty dipakai persis sama
+// dengan rumus nilaiPersediaan calcDashboardStats() di atas, servisLogs.cost
+// & usedPartId/usedPartQty/catalogPartLinkedStockId/catalogPartQty sudah
+// ada di car-notes.js) — TIDAK ada field/rumus baru di data D, cuma agregasi
+// baca-saja utk presenter Dashboard Keuangan.
+calcFinanceStats(partsStock,servisLogs){
+const list=partsStock||[];
+const logs=servisLogs||[];
+let totalPembelian=0;
+const beliByMonth={};
+list.forEach(p=>{
+(Array.isArray(p.priceHistory)?p.priceHistory:[]).forEach(h=>{
+const val=(h.qty||0)*(h.price||0);
+totalPembelian+=val;
+if(h.date){
+const key=String(h.date).slice(0,7);
+beliByMonth[key]=(beliByMonth[key]||0)+val;
+}
+});
+});
+const totalNilaiStok=list.reduce((s,p)=>s+(p.qty>0?p.qty*(p.price||0):0),0);
+let totalNilaiTerpakai=0;
+const pakaiByMonth={};
+let biayaServisSparepart=0;
+logs.forEach(s=>{
+let usedValue=0;
+if(s.usedPartId){
+const p=list.find(x=>x.id===s.usedPartId);
+if(p)usedValue+=(s.usedPartQty||0)*(p.price||0);
+}
+if(s.catalogPartLinkedStockId){
+const p=list.find(x=>x.id===s.catalogPartLinkedStockId);
+if(p)usedValue+=(s.catalogPartQty||0)*(p.price||0);
+}
+if(usedValue>0){
+totalNilaiTerpakai+=usedValue;
+if(s.date){
+const key=String(s.date).slice(0,7);
+pakaiByMonth[key]=(pakaiByMonth[key]||0)+usedValue;
+}
+}
+if(s.usedPartId||s.catalogPartLinkedStockId)biayaServisSparepart+=(s.cost||0);
+});
+const monthLabel=(key)=>{
+const[y,m]=key.split('-');
+const d=new Date(Number(y),Number(m)-1,1);
+return d.toLocaleDateString('id-ID',{month:'short',year:'2-digit'});
+};
+const toTrend=(byMonth)=>Object.keys(byMonth).sort().slice(-6).map(key=>({month:key,label:monthLabel(key),total:byMonth[key]}));
+const trenPembelianBulanan=toTrend(beliByMonth);
+const trenPemakaianBulanan=toTrend(pakaiByMonth);
+return{totalPembelian,totalNilaiStok,totalNilaiTerpakai,biayaServisSparepart,trenPembelianBulanan,trenPemakaianBulanan};
+},
+renderDashboard(){
+const el=document.getElementById('sparepartDashboard');
+if(!el)return;
+const stats=Sparepart.calcDashboardStats(D.partsStock,D.servisLogs);
+const{low,habis,topPart,topCount,nilaiPersediaan,avgPrice,lastPurchase,chartData}=stats;
+const lastPurchaseLbl=lastPurchase?escapeHtml(lastPurchase.name)+(lastPurchase.lastPurchaseDate?' • '+escapeHtml(lastPurchase.lastPurchaseDate):''):'-';
+let chartHtml='';
+if(chartData.length){
+const W=280,H=70,pad=6,barGap=6;
+const barW=(W-2*pad-(chartData.length-1)*barGap)/chartData.length;
+const maxVal=Math.max(...chartData.map(c=>c.value))||1;
+const bars=chartData.map((c,i)=>{
+const bh=Math.max(2,(c.value/maxVal)*(H-2*pad));
+const x=pad+i*(barW+barGap);
+const y=H-pad-bh;
+return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${bh.toFixed(1)}" rx="2" fill="var(--accent3)"><title>${escapeHtml(c.name)}: ${fmtFull(c.value)}</title></rect>`;
+}).join('');
+chartHtml=`<div class="u-mt10"><div class="u-fs12t2 u-mb4">📊 Nilai Stok per Part (top ${chartData.length})</div><svg class="u-w100" viewBox="0 0 ${W} ${H}" style="height:70px;display:block">${bars}</svg></div>`;
+}
+el.innerHTML=`<div class="bbm-stat-grid">
+<div class="bbm-stat"><div class="bbm-val u-fs13" style="${low.length?'color:#ff5050':''}">${low.length}</div><div class="bbm-lbl">Stok Menipis</div></div>
+<div class="bbm-stat"><div class="bbm-val u-fs13" style="${habis.length?'color:#ff5050':''}">${habis.length}</div><div class="bbm-lbl">Stok Habis</div></div>
+<div class="bbm-stat"><div class="bbm-val u-fs13">${topPart?escapeHtml(topPart.name):'-'}</div><div class="bbm-lbl">Tersering${topPart?' ('+topCount+'x)':''}</div></div>
+<div class="bbm-stat"><div class="bbm-val u-fs13">${fmtFull(nilaiPersediaan)}</div><div class="bbm-lbl">Nilai Persediaan</div></div>
+<div class="bbm-stat"><div class="bbm-val u-fs13">${fmtFull(avgPrice)}</div><div class="bbm-lbl">Harga Rata-rata</div></div>
+<div class="bbm-stat"><div class="bbm-val u-fs13">${lastPurchaseLbl}</div><div class="bbm-lbl">Pembelian Terakhir</div></div>
+</div>${chartHtml}`;
+},
 renderStockList(){
+Sparepart.renderDashboard();
 const el=document.getElementById('stockList');
 if(!el)return;
 if(!D.partsStock.length){el.innerHTML='<div class="empty"><div class="empty-icon">📦</div><div class="empty-text">Belum ada stok sparepart</div></div>';return;}
 el.innerHTML=D.partsStock.map((p,i)=>{
 const cat=D.sparepartCats.find(c=>c.id===p.catId);
 const low=p.minStock>0&&p.qty<=p.minStock;
-const meta=[`${p.qty}${p.unit?' '+p.unit:''}`,cat?cat.name:null,p.price?fmtFull(p.price):null].filter(Boolean).join(' • ');
-return `<div class="tx-item"><div class="tx-icon" style="background:${low?'rgba(255,80,80,.15)':'var(--accent-soft)'}">${low?'⚠️':'📦'}</div><div class="tx-info"><div class="tx-name">${escapeHtml(p.name)} <span class="u-fs12 u-fw700 u-cacc u-bgaccsoft u-r6 u-ml4" style="padding:1px 6px">${escapeHtml(p.code||'-')}</span></div><div class="tx-meta" style="${low?'color:#ff5050;font-weight:700':''}">${escapeHtml(meta)}${low?' • Stok menipis!':''}${p.note?' • '+escapeHtml(p.note):''}</div></div><button class="tx-del u-bgaccsoft u-cacc" style="margin-right:6px" data-action="openStockModal" data-args="${escapeHtml(JSON.stringify([i]))}" aria-label="Edit/Buka">✏️</button><button class="tx-del" data-action="delStock" data-args="${escapeHtml(JSON.stringify([i]))}" aria-label="Hapus">🗑</button></div>`;
+const meta=[`${p.qty}${p.unit?' '+p.unit:''}`,cat?cat.name:null,p.price?'Rata2 '+fmtFull(p.price):null,p.lastPrice?'Terakhir '+fmtFull(p.lastPrice):null,p.lastPurchaseDate?'Dibeli '+p.lastPurchaseDate:null].filter(Boolean).join(' • ');
+const history=Sparepart.getPartUsageHistory(p.id);
+const historyHtml=history.length?`<div class="u-mt4">${history.map(h=>`<div class="u-pointer" style="padding:6px 0 6px 4px;border-top:1px dashed var(--border)" data-action="Sparepart.openPartHistoryEntry" data-args="${escapeHtml(JSON.stringify([h.servisId,h.vehicleId]))}"><div class="tx-name u-fs12">🗓️ ${escapeHtml(h.item)} <span class="u-fs12t2">— ${escapeHtml(h.vehicleName)}</span></div><div class="tx-meta">${escapeHtml(h.date)}${h.km?' • '+h.km.toLocaleString('id-ID')+' km':''} • ${h.qty}${p.unit?' '+escapeHtml(p.unit):''} dipakai</div></div>`).join('')}</div>`:'';
+const priceHistoryHtml=Sparepart.getPartPriceHistoryHtml(p);
+return `<div class="tx-item"><div class="tx-icon" style="background:${low?'rgba(255,80,80,.15)':'var(--accent-soft)'}">${low?'⚠️':'📦'}</div><div class="tx-info"><div class="tx-name">${escapeHtml(p.name)} <span class="u-fs12 u-fw700 u-cacc u-bgaccsoft u-r6 u-ml4" style="padding:1px 6px">${escapeHtml(p.code||'-')}</span></div><div class="tx-meta" style="${low?'color:#ff5050;font-weight:700':''}">${escapeHtml(meta)}${low?' • Stok menipis!':''}${p.note?' • '+escapeHtml(p.note):''}</div>${priceHistoryHtml}${historyHtml}</div><button class="tx-del u-bgaccsoft u-cacc" style="margin-right:6px" data-action="openStockModal" data-args="${escapeHtml(JSON.stringify([i]))}" aria-label="Edit/Buka">✏️</button><button class="tx-del" data-action="delStock" data-args="${escapeHtml(JSON.stringify([i]))}" aria-label="Hapus">🗑</button></div>`;
 }).join('');
+},
+getPartUsageHistory(partId){
+if(!partId)return[];
+return D.servisLogs.filter(s=>s.usedPartId===partId||s.catalogPartLinkedStockId===partId).map(s=>{
+const veh=D.vehicles.find(v=>v.id===s.vehicleId);
+const qty=(s.usedPartId===partId)?(s.usedPartQty||0):(s.catalogPartQty||0);
+return{servisId:s.id,vehicleId:s.vehicleId,vehicleName:veh?veh.name:'-',date:s.date,item:s.item,km:s.km||null,qty};
+}).sort((a,b)=>new Date(b.date)-new Date(a.date));
+},
+openPartHistoryEntry(servisId,vehicleId){
+if(vehicleId&&vehicleId!==curVehicleId&&typeof selectVehicle==='function')selectVehicle(vehicleId);
+if(typeof openServisModal==='function')openServisModal(servisId);
+},
+// getPartPriceHistoryHtml(p) — Tahap 8A: render riwayat harga pembelian
+// (p.priceHistory, diisi applyStockPurchase() di tx-stok-sparepart.js saat
+// user centang "Tambah ke Stok Sparepart" di form transaksi Keuangan).
+// Tiap baris bisa diklik -> buka transaksi Keuangan terkait (referensi
+// transaksi, editTx() di transaksi.js) kalau txId-nya ada & transaksinya
+// masih ada.
+getPartPriceHistoryHtml(p){
+const list=Array.isArray(p.priceHistory)?p.priceHistory.slice().sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5):[];
+if(!list.length)return'';
+return `<div class="u-mt4">${list.map(h=>{
+const clickable=h.txId&&D.transactions.some(t=>t.id===h.txId);
+const attrs=clickable?`class="u-pointer" data-action="editTx" data-args="${escapeHtml(JSON.stringify([h.txId]))}"`:'';
+return `<div ${attrs} style="padding:6px 0 6px 4px;border-top:1px dashed var(--border)"><div class="tx-name u-fs12">💰 ${h.price?fmtFull(h.price):'-'} ${clickable?'<span class="u-fs12t2">(lihat transaksi)</span>':''}</div><div class="tx-meta">${escapeHtml(h.date)} • +${h.qty}${p.unit?' '+escapeHtml(p.unit):''}</div></div>`;
+}).join('')}</div>`;
 },
 openStockModal(idx){
 Sparepart.stockEditIdx=(typeof idx==='number')?idx:null;
@@ -233,6 +371,7 @@ function saveStock(){return Sparepart.saveStock();}
 function delStock(i){return Sparepart.delStock(i);}
 function populateServisPartSelect(selectedPartId){return Servis.populatePartSelect(selectedPartId);}
 function onServisPartChange(){return Servis.onPartChange();}
+function onServisCatalogPartChange(){return Servis.onCatalogPartChange();}
 function onServisItemAutofillInterval(){return Servis.onItemAutofillInterval();}
 function openServisModal(editId,prefillItem){return Servis.openModal(editId,prefillItem);}
 const TORSI_DB=[

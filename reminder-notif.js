@@ -87,7 +87,11 @@ fireNotif('✈️ Jadwal Pulang ke Pekalongan',diff===0?'Hari ini jadwal pulang!
 fired.ids.push(fireKey);
 }
 }
-D.vehicles.forEach(v=>{
+// Sesi 196 (Ownership Sync Vehicle): TAMBAH 1 filter isVehicleOwnershipSelf(v.id)
+// di atas D.vehicles apa adanya (0 logic lama diubah) — kendaraan ber-ownership
+// INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY dikecualikan dari notifikasi pajak
+// kendaraan lintas-armada (D.vehicles sendiri TIDAK diubah/dimutasi).
+D.vehicles.filter(v=>typeof isVehicleOwnershipSelf!=='function'||isVehicleOwnershipSelf(v.id)).forEach(v=>{
 Object.entries(VEHTAX_ITEMS).forEach(([key,cfg])=>{
 const tgl=v[cfg.tglKey];
 if(!tgl)return;

@@ -80,7 +80,8 @@ _selfTestAssert(D.categories&&Array.isArray(D.categories.income)&&Array.isArray(
 _selfTestAssert(Array.isArray(D.wishlist),'D.wishlist harus array (fitur Prioritas Belanja)');
 }},
 {name:'totalSaldoAkun() = jumlah manual saldo akun aktif', fn:()=>{
-const manual=D.accounts.filter(a=>a.includeInBalance!==false).reduce((s,a)=>s+recalcAccBalance(a.id),0);
+const linked=linkedAssetAccountIds();
+const manual=D.accounts.filter(a=>a.includeInBalance!==false&&!linked.has(String(a.id))).reduce((s,a)=>s+recalcAccBalance(a.id),0);
 _selfTestAssert(totalSaldoAkun()===manual,'totalSaldoAkun() ('+totalSaldoAkun()+') tidak sama dengan hitungan manual ('+manual+')');
 }},
 {name:'totalSaldoAkun() mengecualikan akun yang ditautkan dari Buku Aset (cegah dobel hitung Kekayaan Bersih)', fn:()=>{
@@ -1712,6 +1713,8 @@ const EXTRA_MODAL_SWEEP_SPECS=[
 {fn:'showQuickScanPicker',args:['__sweep_dummy_asset__',[1000,2000]],id:'quickScanModal'},
 {fn:'editBillHistoryTx',args:['__sweep_dummy_tx__'],id:'billHistoryEditModal'},
 {fn:'runDataHealthCheck',args:[],id:'dataHealthModal'},
+{fn:'VehicleCatalogUI.open',args:[],id:'catalogModal',close:()=>closeModal('catalogModal')},
+{fn:'VehicleCatalogImportUI.open',args:[],id:'vehCatalogImportModal',close:()=>closeModal('vehCatalogImportModal')},
 ];
 const RISKY_OPENER_SPECS=[
 {label:'LinkTx.open(renov)',id:'linkTxModal',
