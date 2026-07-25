@@ -7,7 +7,7 @@
 
 Object.assign(window,{
 Etalase,Produsen,Order,FI,DanaDaruratAI,WorthIt,TimelineW,Pensiun,Budget,BudgetTabs,BudgetReko,
-Laporan,Payroll,Tukang,BBM,Sparepart,Servis,Torsi,Pelanggan,SiapPulang,RefAI,Zakat,PPh21,PajakUMKM,
+Laporan,Payroll,Tukang,InsightTargetMingguan,BBM,Sparepart,Servis,Torsi,Pelanggan,SiapPulang,RefAI,Zakat,PPh21,PajakUMKM,
 Aset,LifeBalance,Piutang,Debt,DebtStrategy,Renov,RenovAI,SewaKios,RenovCalc,Kekayaan,AlokasiAset,PBB,
 IDBStore,LinkTx,Bill,AIWidget,EduFund,PriceReko,OngkirCalc,PriceRekoWidget,StockRekoWidget,Refleksi,Kasir,Advisor,FinCoach,GoldImport,GoldZakat,AIRecommendCard,AIDailyBriefingCard,AISimulateWidget,AIScenarioWidget,AIHealthCheckWidget,BillMultiScan,UniversalScan
 });

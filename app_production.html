@@ -79,8 +79,8 @@
 <link rel="preconnect" href="https://accounts.google.com" crossorigin>
 <link rel="dns-prefetch" href="https://accounts.google.com">
 <title>Keluarga W</title>
-<link rel="stylesheet" href="styles.css?v=646">
-<link rel="stylesheet" href="modern-ui-layer.css?v=646">
+<link rel="stylesheet" href="styles.css?v=714">
+<link rel="stylesheet" href="modern-ui-layer.css?v=714">
 <script>
 /* Debug console (Eruda) — aktifkan sekali lewat ?debug=1 di URL, nempel via localStorage.
    Matikan lagi lewat ?debug=0. Tidak aktif buat user biasa. */
@@ -134,8 +134,8 @@ b.appendChild(closeBtn);
 }catch(_e){ console.error('Gagal tampilkan banner error modul:',_e); }
 };
 </script>
-<script src="app-bundle-a.min.js?v=646" onerror="window.__moduleLoadFail('app-bundle-a.min.js')"></script>
-<script src="modules/shared/smoke-test.js?v=646" defer></script>
+<script src="app-bundle-a.min.js?v=714" onerror="window.__moduleLoadFail('app-bundle-a.min.js')"></script>
+<script src="modules/shared/smoke-test.js?v=714" defer></script>
 <link rel="manifest" id="pwaManifestLink" href="manifest.json">
 </head>
 <body data-theme="fresh">
@@ -881,6 +881,27 @@ b.appendChild(closeBtn);
     </div>
     </div>
   </div>
+  <!-- S195 (Managed Funds / Dana Kelolaan): kartu ringkas di tab Laporan
+       Keuangan, pola sama persis #asetKeluargaCard di atas. Diisi oleh
+       DanaKelolaanPresenter.renderLaporan() (modules/finance/
+       dana-kelolaan-presenter.js), dipanggil dari renderLaporan()
+       (modules-render.js). 100% reuse DanaKelolaan.summary() (S195,
+       sendiri 100% reuse OwnershipEngine + nilai akun/aset/investasi/shop
+       yang sudah ada) — dana INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY yang
+       DIKECUALIKAN dari Kas/Aset/Net Worth/Dashboard Keuangan/Insight
+       Keuangan (Sesi 192-194) ditampilkan terpisah di sini supaya tetap
+       terlacak. -->
+  <div class="card u-mb12" id="danaKelolaanLapCard">
+    <div class="card-title">💰 Dana Kelolaan <span class="card-collapse-toggle" id="danaKelolaanLapCard-chev" data-action="toggleCardCollapse" data-args='["danaKelolaanLapCard","$event"]' aria-label="Buka/tutup bagian">▾</span></div>
+    <div class="card-collapse-body" id="danaKelolaanLapCard-cbody">
+    <div class="u-hint10">Dana milik pihak lain yang dikelola lewat aplikasi ini (investor, titipan, DP pelanggan, keluarga) — dikecualikan dari Kas/Aset/Kekayaan Bersih, ditampilkan terpisah di sini.</div>
+    <div id="danaKelolaanLapBody" class="u-mb10"></div>
+    <div class="u-flex u-jcb u-aic u-mt10 divider-top">
+      <span class="u-fs12t2">Total Dana Kelolaan</span>
+      <span class="stat-val u-fs16" id="danaKelolaanLapTotal">Rp 0</span>
+    </div>
+    </div>
+  </div>
   <div class="grid3 u-mb8">
     <div class="stat-box clickable u-tac" style="padding:12px 8px" data-action="showFilteredTx" data-args='["laporan", "income", "\ud83d\udc9a Masuk"]'><div class="stat-val green u-fs14" id="lapIn">Rp 0</div><div class="stat-label">Masuk</div></div>
     <div class="stat-box clickable u-tac" style="padding:12px 8px" data-action="showFilteredTx" data-args='["laporan", "expense", "\ud83d\udd34 Keluar"]'><div class="stat-val red u-fs14" id="lapOut">Rp 0</div><div class="stat-label">Keluar</div></div>
@@ -1226,6 +1247,24 @@ b.appendChild(closeBtn);
     <div class="card u-mt12">
       <div class="card-title">👑 Top 5 Pelanggan</div>
       <div id="lapTopPelanggan"><div class="empty"><div class="empty-icon">👤</div><div class="empty-text">Belum ada data di periode ini</div></div></div>
+    </div>
+    <!-- S195 (Managed Funds / Dana Kelolaan): baris ringkas Statistik Shop,
+         diisi oleh DanaKelolaanPresenter.renderStatistik() (dipanggil dari
+         Laporan.renderTab() di cobek-order.js). 100% reuse
+         DanaKelolaan.summary().dpCustomer (S195) — TIDAK menghitung ulang
+         apa pun, Top Produk/Top Pelanggan di atas tetap SELF-only. -->
+    <div class="stat-box u-tac u-mt12"><div class="stat-val u-fs14" id="lapDanaKelolaan">Rp 0</div><div class="stat-label">Dana Kelolaan (DP Customer)</div></div>
+    <!-- S199 (Finalisasi Integrasi Shop): ringkasan Business Engine
+         (Purchase/Inventory/Profit, S198) — diisi oleh
+         ShopBusinessEnginePresenter.renderTab() (dipanggil dari
+         Laporan.renderTab() di cobek-order.js). 100% reuse
+         InventoryEngine.totalModalStok()/totalNilaiJualStok()/
+         restockScan() & PurchaseEngine.estimatedCost() — TIDAK ada rumus
+         baru, statistik di atas (Top Produk/Top Pelanggan/Dana Kelolaan)
+         TIDAK disentuh. -->
+    <div class="card u-mt12" id="shopBizEngineCard">
+      <div class="card-title">⚙️ Ringkasan Business Engine</div>
+      <div id="shopBizEngineBody"></div>
     </div>
   </div>
 </div>
@@ -1597,6 +1636,7 @@ b.appendChild(closeBtn);
         <button class="btn btn-primary btn-full btn-sm" data-action="openSparepartModal" aria-label="Edit/Buka">+ Tambah Kategori Sparepart</button>
       </div>
     </details>
+    <div class="card"><div class="card-title">📊 Dashboard Sparepart</div><div id="sparepartDashboard"></div></div>
     <details class="card u-p0" open id="cnStockDetails">
       <summary class="u-pointer u-flex u-aic u-jcb summary-toggle"><span class="card-title u-mb0">📦 Stok Sparepart</span></summary>
       <div class="summary-body-pad">
@@ -2047,7 +2087,13 @@ b.appendChild(closeBtn);
     <div class="fg"><label class="fl">Gaji Pokok Harian (Rp)</label><input class="fi" id="sGaji" type="number" inputmode="numeric" oninput="autoSaveProfile()"></div>
     <div class="fg"><label class="fl">Kiriman Mingguan (Rp)</label><input class="fi" id="sKirim" type="number" inputmode="numeric" oninput="autoSaveProfile()"></div>
     <div class="fg"><label class="fl">Kali Lipat Lembur (dari upah/jam)</label><input class="fi" id="sLemburMx" type="number" step="0.1" inputmode="decimal" placeholder="1.5" oninput="autoSaveProfile()"></div>
-    <div class="fg u-mb0"><label class="fl">Tarif Hari Minggu (Rp)</label><input class="fi" id="sTarifMinggu" type="number" inputmode="numeric" placeholder="139000" oninput="autoSaveProfile()"></div>
+    <div class="fg"><label class="fl">Tarif Hari Minggu (Rp)</label><input class="fi" id="sTarifMinggu" type="number" inputmode="numeric" placeholder="139000" oninput="autoSaveProfile()"></div>
+    <div class="fg u-mb0">
+      <div class="setting-item" style="padding:0">
+        <div><div class="setting-label">🎯 Insight Target Mingguan</div><div class="setting-sub">Tampilkan kartu perbandingan Kiriman Mingguan vs gaji minggu ini di kartu Absensi</div></div>
+        <label class="tgl-switch"><input type="checkbox" id="sInsightMingguanAktif" checked onchange="autoSaveProfile()"><span class="tgl-track"></span></label>
+      </div>
+    </div>
   </div>
 
   <div class="card">
@@ -2873,6 +2919,50 @@ b.appendChild(closeBtn);
     </div>
     <div class="findash-grid" id="propertyManagementGrid"></div>
   </div>
+  <!-- MANAGED FUNDS FOUNDATION (S195). Section di dalam Dashboard Hub,
+       sama seperti #propertyManagementWrap di atas — diisi oleh
+       DanaKelolaanPresenter.render() + DanaKelolaanInsight.render()
+       (dipanggil dari DashboardHub.render() di dashboard-hub.js), 100%
+       reuse DanaKelolaan.summary() (S195, sendiri 100% reuse
+       OwnershipEngine, S191 + nilai akun/aset/investasi/shop yang sudah
+       ada). UI hanya presenter, tidak ada rumus baru di sini. CSS TIDAK
+       baru — reuse penuh class findash-grid/findash-card (grid generik).
+       Dana INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY yang DIKECUALIKAN dari
+       Kas/Aset/Net Worth/Dashboard Keuangan/Insight Keuangan (Sesi
+       192-194) ditampilkan terpisah di sini supaya tetap terlacak. -->
+  <div class="dashhub-wrap card u-mb12" id="danaKelolaanWrap">
+    <div class="dashhub-cat-head">
+      <div class="dashhub-cat-icon">💰</div>
+      <div>
+        <div class="dashhub-cat-label">Dana Kelolaan</div>
+        <div class="dashhub-cat-desc">Dana investor, titipan, DP customer &amp; keluarga — di luar milik sendiri</div>
+      </div>
+    </div>
+    <div class="findash-grid" id="danaKelolaanGrid"></div>
+    <div class="card u-mt10 u-dnone" id="danaKelolaanInsightCard">
+      <div class="card-title">💡 Insight Dana Kelolaan</div>
+      <div id="danaKelolaanInsightBody"></div>
+    </div>
+  </div>
+  <!-- SHOP BUSINESS ENGINE INTEGRATION (S199, Finalisasi Integrasi Shop).
+       Section di dalam Dashboard Hub, sama seperti #danaKelolaanWrap di
+       atas — diisi oleh ShopBusinessEnginePresenter.render() (dipanggil
+       dari DashboardHub.render() di dashboard-hub.js), 100% reuse
+       InventoryEngine/PurchaseEngine/ProfitEngine (S198, modules/shop/
+       *-engine.js). UI hanya presenter, tidak ada rumus baru di sini. CSS
+       TIDAK baru — reuse penuh class findash-grid/findash-card (grid
+       generik). Omzet/untung HANYA menghitung transaksi ownership SELF
+       (Sesi 194 pattern, reuse isCobekOwnershipSelf). -->
+  <div class="dashhub-wrap card u-mb12" id="shopBusinessEngineWrap">
+    <div class="dashhub-cat-head">
+      <div class="dashhub-cat-icon">🪨</div>
+      <div>
+        <div class="dashhub-cat-label">Shop Business Engine</div>
+        <div class="dashhub-cat-desc">Nilai stok, rencana restock &amp; margin Shop bulan ini — dari data yang sudah ada</div>
+      </div>
+    </div>
+    <div class="findash-grid" id="shopBusinessEngineGrid"></div>
+  </div>
   <!-- RENTAL MANAGEMENT FOUNDATION (S103, Batch 10 — presenter+UI
        ditambahkan Sesi 132). Section di dalam Dashboard Hub, sama
        seperti #propertyManagementWrap di atas — diisi oleh
@@ -3169,6 +3259,7 @@ b.appendChild(closeBtn);
       </div>
       <div id="dashAbsensiPendingBadge"></div>
       <div id="dashAbsensiBudgetSync"></div>
+      <div id="dashInsightMingguanBox"></div>
       </div>
     </div>
   </div>
@@ -3423,7 +3514,9 @@ b.appendChild(closeBtn);
 <script>document.write(MODAL_HTML[75]);</script><!-- modal:fuelTankProfileModal -->
 <script>document.write(MODAL_HTML[76]);</script><!-- modal:catalogModal -->
 <script>document.write(MODAL_HTML[77]);</script><!-- modal:vehCatalogImportModal -->
+<script>document.write(MODAL_HTML[78]);</script><!-- modal:sparepartOcrDetailModal -->
+<script>document.write(MODAL_HTML[79]);</script><!-- modal:hondaPdfImportModal -->
 
-<script src="app-bundle-b.min.js?v=646" onerror="window.__moduleLoadFail('app-bundle-b.min.js')"></script>
+<script src="app-bundle-b.min.js?v=714" onerror="window.__moduleLoadFail('app-bundle-b.min.js')"></script>
 </body>
 </html>

@@ -201,8 +201,12 @@ const anakInfo=D.catatan.anak.slice(-3).map(c=>c.text||c.note||JSON.stringify(c)
 const msDone=D.milestones.filter(Boolean).length;
 const msgLower=msg.toLowerCase();
 const mentionsAny=(...kws)=>kws.some(k=>msgLower.includes(k));
-const wantVehicleDetail=mentionsAny('motor','mobil','kendaraan','stnk','bbm','bensin','servis','oli','ban','plat','sim ','pajak kendaraan','uji kelayakan','bengkel','km ','kilometer',...D.vehicles.map(v=>v.name.toLowerCase()));
-const vehicleInfoFull=D.vehicles.map(v=>{
+// Sesi 196 (Ownership Sync Vehicle): kendaraan ber-ownership INVESTOR/CUSTOMER/
+// THIRD_PARTY/FAMILY dikecualikan dari konteks AI (detail BBM/servis/pajak) —
+// D.vehicles sendiri TIDAK diubah/dimutasi, cuma dipakai array terfilter di bawah.
+const vehiclesForAI=D.vehicles.filter(v=>typeof isVehicleOwnershipSelf!=='function'||isVehicleOwnershipSelf(v.id));
+const wantVehicleDetail=mentionsAny('motor','mobil','kendaraan','stnk','bbm','bensin','servis','oli','ban','plat','sim ','pajak kendaraan','uji kelayakan','bengkel','km ','kilometer',...vehiclesForAI.map(v=>v.name.toLowerCase()));
+const vehicleInfoFull=vehiclesForAI.map(v=>{
 const curKm=getVehicleKm(v.id);
 const bbmV=[...D.bbmLogs.filter(b=>b.vehicleId===v.id)].sort((a,b)=>new Date(a.date)-new Date(b.date));
 const totalBbmCost=bbmV.reduce((s,b)=>s+b.cost,0);
@@ -232,7 +236,7 @@ const totalKmJalan=jalanV.reduce((s,j)=>s+(j.jarak||0),0);
 const jalanSummary=jalanV.length?`Perjalanan: ${jalanV.length} tercatat, total ${totalKmJalan.toLocaleString('id-ID')}km, 3 terakhir: ${[...jalanV].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,3).map(j=>`${j.rute}${j.jarak?' ('+j.jarak+'km)':''}`).join(', ')}`:'Perjalanan: belum ada catatan';
 return `\n${v.emoji} ${v.name} (${v.type||'kendaraan'}):\n  ${bbmSummary}\n  ${servisSummary}\n  ${jalanSummary}`;
 }).join('\n')||'Belum ada kendaraan terdaftar';
-const vehicleInfoCompact=D.vehicles.length?D.vehicles.map(v=>{
+const vehicleInfoCompact=vehiclesForAI.length?vehiclesForAI.map(v=>{
 const curKm=getVehicleKm(v.id);
 const bbmThisMonthCost=D.bbmLogs.filter(b=>{if(b.vehicleId!==v.id)return false;const d=new Date(b.date);return d.getMonth()===m&&d.getFullYear()===y;}).reduce((s,b)=>s+b.cost,0);
 return `${v.emoji} ${v.name}: KM ${curKm.toLocaleString('id-ID')}, BBM bulan ini ${fmtFull(bbmThisMonthCost)}`;
@@ -278,7 +282,7 @@ else{ const hari=Math.floor((new Date()-new Date(pz.haulMaalMulai))/86400000); h
 const zmJumlah=(cukupNisabMaal&&haulOk)?Math.round(totalHartaZakat*0.025):0;
 const zmInfo=`Zakat Maal: harta bersih ${fmtFull(totalHartaZakat)} vs nisab 85gr emas ${fmtFull(nisabMaal)} → ${(cukupNisabMaal&&haulOk)?'✅ WAJIB zakat '+fmtFull(zmJumlah):'⬜ belum wajib'} (${haulInfo})`;
 const zakatLogInfo=(pz.zakatLog||[]).slice(0,3).map(l=>`${l.jenis} ${l.tanggal} ${fmtFull(l.jumlah)}`).join('; ')||'Belum ada riwayat pembayaran';
-const vehTaxInfo=D.vehicles.map(v=>{
+const vehTaxInfo=vehiclesForAI.map(v=>{
 const items=Object.entries(VEHTAX_ITEMS).map(([,cfg])=>`${cfg.label.replace(/^\S+\s/,'')}: ${dateStatusBadge(v[cfg.tglKey]).label}`).join(', ');
 return `${v.name} — ${items}`;
 }).join(' | ')||'Belum ada kendaraan';

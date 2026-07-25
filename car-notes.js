@@ -310,7 +310,7 @@ Servis.onCatalogPartChange();
 return;
 }
 VehicleCatalog.getAll().then(items=>{
-const opts=(items||[]).map(it=>`<option value="${escapeHtml(it.id)}" data-oem="${escapeHtml(it.oemCode||'')}">${escapeHtml(it.partName||'(Tanpa nama)')}${it.oemCode?' — '+escapeHtml(it.oemCode):''}</option>`).join('');
+const opts=(items||[]).map(it=>`<option value="${escapeHtml(it.id)}" data-oem="${escapeHtml(it.oemCode||'')}" data-name="${escapeHtml(it.partName||'')}">${escapeHtml(it.partName||'(Tanpa nama)')}${it.oemCode?' — '+escapeHtml(it.oemCode):''}</option>`).join('');
 sel.innerHTML='<option value="">Tidak pakai part katalog</option>'+opts;
 sel.value=selectedCatalogId||'';
 Servis.onCatalogPartChange();
@@ -425,6 +425,16 @@ if(!partId||!qty)return;
 const p=D.partsStock.find(x=>x.id===partId);
 if(p)p.qty=(p.qty||0)+qty;
 },
+/** Cari 1 item Stok Sparepart (D.partsStock) yang namanya PERSIS sama
+ * (case-insensitive) dengan nama part katalog terpilih — dipakai untuk
+ * ikut mengurangi stok fisik saat part dari Vehicle Catalog dipakai di
+ * servis (Tahap 7E-3). Exact match saja (bukan substring) supaya tidak
+ * salah kurangi stok item yang mirip tapi beda. */
+findMatchingStockByName(name){
+const n=(name||'').trim().toLowerCase();
+if(!n)return null;
+return D.partsStock.find(p=>p.name.trim().toLowerCase()===n)||null;
+},
 async applyStockUsage(partId,qty){
 if(!partId||!qty)return true;
 const p=D.partsStock.find(x=>x.id===partId);
@@ -462,6 +472,9 @@ const catalogPartQty=catalogPartId?(parseFloat(document.getElementById('servisCa
 // populateCatalogPartSelect()) -- sinkron, TIDAK memanggil VehicleCatalog
 // lagi di sini, supaya tidak dobel-sumber-kebenaran/dobel call IDB.
 const catalogPartOemCode=(catalogPartId&&catalogPartSelEl&&catalogPartSelEl.selectedOptions&&catalogPartSelEl.selectedOptions[0]&&catalogPartSelEl.selectedOptions[0].dataset)?(catalogPartSelEl.selectedOptions[0].dataset.oem||''):'';
+const catalogPartName=(catalogPartId&&catalogPartSelEl&&catalogPartSelEl.selectedOptions&&catalogPartSelEl.selectedOptions[0]&&catalogPartSelEl.selectedOptions[0].dataset)?(catalogPartSelEl.selectedOptions[0].dataset.name||''):'';
+const catalogStockMatch=catalogPartId?Servis.findMatchingStockByName(catalogPartName):null;
+const catalogLinkedStockId=catalogStockMatch?catalogStockMatch.id:null;
 const itemIsVehicleName=!!matchingVehicleName(item);
 let catIdForLog=matched?matched.id:null;
 let newCatCreated=false;
@@ -480,15 +493,22 @@ if(Servis.editId!==null){
 const s=D.servisLogs.find(x=>x.id===Servis.editId);
 if(!s){toast('⚠️ Data tidak ditemukan');return;}
 Servis.revertStockUsage(s.usedPartId,s.usedPartQty);
+Servis.revertStockUsage(s.catalogPartLinkedStockId,s.catalogPartQty);
 if(usedPartId&&!await Servis.applyStockUsage(usedPartId,usedPartQty)){
 await Servis.applyStockUsage(s.usedPartId,s.usedPartQty);
+Servis.applyStockUsage(s.catalogPartLinkedStockId,s.catalogPartQty);
+return;
+}
+if(catalogLinkedStockId&&!await Servis.applyStockUsage(catalogLinkedStockId,catalogPartQty)){
+if(usedPartId)await Servis.applyStockUsage(usedPartId,usedPartQty);
+Servis.applyStockUsage(s.catalogPartLinkedStockId,s.catalogPartQty);
 return;
 }
 if(intervalKm&&intervalKm>0&&!matched&&s.categoryId){
 const linkedCat=D.sparepartCats.find(c=>c.id===s.categoryId);
 if(linkedCat){linkedCat.intervalKm=intervalKm;catIdForLog=linkedCat.id;}
 }
-Object.assign(s,{date,item,categoryId:catIdForLog||s.categoryId,km,cost,note,accountId:accId,usedPartId:usedPartId||null,usedPartQty:usedPartId?usedPartQty:0,catalogPartId:catalogPartId||null,catalogPartQty:catalogPartId?catalogPartQty:0,catalogPartOemCode:catalogPartId?catalogPartOemCode:''});
+Object.assign(s,{date,item,categoryId:catIdForLog||s.categoryId,km,cost,note,accountId:accId,usedPartId:usedPartId||null,usedPartQty:usedPartId?usedPartQty:0,catalogPartId:catalogPartId||null,catalogPartQty:catalogPartId?catalogPartQty:0,catalogPartOemCode:catalogPartId?catalogPartOemCode:'',catalogPartLinkedStockId:catalogLinkedStockId||null});
 if(s.txLinkId){
 const tx=D.transactions.find(t=>t.id===s.txLinkId);
 if(tx)Object.assign(tx,{amount:cost,date,accountId:accId,note:noteFull});
@@ -500,10 +520,14 @@ save();closeModal('servisModal');renderCnTab();renderDashboard();renderKeuangan(
 return;
 }
 if(usedPartId&&!await Servis.applyStockUsage(usedPartId,usedPartQty))return;
+if(catalogLinkedStockId&&!await Servis.applyStockUsage(catalogLinkedStockId,catalogPartQty)){
+if(usedPartId)await Servis.applyStockUsage(usedPartId,usedPartQty);
+return;
+}
 const servisId=uid();
 const txId=uid();
 D.transactions.push({id:txId,type:'expense',amount:cost,category:resolveVehicleTxCategory(veh),subcategory:'Servis & Oli',accountId:accId,payMethod:'tunai',note:noteFull,date,servisLinkId:servisId});
-D.servisLogs.push({id:servisId,vehicleId:curVehicleId,date,item,categoryId:catIdForLog,km,cost,note,accountId:accId,txLinkId:txId,usedPartId:usedPartId||null,usedPartQty:usedPartId?usedPartQty:0,catalogPartId:catalogPartId||null,catalogPartQty:catalogPartId?catalogPartQty:0,catalogPartOemCode:catalogPartId?catalogPartOemCode:''});
+D.servisLogs.push({id:servisId,vehicleId:curVehicleId,date,item,categoryId:catIdForLog,km,cost,note,accountId:accId,txLinkId:txId,usedPartId:usedPartId||null,usedPartQty:usedPartId?usedPartQty:0,catalogPartId:catalogPartId||null,catalogPartQty:catalogPartId?catalogPartQty:0,catalogPartOemCode:catalogPartId?catalogPartOemCode:'',catalogPartLinkedStockId:catalogLinkedStockId||null});
 if(typeof VehicleCatalogServisLink!=='undefined'&&VehicleCatalogServisLink&&typeof VehicleCatalogServisLink.attachToServis==='function'){
 VehicleCatalogServisLink.attachToServis(servisId,catalogPartId?[{catalogId:catalogPartId,qty:catalogPartQty}]:[]);
 }
@@ -538,6 +562,7 @@ if(!await askConfirm('Hapus catatan ini? Catatan keuangan terkait juga akan diha
 const s=D.servisLogs.find(x=>x.id===id);
 if(s&&s.txLinkId)D.transactions=D.transactions.filter(tx=>tx.id!==s.txLinkId);
 if(s&&s.usedPartId)Servis.revertStockUsage(s.usedPartId,s.usedPartQty);
+if(s&&s.catalogPartLinkedStockId)Servis.revertStockUsage(s.catalogPartLinkedStockId,s.catalogPartQty);
 D.servisLogs=D.servisLogs.filter(s=>s.id!==id);
 save();renderCnTab();renderDashboard();renderKeuangan();Sparepart.renderStockList();toast('🗑 Catatan servis dihapus');
 },

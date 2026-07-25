@@ -5,6 +5,135 @@ JANGAN audit/implement/test/build ulang bagian yang sudah **Completed**.
 
 ## Current Session
 
+Sesi 189 (Tahap 7C-4b lanjutan, 2026-07-25) — Hubungkan Detail OCR ke UI.
+SELESAI PENUH.
+
+**Target eksplisit user**: hubungkan `SparepartOcrCatalogDetail` (Tahap
+7C-3b, sebelumnya fungsi MURNI tanpa sentuh DOM) ke UI nyata.
+
+**Implementasi**:
+- `modules/vehicle/sparepart-ocr-catalog-detail.js` — fungsi baru
+  `sparepartOcrCatalogDetailOpen()` (`SparepartOcrCatalogDetail.open`):
+  reuse `show()` yang SUDAH ADA apa adanya (0 logic baru), KALAU
+  ditemukan tulis `html`-nya ke `#sparepartOcrDetailBody` lalu buka modal
+  lewat `openModal('sparepartOcrDetailModal')` (SUDAH ADA,
+  `modal-navigasi.js`). `found:false` -> tidak menulis DOM/tidak buka
+  modal (perilaku "jika ditemukan, tampilkan" tidak berubah).
+  `document`/`openModal` guard typeof, gagal aman.
+- `modules/shared/modals.js` — modal baru `sparepartOcrDetailModal`
+  (index 78 di `MODAL_HTML`), berisi container `#sparepartOcrDetailBody`,
+  read-only, tombol tutup standar. `MODAL_VERSION` dibump.
+- `index.html` — `<script>document.write(MODAL_HTML[78])</script>`
+  ditambah setelah `vehCatalogImportModal` (source of truth;
+  `app_production.html` ditulis ulang otomatis oleh build.js).
+- `modules/vehicle/sparepart-ocr-orchestrator.js` — step `'detail'`
+  sekarang utamakan `SparepartOcrCatalogDetail.open()`, fallback ke
+  `.show()` murni utk kompatibilitas mundur. 0 logic pencarian/parsing
+  baru — orkestrator tetap murni pemanggil.
+
+## Test
+
+`node --test tests/*.test.js` -> **690/690 pass, 0 fail** (naik dari 684
+— 5 test baru `tests/sparepart-ocr-catalog-detail.test.js` utk `open()`,
+1 test baru `tests/sparepart-ocr-orchestrator.test.js` utk prioritas
+`.open()` vs `.show()`), 2x — sebelum & sesudah build.
+
+## Build
+
+`node scripts/build.js kw189-sparepart-ocr-detail-ui` -> sukses,
+`?v=660` (naik dari `?v=659`).
+
+## ZIP
+
+`kw_release_sesi189_tahap7C4b-sparepart-ocr-detail-ui_v660.zip` — dibuat
+& diverifikasi `unzip -t`.
+
+## Current Step
+
+Sesi 189 selesai penuh — ZIP rilis dibuat & diverifikasi, ringkasan &
+link ditampilkan ke user. STOP.
+
+---
+
+Sesi 188 (Tahap 7C-4b lanjutan, 2026-07-24) — Prefill form tambah part dari
+hasil OCR dikembalikan. SELESAI PENUH.
+
+**Target eksplisit user**: prefill form dengan hasil OCR; jangan ubah proses
+simpan; jangan ubah fitur lain.
+
+**Implementasi**: `modules/vehicle/sparepart-ocr-catalog-add.js` —
+`sparepartOcrCatalogAddOpen()` kembali menulis field prefill
+(`catPartName`/`catOemCode`/`catBarcode`) ke DOM setelah
+`VehicleCatalogUI.openForm()` (mode tambah), reuse `fields(parsed)` yang
+sudah ada, guard elemen tidak ada/nilai kosong (mengembalikan perilaku Tahap
+7C-3c yang sempat dinonaktifkan di Sesi 187/`noprefill-657`).
+`confirmAndSave()`/alur simpan TIDAK disentuh. Detail lengkap: `CHANGELOG.md`
+§ Sesi 188.
+
+## Test
+
+`node --test tests/*.test.js` -> **684/684 pass, 0 fail** (naik dari 682 —
++2 test baru di `tests/sparepart-ocr-catalog-add.test.js`).
+
+## Build
+
+`node scripts/build.js kw188-tahap7C4b-sparepart-ocr-add-prefill` -> sukses,
+`?v=658` (naik dari `?v=657`).
+
+## ZIP
+
+`kw_release_sesi188_tahap7C4b-sparepart-ocr-add-prefill_v658.zip` — dibuat &
+diverifikasi `unzip -t`.
+
+## Current Step
+
+Sesi 188 selesai penuh — ZIP rilis dibuat & diverifikasi, ringkasan & link
+ditampilkan ke user. STOP.
+
+---
+
+Sesi 187 (Tahap 7C-4b, 2026-07-24) — Orkestrator Scan -> Parse -> Cari
+Vehicle Catalog -> Detail/Add. SELESAI PENUH.
+
+**Target eksplisit user**: buat orkestrator yang merangkai Scan -> Parse
+-> Cari Vehicle Catalog; kalau ditemukan panggil Detail, kalau tidak
+panggil Add. Jangan ubah UI selain wiring.
+
+**Implementasi**: `modules/vehicle/sparepart-ocr-orchestrator.js`
+(`SparepartOcrOrchestrator.run()`) — 0 logic baru, murni memanggil
+berurutan `SparepartOcr.scan()` (7C-1) -> `SparepartOcrParser.
+parseText()` (7C-2) -> `SparepartOcrCatalogLink.findFromParsed()` (7C-3a)
+-> `found` ? `SparepartOcrCatalogDetail.show()` (7C-3b) :
+`SparepartOcrCatalogAdd.open()` (7C-3c). Scan `null`/`''` -> berhenti,
+tidak lanjut. Kelima dependency opsional (guard typeof), gagal aman.
+TIDAK ada tombol/entry-point UI baru ditaruh ke halaman manapun sesi ini.
+Detail lengkap: `CHANGELOG.md` § Sesi 187 (Tahap 7C-4b).
+
+## Test
+
+`node --test tests/*.test.js` -> **682/682 pass, 0 fail** (naik dari 672 —
+10 test baru `tests/sparepart-ocr-orchestrator.test.js`, 2x — sebelum &
+sesudah build).
+
+## Build
+
+`node scripts/build.js kw187-tahap7C4b-sparepart-ocr-orchestrator` ->
+sukses, `?v=656` (naik dari `?v=655`).
+
+## ZIP
+
+`kw_release_sesi187_tahap7C4b-sparepart-ocr-orchestrator_v656.zip` —
+dibuat & diverifikasi `unzip -t`.
+
+## Current Step
+
+Sesi 187 (Tahap 7C-4b) selesai penuh — ZIP rilis dibuat & diverifikasi,
+ringkasan & link ditampilkan ke user. STOP (menunggu target lanjutan —
+kandidat: wiring orkestrator ini ke tombol scan label nyata di halaman
+Vehicle Catalog, belum ada keputusan produk).
+
+---
+
 Sesi 166 (2026-07-23) — Fitur baru: "Pantau Harga" (Price Watch) — tab ke-3
 Worth It?. SELESAI PENUH.
 

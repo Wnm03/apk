@@ -290,8 +290,8 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1')return true;
 }catch(e){ /* anggap bukan dev mode kalau gagal deteksi */ }
 return false;
 }
-const APP_BUILD_VERSION = 'kw201-finalisasi-sinkronisasi-lintas-modul-714';
-const PRODUCTION_BUILD_SYNCED_VERSION = 'kw201-finalisasi-sinkronisasi-lintas-modul-714';
+const APP_BUILD_VERSION = 'kw200-finalisasi-dashboard-ai-insight-713';
+const PRODUCTION_BUILD_SYNCED_VERSION = 'kw200-finalisasi-dashboard-ai-insight-713';
 let D = {
 schemaVersion:SCHEMA_VERSION,
 transactions:[],cobek:[],products:[],produsen:[],cobekKategori:JSON.parse(JSON.stringify(DEFAULT_COBEK_KATEGORI)),targets:[],eduFunds:[],reminders:[],bills:[],billsArchive:[],

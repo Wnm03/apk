@@ -1,4 +1,4 @@
-// app-bundle-b.min.js — DIBUAT OTOMATIS oleh build.js dari: modules/shared/data-default.js, modules/shared/ownership-engine.js, modules/shared/features-helpers-global-security.js, diagnostik-versi.js, modules/shared/format-tema.js, modules/shared/error-handler.js, modules/shared/helper-teks.js, modules/shared/keamanan-pin.js, modules/home/refleksi-selfcare.js, modules/shared/modal-navigasi.js, modules/business/reset-gaji-mingguan.js, modules/shared/debug-console.js, modules/shared/pengaturan-search.js, modules/shared/onboarding.js, modules/shared/kalkulator-input.js, modules/shared/scan-ocr.js, modules/finance/filter-laporan.js, modules/finance/akun.js, modules/business/gaji-calc.js, modules/finance/cicilan.js, modules/finance/tx-bbm.js, modules/finance/tx-stok-sparepart.js, modules/finance/tx-transfer.js, modules/finance/tx-cobek.js, modules/finance/tx-target.js, modules/finance/tx-list-cashflow.js, modules/finance/transaksi.js, modules/shared/profil-pengaturan.js, modules/finance/kategori.js, modules/ai/kategorisasi-ai.js, modules/finance/tagihan-kalender.js, modules/shared/backup-restore.js, modules/shared/backup-history-api.js, modules/shared/backup-health-api.js, modules/shared/backup-history-presenter.js, modules/shared/backup-health-presenter.js, modules/business/payroll-absensi.js, modules/business/tukang-absensi.js, modules/business/insight-target-mingguan.js, modules/vehicle/vehicle-core.js, modules/vehicle/vehicle-catalog.js, modules/vehicle/vehicle-scanner.js, modules/vehicle/vehicle-catalog-ui.js, modules/vehicle/sparepart-scanner.js, modules/vehicle/sparepart-scanner-ui.js, modules/vehicle/sparepart-ocr.js, modules/vehicle/sparepart-ocr-parser.js, modules/vehicle/sparepart-ocr-catalog-link.js, modules/vehicle/sparepart-ocr-catalog-detail.js, modules/vehicle/sparepart-ocr-catalog-add.js, modules/vehicle/sparepart-ocr-orchestrator.js, modules/vehicle/vehicle-catalog-import.js, modules/vehicle/vehicle-catalog-import-ui.js, modules/vehicle/vehicle-catalog-servis-link.js, modules/finance/vehicle-catalog-tx-link.js, modules/vehicle/honda-pdf-import.js, modules/vehicle/honda-pdf-import-extract.js, modules/vehicle/honda-pdf-import-parse.js, modules/vehicle/honda-pdf-import-commit.js, modules/vehicle/honda-pdf-import-ui.js, modules/ai/chat-action.js, modules/shared/data-archive.js, modules/vehicle/sparepart-servis.js, ai-chat.js, reminder-notif.js, laporan-export.js, gdrive-backup.js, data-health-check.js, global-search.js, sheets-schema.js, sheets-sync.js, pwa-setup.js, self-test.js, pajak-aset-ui-wrappers.js, modules/finance/finance-intelligence.js, modules/finance/finance-dashboard.js, modules/finance/financial-forecast-api.js, modules/finance/financial-forecast-presenter.js, modules/finance/budget-recommendation-api.js, modules/finance/budget-recommendation-presenter.js, modules/finance/cashflow-projection-api.js, modules/finance/cashflow-projection-presenter.js, modules/finance/financial-goal-api.js, modules/finance/financial-goal-presenter.js, modules/finance/investment-planner-api.js, modules/finance/investment-planner-presenter.js, modules/finance/debt-optimizer-api.js, modules/finance/debt-optimizer-presenter.js, modules/finance/retirement-planner-api.js, modules/finance/retirement-planner-presenter.js, modules/finance/financial-health-score-api.js, modules/finance/financial-health-score-presenter.js, modules/finance/financial-risk-dashboard-api.js, modules/finance/financial-risk-dashboard-presenter.js, modules/vehicle/vehicle-intelligence.js, modules/vehicle/vehicle-dashboard.js, modules/vehicle/vehicle-reminder.js, modules/vehicle/vehicle-notif-bridge.js, modules/vehicle/vehicle-ai-hook.js, modules/vehicle/vehicle-insight-presenter.js, modules/vehicle/vehicle-daily-brief.js, modules/vehicle/vehicle-alert-panel.js, modules/vehicle/vehicle-insight-feed.js, modules/vehicle/vehicle-trend-api.js, modules/vehicle/vehicle-cost-summary.js, modules/vehicle/vehicle-fuel-trend.js, modules/vehicle/vehicle-service-trend.js, modules/vehicle/vehicle-analytics-presenter.js, modules/vehicle/fuel-storage.js, modules/vehicle/fuel-tank-profile.js, modules/vehicle/fuel-intelligence-engine.js, modules/vehicle/fuel-gauge-engine.js, modules/vehicle/fuel-history.js, modules/vehicle/fuel-analytics.js, modules/vehicle/fuel-modal.js, modules/vehicle/fuel-card.js, modules/vehicle/fuel-intelligence-ui.js, modules/vehicle/fuel-tank-profile-ui.js, modules/vehicle/fuel-prediction-engine.js, modules/vehicle/fuel-cost-analytics.js, modules/vehicle/fuel-maintenance-engine.js, modules/vehicle/fuel-insight-engine.js, modules/vehicle/fuel-fleet-selector.js, modules/vehicle/fuel-notif-bridge.js, modules/vehicle/fuel-dashboard.js, modules/vehicle/fuel-compare.js, modules/vehicle/fuel-trend-dashboard.js, modules/vehicle/vehicle-decision-api.js, modules/vehicle/vehicle-recommendation-engine.js, modules/vehicle/vehicle-priority-scoring.js, modules/vehicle/vehicle-action-recommendation.js, modules/vehicle/vehicle-decision-presenter.js, modules/vehicle/vehicle-attention-presenter.js, modules/vehicle/vehicle-automation-api.js, modules/vehicle/vehicle-reminder-scheduler.js, modules/vehicle/vehicle-maintenance-automation.js, modules/vehicle/vehicle-tax-document-automation.js, modules/vehicle/vehicle-automation-presenter.js, modules/cross/finance-vehicle-cross-summary.js, modules/cross/cross-ai-hook.js, modules/cross/cross-dashboard-card.js, modules/cross/cross-insight-presenter.js, modules/cross/unified-summary-api.js, modules/cross/unified-ai-briefing.js, modules/cross/unified-briefing-presenter.js, modules/cross/life-dashboard-summary-api.js, modules/cross/priority-engine.js, modules/cross/personal-overview-presenter.js, modules/cross/cross-module-widgets.js, modules/cross/life-priority-panel.js, modules/cross/unified-dashboard-home.js, modules/cross/decision-center-api.js, modules/cross/recommendation-panel.js, modules/cross/action-queue.js, modules/cross/decision-center-home.js, app-bootstrap.js, modules/shared/feature-icons.js, modules/dashboard-hub/dashboard-hub-registry.js, modules/dashboard-hub/dashboard-hub.js, modules/dashboard-hub/dashboard-hub-search.js, modules/dashboard-hub/dashboard-hub-favorit.js, modules/dashboard-hub/dashboard-hub-favorit-view.js, modules/dashboard-hub/dashboard-hub-settings.js, modules/ai/ai-command-center.js, modules/self-reward/self-reward-engine.js, modules/self-reward/self-reward-view.js, modules/self-reward/self-reward-ai-widget.js, modules/asset/investasi.js, modules/asset/asset-portfolio-api.js, modules/asset/asset-portfolio-presenter.js, lifeos/lifeos-store.js, lifeos/lifeos-registry.js, lifeos/lifeos-link-registry.js, lifeos/plugins/lifeos-plugin-manifest.js, lifeos/plugins/lifeos-plugin-validation.js, lifeos/plugins/lifeos-plugin-registry.js, lifeos/plugins/lifeos-plugin-loader.js, lifeos/plugins/lifeos-plugin-runtime.js, lifeos/adapters/area-adapter.js, lifeos/adapters/goal-adapter.js, lifeos/adapters/project-adapter.js, lifeos/adapters/today-adapter.js, lifeos/adapters/review-adapter.js, lifeos/adapters/knowledge-adapter.js, lifeos/lifeos-object-ref.js, lifeos/services/project-service.js, lifeos/services/review-service.js, lifeos/services/knowledge-service.js, lifeos/services/life-object-service.js, lifeos/ui/lifeos-home.js, lifeos/ui/areas.js, lifeos/ui/today.js, lifeos/ui/goals.js, lifeos/ui/projects.js, lifeos/ui/review.js, lifeos/ui/life-objects.js, lifeos/ui/plugins.js, lifeos/ui/knowledge.js, lifeos/lifeos-nav.js, economic-intelligence/eie-bus.js, economic-intelligence/eie-store.js, economic-intelligence/domain/entities.js, economic-intelligence/domain/scoring-formulas.js, economic-intelligence/domain/status-classifier.js, economic-intelligence/adapters/user-finance-adapter.js, economic-intelligence/adapters/macro-data-adapter.js, economic-intelligence/rules/rule-schema.js, economic-intelligence/rules/rule-definitions.js, economic-intelligence/engine/rule-engine.js, economic-intelligence/engine/scoring-engine.js, economic-intelligence/engine/insight-generator.js, economic-intelligence/services/macro-sync-service.js, economic-intelligence/services/notification-service.js, economic-intelligence/services/recommendation-service.js, economic-intelligence/scheduler/eie-scheduler.js, economic-intelligence/ui/eie-dashboard.js, economic-intelligence/ui/eie-insight-feed.js, economic-intelligence/ui/eie-notif-settings.js, economic-intelligence/eie-registry.js, modules/ai/ai-core.js, modules/ai/ai-decision-engine.js, modules/ai/ai-service.js, modules/logistics/logistics-engine.js, modules/logistics/logistics-service.js, modules/shop/purchase-engine.js, modules/shop/trip-engine.js, modules/shop/inventory-engine.js, modules/shop/profit-engine.js, modules/shop/shop-business-engine-presenter.js, modules/finance/dana-kelolaan.js, modules/finance/dana-kelolaan-presenter.js
+// app-bundle-b.min.js — DIBUAT OTOMATIS oleh build.js dari: modules/shared/data-default.js, modules/shared/ownership-engine.js, modules/shared/features-helpers-global-security.js, diagnostik-versi.js, modules/shared/format-tema.js, modules/shared/error-handler.js, modules/shared/helper-teks.js, modules/shared/keamanan-pin.js, modules/home/refleksi-selfcare.js, modules/shared/modal-navigasi.js, modules/business/reset-gaji-mingguan.js, modules/shared/debug-console.js, modules/shared/pengaturan-search.js, modules/shared/onboarding.js, modules/shared/kalkulator-input.js, modules/shared/scan-ocr.js, modules/finance/filter-laporan.js, modules/finance/akun.js, modules/business/gaji-calc.js, modules/finance/cicilan.js, modules/finance/tx-bbm.js, modules/finance/tx-stok-sparepart.js, modules/finance/tx-transfer.js, modules/finance/tx-cobek.js, modules/finance/tx-target.js, modules/finance/tx-list-cashflow.js, modules/finance/transaksi.js, modules/shared/profil-pengaturan.js, modules/finance/kategori.js, modules/ai/kategorisasi-ai.js, modules/finance/tagihan-kalender.js, modules/shared/backup-restore.js, modules/shared/backup-history-api.js, modules/shared/backup-health-api.js, modules/shared/backup-history-presenter.js, modules/shared/backup-health-presenter.js, modules/business/payroll-absensi.js, modules/business/tukang-absensi.js, modules/business/insight-target-mingguan.js, modules/vehicle/vehicle-core.js, modules/vehicle/vehicle-catalog.js, modules/vehicle/vehicle-scanner.js, modules/vehicle/vehicle-catalog-ui.js, modules/vehicle/sparepart-scanner.js, modules/vehicle/sparepart-scanner-ui.js, modules/vehicle/sparepart-ocr.js, modules/vehicle/sparepart-ocr-parser.js, modules/vehicle/sparepart-ocr-catalog-link.js, modules/vehicle/sparepart-ocr-catalog-detail.js, modules/vehicle/sparepart-ocr-catalog-add.js, modules/vehicle/sparepart-ocr-orchestrator.js, modules/vehicle/vehicle-catalog-import.js, modules/vehicle/vehicle-catalog-import-ui.js, modules/vehicle/vehicle-catalog-servis-link.js, modules/finance/vehicle-catalog-tx-link.js, modules/vehicle/honda-pdf-import.js, modules/vehicle/honda-pdf-import-extract.js, modules/vehicle/honda-pdf-import-parse.js, modules/vehicle/honda-pdf-import-commit.js, modules/vehicle/honda-pdf-import-ui.js, modules/ai/chat-action.js, modules/shared/data-archive.js, modules/vehicle/sparepart-servis.js, ai-chat.js, reminder-notif.js, laporan-export.js, gdrive-backup.js, data-health-check.js, global-search.js, sheets-schema.js, sheets-sync.js, pwa-setup.js, self-test.js, pajak-aset-ui-wrappers.js, modules/finance/finance-intelligence.js, modules/finance/finance-dashboard.js, modules/finance/financial-forecast-api.js, modules/finance/financial-forecast-presenter.js, modules/finance/budget-recommendation-api.js, modules/finance/budget-recommendation-presenter.js, modules/finance/cashflow-projection-api.js, modules/finance/cashflow-projection-presenter.js, modules/finance/financial-goal-api.js, modules/finance/financial-goal-presenter.js, modules/finance/investment-planner-api.js, modules/finance/investment-planner-presenter.js, modules/finance/debt-optimizer-api.js, modules/finance/debt-optimizer-presenter.js, modules/finance/retirement-planner-api.js, modules/finance/retirement-planner-presenter.js, modules/finance/financial-health-score-api.js, modules/finance/financial-health-score-presenter.js, modules/finance/financial-risk-dashboard-api.js, modules/finance/financial-risk-dashboard-presenter.js, modules/vehicle/vehicle-intelligence.js, modules/vehicle/vehicle-dashboard.js, modules/vehicle/vehicle-reminder.js, modules/vehicle/vehicle-notif-bridge.js, modules/vehicle/vehicle-ai-hook.js, modules/vehicle/vehicle-insight-presenter.js, modules/vehicle/vehicle-daily-brief.js, modules/vehicle/vehicle-alert-panel.js, modules/vehicle/vehicle-insight-feed.js, modules/vehicle/vehicle-trend-api.js, modules/vehicle/vehicle-cost-summary.js, modules/vehicle/vehicle-fuel-trend.js, modules/vehicle/vehicle-service-trend.js, modules/vehicle/vehicle-analytics-presenter.js, modules/vehicle/fuel-storage.js, modules/vehicle/fuel-tank-profile.js, modules/vehicle/fuel-intelligence-engine.js, modules/vehicle/fuel-gauge-engine.js, modules/vehicle/fuel-history.js, modules/vehicle/fuel-analytics.js, modules/vehicle/fuel-modal.js, modules/vehicle/fuel-card.js, modules/vehicle/fuel-intelligence-ui.js, modules/vehicle/fuel-tank-profile-ui.js, modules/vehicle/fuel-prediction-engine.js, modules/vehicle/fuel-cost-analytics.js, modules/vehicle/fuel-maintenance-engine.js, modules/vehicle/fuel-insight-engine.js, modules/vehicle/fuel-fleet-selector.js, modules/vehicle/fuel-notif-bridge.js, modules/vehicle/fuel-dashboard.js, modules/vehicle/fuel-compare.js, modules/vehicle/fuel-trend-dashboard.js, modules/vehicle/vehicle-decision-api.js, modules/vehicle/vehicle-recommendation-engine.js, modules/vehicle/vehicle-priority-scoring.js, modules/vehicle/vehicle-action-recommendation.js, modules/vehicle/vehicle-decision-presenter.js, modules/vehicle/vehicle-attention-presenter.js, modules/vehicle/vehicle-automation-api.js, modules/vehicle/vehicle-reminder-scheduler.js, modules/vehicle/vehicle-maintenance-automation.js, modules/vehicle/vehicle-tax-document-automation.js, modules/vehicle/vehicle-automation-presenter.js, modules/cross/finance-vehicle-cross-summary.js, modules/cross/cross-ai-hook.js, modules/cross/cross-dashboard-card.js, modules/cross/cross-insight-presenter.js, modules/cross/unified-summary-api.js, modules/cross/unified-ai-briefing.js, modules/cross/unified-briefing-presenter.js, modules/cross/life-dashboard-summary-api.js, modules/cross/priority-engine.js, modules/cross/personal-overview-presenter.js, modules/cross/cross-module-widgets.js, modules/cross/life-priority-panel.js, modules/cross/unified-dashboard-home.js, modules/cross/decision-center-api.js, modules/cross/recommendation-panel.js, modules/cross/action-queue.js, modules/cross/decision-center-home.js, app-bootstrap.js, modules/shared/feature-icons.js, modules/dashboard-hub/dashboard-hub-registry.js, modules/dashboard-hub/dashboard-hub.js, modules/dashboard-hub/dashboard-hub-search.js, modules/dashboard-hub/dashboard-hub-favorit.js, modules/dashboard-hub/dashboard-hub-favorit-view.js, modules/dashboard-hub/dashboard-hub-settings.js, modules/ai/ai-command-center.js, modules/self-reward/self-reward-engine.js, modules/self-reward/self-reward-view.js, modules/self-reward/self-reward-ai-widget.js, modules/asset/investasi.js, modules/asset/asset-portfolio-api.js, modules/asset/asset-portfolio-presenter.js, lifeos/lifeos-store.js, lifeos/lifeos-registry.js, lifeos/lifeos-link-registry.js, lifeos/plugins/lifeos-plugin-manifest.js, lifeos/plugins/lifeos-plugin-validation.js, lifeos/plugins/lifeos-plugin-registry.js, lifeos/plugins/lifeos-plugin-loader.js, lifeos/plugins/lifeos-plugin-runtime.js, lifeos/adapters/area-adapter.js, lifeos/adapters/goal-adapter.js, lifeos/adapters/project-adapter.js, lifeos/adapters/today-adapter.js, lifeos/adapters/review-adapter.js, lifeos/adapters/knowledge-adapter.js, lifeos/lifeos-object-ref.js, lifeos/services/project-service.js, lifeos/services/review-service.js, lifeos/services/knowledge-service.js, lifeos/services/life-object-service.js, lifeos/ui/lifeos-home.js, lifeos/ui/areas.js, lifeos/ui/today.js, lifeos/ui/goals.js, lifeos/ui/projects.js, lifeos/ui/review.js, lifeos/ui/life-objects.js, lifeos/ui/plugins.js, lifeos/ui/knowledge.js, lifeos/lifeos-nav.js, economic-intelligence/eie-bus.js, economic-intelligence/eie-store.js, economic-intelligence/domain/entities.js, economic-intelligence/domain/scoring-formulas.js, economic-intelligence/domain/status-classifier.js, economic-intelligence/adapters/user-finance-adapter.js, economic-intelligence/adapters/macro-data-adapter.js, economic-intelligence/rules/rule-schema.js, economic-intelligence/rules/rule-definitions.js, economic-intelligence/engine/rule-engine.js, economic-intelligence/engine/scoring-engine.js, economic-intelligence/engine/insight-generator.js, economic-intelligence/services/macro-sync-service.js, economic-intelligence/services/notification-service.js, economic-intelligence/services/recommendation-service.js, economic-intelligence/scheduler/eie-scheduler.js, economic-intelligence/ui/eie-dashboard.js, economic-intelligence/ui/eie-insight-feed.js, economic-intelligence/ui/eie-notif-settings.js, economic-intelligence/eie-registry.js, modules/ai/ai-core.js, modules/ai/ai-decision-engine.js, modules/ai/ai-service.js, modules/logistics/logistics-engine.js, modules/logistics/logistics-service.js, modules/shop/purchase-engine.js, modules/shop/trip-engine.js, modules/shop/inventory-engine.js, modules/shop/profit-engine.js, modules/finance/dana-kelolaan.js, modules/finance/dana-kelolaan-presenter.js
 // JANGAN diedit manual — edit file source-nya lalu jalankan: node build.js
 // data-default.js — Domain Data Default: kategori shop bawaan (DEFAULT_COBEK_KATEGORI),
 // Dipindah ke modules/shared/data-default.js (Sesi 17-18 restrukturisasi folder — lihat docs/FILE-MAP.md & RENCANA-SESI.md; isi & nama file TIDAK berubah, cuma lokasi folder).
@@ -290,8 +290,8 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1')return true;
 }catch(e){ /* anggap bukan dev mode kalau gagal deteksi */ }
 return false;
 }
-const APP_BUILD_VERSION = 'kw201-finalisasi-sinkronisasi-lintas-modul-714';
-const PRODUCTION_BUILD_SYNCED_VERSION = 'kw201-finalisasi-sinkronisasi-lintas-modul-714';
+const APP_BUILD_VERSION = 'kw198-shop-business-engine';
+const PRODUCTION_BUILD_SYNCED_VERSION = 'kw198-shop-business-engine';
 let D = {
 schemaVersion:SCHEMA_VERSION,
 transactions:[],cobek:[],products:[],produsen:[],cobekKategori:JSON.parse(JSON.stringify(DEFAULT_COBEK_KATEGORI)),targets:[],eduFunds:[],reminders:[],bills:[],billsArchive:[],
@@ -30288,14 +30288,6 @@ const DashboardHub = {
     if (typeof DanaKelolaanPresenter !== 'undefined') DanaKelolaanPresenter.render();
     if (typeof DanaKelolaanInsight !== 'undefined') DanaKelolaanInsight.render();
 
-    // Shop Business Engine Integration (S199, Finalisasi Integrasi Shop,
-    // lihat #shopBusinessEngineWrap di index.html/app_production.html).
-    // Tambahan murni, pola sama dgn DanaKelolaanPresenter.render() di atas
-    // — tidak mengubah baris manapun sebelum ini. 100% reuse
-    // InventoryEngine/PurchaseEngine/ProfitEngine (S198, modules/shop/
-    // *-engine.js), UI hanya presenter.
-    if (typeof ShopBusinessEnginePresenter !== 'undefined') ShopBusinessEnginePresenter.render();
-
     // Tab switcher "Semua Fitur"/"Pinned Widgets" (dashHubMainTabsRow) sudah
     // DIHAPUS 2026-07-17 — #dashHubMainGridCard & #dashboardHubPinnedWrap
     // sekarang cuma ditumpuk berurutan (masing-masing sudah collapsible
@@ -38714,209 +38706,6 @@ const ProfitEngine = {
       : Math.round(raw / 100) * 100;
     return { modal: modalNum, transport: transportNum, marginPct: marginNum, base, result: rounded };
   },
-};
-
-// modules/shop/shop-business-engine-presenter.js — Shop Business Engine
-// Presenter (Sesi 199, Finalisasi Integrasi Shop). Target sesi: audit
-// menemukan PurchaseEngine/TripEngine/InventoryEngine/ProfitEngine (S198,
-// modules/shop/*-engine.js) sudah lengkap + ada test, tapi TIDAK PERNAH
-// dipanggil dari file render/presenter manapun — belum ada UI sama sekali
-// (gap yang sama seperti PropertyManagementAPI di S102, ditutup di Sesi
-// 132 lewat PropertyManagementPresenter). File ini menutup gap itu untuk
-// Shop, pola SAMA PERSIS PropertyManagementPresenter.render()
-// (modules/asset/property-management-presenter.js): UI hanya presenter,
-// container findash-grid generik yang sama.
-//
-// PRINSIP (RULE #1 sesi ini): UI HANYA presenter. 100% REUSE
-// InventoryEngine/PurchaseEngine/ProfitEngine (S198) — TIDAK ada rumus
-// baru, TIDAK menghitung ulang margin/stok/restock apa pun, TIDAK
-// membaca D langsung kecuali D.cobek/D.products (dioper sbg parameter ke
-// engine, persis kontrak engine-nya). TripEngine (S198) tidak dipakai di
-// sini — tidak ada ringkasan "pengiriman" yang relevan ditampilkan di
-// Dashboard/Laporan (murni kalkulator per-transaksi, dipakai langsung di
-// form Order/Kasir sesuai desain aslinya).
-//
-// Ownership Engine (S191, disinkronkan Sesi 194 ke Laporan/Statistik/
-// Grafik/Dashboard/AI Insight Shop): agregat omzet/untung Shop di sini
-// HANYA menghitung transaksi ownership SELF, reuse isCobekOwnershipSelf()
-// (modules/shared/ownership-engine.js) — guard typeof supaya fallback
-// aman (anggap SELF) kalau ownership-engine.js belum dimuat, PERSIS pola
-// yang sama dipakai ShopInsight/Laporan (cobek-order.js) sejak S194. 0
-// baris logic ownership yang diubah di sini.
-//
-// Dipanggil dari (semua tambahan murni, 0 baris lain diubah):
-//   - DashboardHub.render() (dashboard-hub.js) -> render() -> mengisi
-//     #shopBusinessEngineGrid (Dashboard Hub, index.html/
-//     app_production.html), pola sama DanaKelolaanPresenter.render().
-//   - renderDashboard() live-wiring (_safeRender, modules/shared/
-//     modules-render.js) -> render() lagi, supaya kartu tetap live-update
-//     kalau user simpan data dari halaman lain (pola sama
-//     PropertyManagementPresenter di blok _safeRender yang sama).
-//   - Laporan.renderTab() (modules/shop/cobek-order.js) -> renderTab() ->
-//     mengisi #shopBizEngineBody (tab Laporan/Statistik Shop), pola sama
-//     DanaKelolaanPresenter.renderStatistik() (dipanggil dari fungsi yang
-//     sama, baris setelahnya).
-//
-// Navigasi silang: dipakai juga oleh ShopInsight (modules/ai/
-// feature-insights.js, AI Insight) lewat summary() yang SAMA (satu sumber
-// angka, bukan dihitung ulang di 2 tempat) — item insight barunya
-// memakai action {page:'shop', navIdx:2} SAMA PERSIS pola action item
-// ShopInsight lain (mis. 'shop-stok-menipis').
-const ShopBusinessEnginePresenter = {
-
-  // _money(n) — helper format, fallback kalau fmt() belum dimuat (pola
-  // sama _money-style helper di PropertyManagementPresenter).
-  _money(n) {
-    return (typeof fmt === 'function') ? fmt(n) : ('Rp ' + Math.round(n || 0));
-  },
-
-  // _selfFilter() — reuse isCobekOwnershipSelf (S191/S194); fallback
-  // fungsi yang selalu true (anggap SELF) kalau ownership-engine.js belum
-  // dimuat, PERSIS pola guard yang sama dipakai ShopInsight.compute().
-  _selfFilter() {
-    return (typeof isCobekOwnershipSelf === 'function') ? isCobekOwnershipSelf : (() => true);
-  },
-
-  // summary() — ringkasan murni (TIDAK menyentuh DOM), 100% reuse
-  // InventoryEngine/PurchaseEngine/ProfitEngine (S198). Dipisah dari
-  // render()/renderTab() supaya bisa dites tanpa DOM & dipakai ulang oleh
-  // AI Insight (ShopInsight) tanpa duplikasi hitungan.
-  summary() {
-    const products = (typeof D !== 'undefined' && D.products) || [];
-    const cobek = (typeof D !== 'undefined' && D.cobek) || [];
-
-    // Inventory: nilai stok tertanam (modal & estimasi jual), 100% reuse
-    // InventoryEngine.totalModalStok()/totalNilaiJualStok() (S198, sendiri
-    // delegasi PERSIS ke Etalase.totalModalStok()/totalNilaiJualStok()).
-    let inventory = { ok: false };
-    if (typeof InventoryEngine !== 'undefined') {
-      inventory = {
-        ok: true,
-        totalModal: InventoryEngine.totalModalStok(products),
-        totalNilaiJual: InventoryEngine.totalNilaiJualStok(products),
-      };
-    }
-
-    // Purchase: rencana restock dari StockRekoWidget.scan() (via
-    // InventoryEngine.restockScan()) + estimasi modal (via
-    // PurchaseEngine.estimatedCost()) — 100% reuse S198, 0 rumus baru.
-    let purchase = { ok: false };
-    if (typeof InventoryEngine !== 'undefined' && typeof PurchaseEngine !== 'undefined') {
-      const scan = InventoryEngine.restockScan();
-      if (scan.ok) {
-        const est = PurchaseEngine.estimatedCost(scan.items);
-        purchase = { ok: true, itemCount: est.itemCount, totalQty: est.totalQty, totalCost: est.totalCost };
-      }
-    }
-
-    // Profit: omzet/untung/margin bulan berjalan, HANYA transaksi
-    // ownership SELF (pola Sesi 194) — 100% reuse ProfitEngine.summarize().
-    let profit = { ok: false };
-    if (typeof ProfitEngine !== 'undefined') {
-      const now = new Date();
-      const m = now.getMonth();
-      const y = now.getFullYear();
-      const selfFilter = this._selfFilter();
-      const cobThis = cobek
-        .filter((t) => { const d = new Date(t.date); return d.getMonth() === m && d.getFullYear() === y; })
-        .filter(selfFilter);
-      profit = Object.assign({ ok: true }, ProfitEngine.summarize(cobThis));
-    }
-
-    return { inventory, purchase, profit };
-  },
-
-  // render() — 3 kartu findash-card ke #shopBusinessEngineGrid (Dashboard
-  // Hub), PERSIS struktur PropertyManagementPresenter.render().
-  render() {
-    const el = (typeof document !== 'undefined') ? document.getElementById('shopBusinessEngineGrid') : null;
-    if (!el) return; // container belum ada di halaman ini, aman diam2.
-
-    const s = this.summary();
-    const cards = [
-      this._inventoryCard(s.inventory),
-      this._purchaseCard(s.purchase),
-      this._profitCard(s.profit),
-    ];
-
-    el.innerHTML = cards.map((c) => `
-      <div class="findash-card">
-        <div class="findash-card-icon">${c.icon}</div>
-        <div class="findash-card-body">
-          <div class="findash-card-label">${escapeHtml(c.label)}</div>
-          <div class="findash-card-val${c.cls ? ' ' + c.cls : ''}">${escapeHtml(c.value)}</div>
-          ${c.sub ? `<div class="findash-card-sub">${escapeHtml(c.sub)}</div>` : ''}
-        </div>
-      </div>
-    `).join('');
-  },
-
-  // renderTab() — versi ringkas 2 baris teks ke #shopBizEngineBody (tab
-  // Laporan/Statistik Shop, cobek-order.js), pola SAMA PERSIS
-  // DanaKelolaanPresenter.renderStatistik() (baris #lapDanaKelolaan).
-  renderTab() {
-    const el = (typeof document !== 'undefined') ? document.getElementById('shopBizEngineBody') : null;
-    if (!el) return;
-
-    const s = this.summary();
-    if (!s.purchase.ok && !s.inventory.ok) {
-      el.innerHTML = '<div class="u-fs12 u-t2">Business Engine belum tersedia</div>';
-      return;
-    }
-
-    const restockLine = s.purchase.ok
-      ? `${s.purchase.itemCount} produk perlu direstock · estimasi modal ${this._money(s.purchase.totalCost)}`
-      : 'Belum ada rekomendasi restock';
-    const stokLine = s.inventory.ok
-      ? `Nilai stok (modal) ${this._money(s.inventory.totalModal)} · estimasi nilai jual ${this._money(s.inventory.totalNilaiJual)}`
-      : '';
-
-    el.innerHTML = `<div class="u-fs12 u-lh15">${escapeHtml(restockLine)}</div>${stokLine ? `<div class="u-fs12 u-t2 u-lh15 u-mt4">${escapeHtml(stokLine)}</div>` : ''}`;
-  },
-
-  // _inventoryCard(inv) — inv = summary().inventory, dipakai APA ADANYA
-  // (totalModal/totalNilaiJual — 0 recompute, dari InventoryEngine).
-  _inventoryCard(inv) {
-    if (!inv.ok) return { icon: '📦', label: 'Nilai Stok Shop', value: '—', cls: '', sub: 'InventoryEngine belum dimuat' };
-    return {
-      icon: '📦',
-      label: 'Nilai Stok Shop',
-      value: this._money(inv.totalModal),
-      cls: '',
-      sub: `Estimasi nilai jual ${this._money(inv.totalNilaiJual)}`,
-    };
-  },
-
-  // _purchaseCard(p) — p = summary().purchase, dipakai APA ADANYA
-  // (itemCount/totalQty/totalCost — 0 recompute, dari
-  // InventoryEngine.restockScan() + PurchaseEngine.estimatedCost()).
-  _purchaseCard(p) {
-    if (!p.ok) return { icon: '🧾', label: 'Rencana Restock', value: 'Belum ada rekomendasi', cls: '', sub: '' };
-    if (p.itemCount === 0) return { icon: '🧾', label: 'Rencana Restock', value: 'Stok semua produk aman', cls: '', sub: '' };
-    return {
-      icon: '🧾',
-      label: 'Rencana Restock',
-      value: `${p.itemCount} produk`,
-      cls: 'red',
-      sub: `Estimasi modal ${this._money(p.totalCost)} (${p.totalQty} pcs)`,
-    };
-  },
-
-  // _profitCard(pr) — pr = summary().profit, dipakai APA ADANYA
-  // (trip/omzet/untung/marginPct — 0 recompute, dari
-  // ProfitEngine.summarize() atas transaksi ownership SELF bulan ini).
-  _profitCard(pr) {
-    if (!pr.ok) return { icon: '📈', label: 'Margin Shop Bulan Ini', value: '—', cls: '', sub: 'ProfitEngine belum dimuat' };
-    if (pr.trip === 0) return { icon: '📈', label: 'Margin Shop Bulan Ini', value: 'Belum ada transaksi', cls: '', sub: '' };
-    return {
-      icon: '📈',
-      label: 'Margin Shop Bulan Ini',
-      value: Math.round(pr.marginPct) + '%',
-      cls: '',
-      sub: `Omzet ${this._money(pr.omzet)} · Untung ${this._money(pr.untung)} · ${pr.trip} transaksi (SELF)`,
-    };
-  },
-
 };
 
 // dana-kelolaan.js — Dana Kelolaan / Managed Funds (Sesi 195).

@@ -1,3 +1,697 @@
+# Changelog — Sesi 201: Finalisasi Sinkronisasi Lintas Modul
+
+Target eksplisit user: finalisasi sinkronisasi lintas modul (Finance/Shop/
+Asset/Investment/Vehicle/Inventory/Dashboard/Report/AI Insight/Ownership)
+— IMPLEMENT ONLY, reuse seluruh modul existing. Verifikasi: tidak ada
+double count, tidak ada orphan data, dashboard = laporan, AI = dashboard,
+statistik = laporan, rollback aman. "Perbaiki hanya jika ada error."
+
+**Bug ditemukan & diperbaiki** (satu-satunya perubahan business logic,
+0 rumus baru — murni menerapkan filter ownership yang SUDAH ADA di
+tempat lain, sesuai instruksi eksplisit "jangan ubah business logic"):
+`LaporanAset.nilaiAset()`/`ringkasanKekayaan()` (modules/asset/aset.js,
+Laporan Aset) TIDAK memfilter `isAssetOwnershipSelf()`, padahal
+komentar aslinya sendiri menyatakan "angka SAMA dgn
+Aset.renderDashboard()" — yang SUDAH difilter sejak Sesi 193. Akibatnya
+Dashboard Aset & Laporan Aset bisa beda angka kalau ada aset
+ber-ownership non-SELF (INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY) —
+persis pelanggaran invarian "dashboard = laporan" yang diminta
+diverifikasi sesi ini. Fix: tambah `.filter(isAssetOwnershipSelf)` di
+`nilaiAset()` (populasi dasar) & `ringkasanKekayaan()` (`jumlahAset`,
+supaya konsisten dgn populasi `nilaiAset()` yang dipakainya). `build()`/
+`riwayatTransaksi()` SENGAJA TIDAK disentuh — keduanya listing/riwayat
+mentah, bukan agregat total (pola sama `Aset.renderList()` yang memang
+menampilkan SEMUA aset apa adanya per keputusan Sesi 193).
+
+Audit domain lain (Finance/Shop/Vehicle/Investment) — SEMUA sudah
+konsisten (satu sumber angka Dashboard/Laporan/Statistik/Grafik/AI
+Insight, ownership SELF-only, guard rollback aman) sejak S191-S200, 0
+gap baru ditemukan.
+
+**Test baru** — `tests/cross-module-sync-finalisasi-s201.test.js` (7
+test): (1)-(2) `LaporanAset.nilaiAset()`/`ringkasanKekayaan()` sekarang
+identik dgn `Aset.totalValue()`/Dashboard Aset, bukan total mentah
+`D.assets`, (3) kasus semua-SELF tidak regresi, (4) rollback aman
+`OwnershipEngine` belum dimuat, (5) `riwayatTransaksi()` aman & tidak
+throw kalau `accountId` aset menunjuk akun yang sudah dihapus (orphan
+link), (6) akun tertaut aset dikecualikan dari `totalSaldoAkun()`
+(no double count saldo kas + nilai aset), (7) cek struktural 0 fungsi
+"totalSaldoAkun2"/"hitungSaldoTotal" duplikat terselip di Finance
+Dashboard/Intelligence (AI = Dashboard, satu sumber angka). Baseline
+regression **985/985 PASS** (naik dari 978 — 7 test baru di atas), build
+`kw201-finalisasi-sinkronisasi-lintas-modul-714` (`?v=714`).
+
+---
+
+# Changelog — Sesi 200: Finalisasi Dashboard & AI Insight
+
+Target eksplisit user: finalisasi Dashboard & AI Insight — IMPLEMENT
+ONLY, reuse seluruh modul existing, TIDAK ada perubahan business logic.
+Sinkronkan Dashboard, Home Summary, AI Insight, Statistik, Grafik,
+Ownership Engine.
+
+Audit (verifikasi, bukan implementasi baru): `ShopBusinessEnginePresenter`
+(S199) sudah wired ke Dashboard Hub (`#shopBusinessEngineGrid`), Laporan/
+Statistik Shop (`#shopBizEngineBody`), live-wiring `renderDashboard()`,
+dan AI Insight (`ShopInsight`, item `shop-restock-modal`) — semuanya
+lewat `summary()` yang SAMA (satu sumber angka, 0 recompute terpisah).
+Grafik bulanan Shop (`Laporan.renderGrafik()`) & margin/produk-terlaris
+AI Insight sudah difilter ownership SELF sejak S194 (`isCobekOwnershipSelf`,
+guard `typeof` fallback aman). 0 gap ditemukan yang butuh perbaikan
+business logic — sesi ini murni verifikasi + regression test baru.
+
+**Test baru** — `tests/dashboard-ai-insight-finalisasi-s200.test.js` (6
+test): (1) item restock AI Insight pakai angka SAMA PERSIS dgn
+`ShopBusinessEnginePresenter.summary().purchase` (0 double compute), (2)
+transaksi ownership INVESTOR dikecualikan KONSISTEN dari
+`summary().profit` & filter `isCobekOwnershipSelf` (AI baca data SELF
+saja), (3) ownership CUSTOMER dikecualikan dari "produk terlaris" (tidak
+double count qty lintas ownership), (4) `summary()` PURE — dipanggil
+berulang (simulasi Dashboard+Laporan+AI Insight) balikin hasil identik,
+tidak akumulasi, (5) rollback aman — `OwnershipEngine` belum dimuat ->
+Presenter & AI Insight KONSISTEN fallback anggap semua SELF, (6)
+`render()`/`renderTab()` tidak throw walau container DOM tidak ada.
+Baseline regression **978/978 PASS** (naik dari 972 — 6 test baru di
+atas), build `kw200-finalisasi-dashboard-ai-insight-713` (`?v=713`).
+
+---
+
+# Changelog — Sesi 199: Finalisasi Integrasi Shop
+
+Target eksplisit user: finalisasi integrasi Shop — reuse seluruh modul
+existing, TIDAK ada perubahan business logic. Sinkronkan Dashboard,
+Laporan, Statistik, AI Insight, Grafik, Navigasi silang, Ownership Engine.
+
+Audit: PurchaseEngine/TripEngine/InventoryEngine/ProfitEngine (S198,
+modules/shop/*-engine.js) sudah lengkap + ada test, tapi TIDAK PERNAH
+dipanggil dari file render/presenter manapun — belum ada UI sama sekali.
+Ownership Engine sendiri sudah disinkronkan ke Laporan/Statistik/Grafik/
+Dashboard/AI Insight Shop di Sesi 194 (tidak diubah lagi di sesi ini).
+
+Perubahan:
+- **Baru**: `modules/shop/shop-business-engine-presenter.js` —
+  `ShopBusinessEnginePresenter` (`summary()`/`render()`/`renderTab()`),
+  100% reuse InventoryEngine/PurchaseEngine/ProfitEngine (S198), reuse
+  `isCobekOwnershipSelf()` (OwnershipEngine, S191/S194) untuk agregat
+  omzet/untung (HANYA transaksi ownership SELF). 0 rumus baru.
+- **Dashboard**: dipanggil dari `DashboardHub.render()`
+  (`dashboard-hub.js`) & live-wiring `renderDashboard()`
+  (`_safeRender`, `modules-render.js`) -> mengisi
+  `#shopBusinessEngineGrid` (Dashboard Hub, `index.html`/
+  `app_production.html`, section `#shopBusinessEngineWrap` baru, 3 kartu
+  findash-card: Nilai Stok Shop, Rencana Restock, Margin Shop Bulan Ini).
+- **Laporan/Statistik/Grafik**: dipanggil dari `Laporan.renderTab()`
+  (`modules/shop/cobek-order.js`, baris setelah
+  `DanaKelolaanPresenter.renderStatistik()`) -> mengisi
+  `#shopBizEngineBody` (card baru `#shopBizEngineCard` di tab Laporan
+  Shop). Grafik (`renderGrafik()`/`lapGrafikBars`) TIDAK disentuh —
+  sudah disinkronkan ownership-nya di S194.
+- **AI Insight**: `ShopInsight.compute()` (`modules/ai/feature-insights.js`)
+  — item baru `shop-restock-modal` (estimasi modal restock, reuse
+  `ShopBusinessEnginePresenter.summary().purchase`), aditif (item 1-3
+  yang sudah ada TIDAK diubah).
+- **Navigasi silang**: item `shop-restock-modal` pakai
+  `action:{label:'Lihat Shop',page:'shop',navIdx:2}`, pola SAMA PERSIS
+  item ShopInsight lain (`shop-stok-menipis`/`shop-margin`).
+- **Ownership Engine**: tidak ada perubahan logic — presenter baru
+  murni reuse `isCobekOwnershipSelf()` yang sudah ada (S194).
+- `scripts/build.js`: registrasi `shop-business-engine-presenter.js` di
+  GROUP_B, langsung setelah ke-4 engine S198.
+- `tests/shop-business-engine-integration.test.js` (**baru**, 10 test):
+  `summary()` (inventory/purchase/profit, termasuk guard engine belum
+  dimuat & fallback ownership), `render()`/`renderTab()` tidak throw,
+  item AI Insight `shop-restock-modal` (kemunculan & navigasi silang).
+
+Hasil test:
+```
+node --test
+# tests 972
+# pass 972
+# fail 0
+```
+Baseline sebelumnya 962/962 (10 test baru, murni aditif). Build
+`kw199-finalisasi-integrasi-shop`, `?v=712`.
+
+---
+
+# Changelog — Sesi 191: Ownership Engine Foundation
+
+Target eksplisit user: implementasikan HANYA Ownership Engine (fondasi
+lintas-domain) — 100% reuse modul existing, TIDAK ada perubahan business
+logic, TIDAK ada refactor besar, TIDAK disinkronkan ke modul lain dulu.
+
+**Baru: `modules/shared/ownership-engine.js`** — Ownership Engine, single
+source of truth untuk 5 tipe kepemilikan `SELF`/`INVESTOR`/`CUSTOMER`/
+`THIRD_PARTY`/`FAMILY`. Pure & deterministik (0 dependency ke `D`/modul
+lain, tidak pernah panggil `save()`), pola `{ok,...}` sama persis modul
+engine lain di project ini (mis. `FuelGaugeEngine`, TASK-143):
+- `TYPES`/`DEFAULT` — daftar resmi (getter, balikin salinan baru tiap
+  akses) & tipe default (`SELF`).
+- `isValidType(type)`/`normalize(type)`/`validate(type)` — validasi
+  case-insensitive & toleran whitespace, `validate()` balikin reason kalau
+  gagal.
+- `label(type)` — label Bahasa Indonesia per tipe (Milik Sendiri/
+  Investor/Pelanggan/Pihak Ketiga/Keluarga), fallback aman utk tipe tidak
+  dikenal.
+- `resolve(entity)` — baca kepemilikan efektif dari entity apa pun, TOLERAN
+  thd data lama yang belum punya field `ownership` (fallback `DEFAULT`,
+  bukan error — semua data project ini sebelum sesi ini belum ada field
+  ini).
+- `assign(entity, type)` — PURE, balikin salinan baru entity dgn field
+  `ownership` ternormalisasi (entity asli TIDAK dimutasi).
+- `filterByType(list, type)`/`groupByType(list)`/`countByType(list)` —
+  helper query di atas `resolve()`, `groupByType()`/`countByType()` selalu
+  balikin 5 key resmi (bucket kosong tetap ada, bukan `undefined`).
+
+**Ubah: `scripts/build.js`** — registrasi `ownership-engine.js` di
+GROUP_B, sebelum `features-helpers-global-security.js` (0 dependency,
+ditaruh berdekatan dgn modul shared fondasi lain).
+
+TIDAK ADA modul lain yang diubah/di-wiring ke engine ini sesi ini (sesuai
+batasan eksplisit user "jangan sinkronkan ke modul lain dulu") — tidak
+ada field `ownership` baru di `D.*`, tidak ada UI/modal, tidak ada
+perubahan ke finance/asset/vehicle/business.
+
+## Test baru
+`tests/ownership-engine.test.js` (37 test): `TYPES`/`DEFAULT`,
+`isValidType()`/`normalize()`/`validate()` (valid, case-insensitive,
+whitespace, invalid, bukan string, reason menyebutkan daftar tipe valid),
+`label()` (5 label resmi, case-insensitive, fallback tipe tak dikenal),
+`resolve()` (valid, tanpa field, tidak valid, entity null/bukan object —
+semua fallback toleran ke `DEFAULT`), `assign()` (sukses, PURE/tidak
+memutasi, timpa nilai existing, gagal entity bukan object, gagal tipe
+tidak valid), `filterByType()`/`groupByType()`/`countByType()` (filter
+benar, bucket kosong tetap 5 key, list kosong, gagal input bukan array),
+dan 1 test integrasi ringan `assign()` -> `resolve()` end-to-end.
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 834 / pass 834 / fail 0 (naik dari 797, +37 test baru, 0 regresi)
+```
+Build `kw-rc13-perf-fix-6-ownership-engine` (`?v=704`), `npm version`
+`0.81.0`.
+
+---
+
+# Changelog — Sesi 190 (Tahap 7D-1): Import PDF Honda — Fondasi (pilih & simpan sementara)
+
+Target eksplisit user: fondasi Import PDF Honda — pilih 1 atau banyak file
+PDF, simpan sementara (BELUM parsing/OCR). Implementation only.
+
+**Baru: `modules/vehicle/honda-pdf-import.js`** — pola sama persis
+`vehicle-catalog.js` (storage IDBStore) & `sparepart-ocr.js` (picker +
+orkestrasi, Tahap 7C-1):
+- Store terpisah `honda-pdf-import:store` (default `{files:[]}`), TIDAK
+  pernah menyentuh `D`/`VehicleCatalog` — data 100% terpisah.
+- `pickFiles()` — pilih **1 ATAU BANYAK** file PDF sekaligus (`<input
+  type=file multiple accept="application/pdf">`), pola SAMA PERSIS
+  `sparepartOcrPickImageFile()` (Tahap 7C-1), bedanya multi-file + filter
+  PDF, resolve array.
+- `fileToDataUrl()` — 1 File -> data URL base64 via `FileReader` (pola
+  sama `_catPhotoToDataUrl()` di `vehicle-catalog-ui.js`, TANPA
+  `downscaleImage()` krn ini PDF, bukan foto).
+- `add()`/`addMany()` — simpan record `{id, fileName, fileSize, mimeType,
+  dataBase64, status:'pending', addedAt}` ke store. `status` TETAP
+  `'pending'` sesi ini — **belum ada tahap parsing/OCR apa pun**
+  (sengaja di luar cakupan, kandidat tahap lanjutan 7D-2 dst). Validasi:
+  nama file wajib, mimeType wajib `application/pdf`, base64 wajib ada.
+  Batas `MAX_FILES=20` per store (cegah runaway import).
+- `list()`/`get()`/`remove()`/`clear()`/`ensureLoaded()`/
+  `invalidateCache()` — CRUD pendukung, pola sama `vehicleCatalog*`.
+- `pickAndStage()` — orkestrasi utama: pilih file(s) -> konversi base64 ->
+  `addMany()` -> toast ringkasan (`X tersimpan sementara, Y dilewati`).
+  Batal pilih -> toast peringatan, `null`, tidak menulis apa pun.
+
+**Ubah: `modules/shared/backup-restore.js`** — mendaftarkan
+`honda-pdf-import:store` ke `buildBackupPayload()`/`applyRestoredData()`,
+pola SAMA PERSIS `vehicle-catalog:store` (data terpisah dari D wajib
+didaftarkan manual atau tidak ikut ter-backup, per
+`FOUNDATION_AUDIT.md` §3). Tidak ada test unit yang meng-cover file ini
+sebelumnya (0 regresi risiko).
+
+**Ubah: `scripts/build.js`** — registrasi `honda-pdf-import.js` di
+GROUP_B, setelah `vehicle-catalog-tx-link.js` (mengelompok dengan file
+vehicle-catalog-* lain).
+
+TIDAK ada perubahan ke `VehicleCatalog`, UI/modal `index.html`/
+`app_production.html`, atau fitur lain manapun — murni fondasi data/
+logic baru, terisolasi total.
+
+## Test baru
+`tests/honda-pdf-import.test.js` (29 test): validasi (lengkap/valid,
+fileName kosong/terlalu panjang, mimeType bukan PDF, base64 kosong,
+fileSize negatif), `add()`/`addMany()` (sukses, gagal validasi tidak
+menulis store, batas MAX_FILES, campuran valid/invalid, list bukan
+array), `list()`/`get()`/`remove()`/`clear()`, `ensureLoaded()`/
+`invalidateCache()` (load sekali per sesi), `pickFiles()`/
+`pickAndStage()` (di-stub lewat `document`/`FileReader` tiruan, pola sama
+`tests/sparepart-ocr.test.js` men-stub `SparepartScanner`), dan
+`errorMessage()` (fallback vs reuse `scanErrorMessage()`).
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 719 / pass 719 / fail 0 (naik dari 690, +29 test baru, 0 regresi)
+
+node scripts/build.js kw190-tahap7d1-honda-pdf-import-foundation
+# ✅ Build selesai, ?v=664, index.html & app_production.html identik
+
+node --test tests/*.test.js   # setelah build
+# tests 719 / pass 719 / fail 0
+```
+
+**Cakupan sesi ini**: HANYA fondasi pilih + simpan sementara. Parsing/OCR
+isi PDF, integrasi ke `VehicleCatalog`, dan UI/modal nyata **BELUM
+dikerjakan** — menunggu keputusan/target eksplisit sesi berikutnya
+(7D-2 dst), sesuai instruksi "Jangan ubah fitur lain".
+
+---
+
+
+
+Target eksplisit user: hubungkan `SparepartOcrCatalogDetail` (Tahap 7C-3b,
+sebelumnya fungsi MURNI — tidak menyentuh DOM sama sekali) ke UI nyata.
+
+**Baru: `SparepartOcrCatalogDetail.open(result)`**
+(`modules/vehicle/sparepart-ocr-catalog-detail.js`) — lapisan wiring
+tipis di atas `show()` yang SUDAH ADA (dipakai apa adanya, 0 logic
+pencarian/presentasi baru):
+- `found:true` & ada item -> tulis `html` hasil `show()` ke
+  `#sparepartOcrDetailBody`, lalu buka modal lewat
+  `openModal('sparepartOcrDetailModal')` (SUDAH ADA,
+  `modal-navigasi.js`).
+- `found:false`/item kosong -> `show()` balik `null`, `open()` TIDAK
+  menulis DOM & TIDAK membuka modal apa pun (perilaku "jika ditemukan,
+  tampilkan" tidak berubah dari Tahap 7C-3b).
+- `document`/`openModal` keduanya OPSIONAL (guard typeof) — gagal aman,
+  `show()` tetap dikembalikan apa adanya walau DOM tidak tersedia (mis.
+  dipanggil dari test terisolasi/Node).
+- TIDAK membuka form/modal edit (`VehicleCatalogUI.openForm()`) — tetap
+  presentasi baca-saja, bukan alur ubah data. TIDAK ada aksi
+  edit/hapus/tambah dari kartu ini.
+
+**Baru: modal `sparepartOcrDetailModal`** (`modules/shared/modals.js`,
+index 78 di `MODAL_HTML`) — container `#sparepartOcrDetailBody`
+(read-only), tombol tutup standar (`data-action="closeModal"`), pola
+sama modal detail lain di repo ini (mis. `customerDetailModal`).
+`MODAL_VERSION` dibump. `index.html` ditambah
+`<script>document.write(MODAL_HTML[78]);</script>` setelah
+`vehCatalogImportModal` (source of truth; `app_production.html` ditulis
+ulang otomatis oleh `scripts/build.js`).
+
+**Ubah: `modules/vehicle/sparepart-ocr-orchestrator.js`** — step
+`'detail'` sekarang memanggil `SparepartOcrCatalogDetail.open()` KALAU
+tersedia (wiring DOM+modal nyata), fallback ke `.show()` murni kalau
+dependency versi lama/belum diupgrade (kompatibilitas mundur). 0 logic
+pencarian/parsing baru — orkestrator tetap murni pemanggil ke-5 tahap
+yang sudah ada.
+
+**Verifikasi:** 6 test baru (5 di
+`tests/sparepart-ocr-catalog-detail.test.js` utk `open()` — tulis
+DOM+buka modal saat ditemukan, tidak menulis apa pun saat tidak
+ditemukan, guard elemen tidak ada, guard document/openModal tidak
+tersedia, guard result null/undefined; 1 di
+`tests/sparepart-ocr-orchestrator.test.js` utk prioritas `.open()` vs
+`.show()`). `node --test tests/*.test.js` -> **690/690 pass** (naik dari
+684), 2x — sebelum & sesudah build. `node scripts/build.js
+kw189-sparepart-ocr-detail-ui` -> sukses, `?v=660` (naik dari `?v=659`).
+
+---
+
+# Changelog — Sesi 187 (Tahap 7C-4b): orkestrator Scan -> Parse -> Cari Vehicle Catalog -> Detail/Add
+
+Lanjutan Tahap 7C-3d (verifikasi build, 0 kode). Target sesi ini (sempit &
+eksplisit): buat orkestrator yang merangkai Scan -> Parse -> Cari Vehicle
+Catalog -> (ditemukan -> panggil Detail) / (tidak ditemukan -> panggil
+Add). TIDAK ubah UI selain wiring (dan sesi ini belum ada wiring UI nyata
+sama sekali — sama seperti seluruh Tahap 7C-1..7C-3c, semuanya
+logic/orkestrasi siap pakai).
+
+**Baru: `modules/vehicle/sparepart-ocr-orchestrator.js`** —
+`SparepartOcrOrchestrator.run()`: 0 logic baru, murni memanggil ke-4 fungsi
+yang sudah ada apa adanya berurutan:
+1. `SparepartOcr.scan()` (Tahap 7C-1) -> teks OCR mentah. `null`
+   (dibatalkan/gagal) atau `''` (tidak ada teks terdeteksi) -> orkestrasi
+   berhenti (`step:'scan'`), TIDAK lanjut ke parse/cari — `scan()` sudah
+   menampilkan toast pesannya sendiri, tidak diulang di sini.
+2. `SparepartOcrParser.parseText(text)` (Tahap 7C-2) -> `{oemCode,
+   partName, brand, barcode}`.
+3. `SparepartOcrCatalogLink.findFromParsed(parsed)` (Tahap 7C-3a) ->
+   `{found, item, matchedBy}`.
+4. `found:true` -> `SparepartOcrCatalogDetail.show(findResult)` (Tahap
+   7C-3b), `step:'detail'`, `SparepartOcrCatalogAdd.open()` TIDAK
+   dipanggil sama sekali. `found:false` -> `SparepartOcrCatalogAdd.
+   open(findResult, parsed)` (Tahap 7C-3c), `step:'add'`,
+   `SparepartOcrCatalogDetail.show()` TIDAK dipanggil sama sekali. Simpan
+   part baru TETAP lewat `SparepartOcrCatalogAdd.confirmAndSave()`
+   terpisah (TIDAK dipanggil otomatis di sini — konfirmasi user tetap
+   wajib, 0 perubahan ke Tahap 7C-3c).
+
+Kelima dependency (`SparepartOcr`/`SparepartOcrParser`/
+`SparepartOcrCatalogLink`/`SparepartOcrCatalogDetail`/
+`SparepartOcrCatalogAdd`) semuanya OPSIONAL (guard typeof), gagal aman
+(`{ok:false, step, error}`) kalau salah satu belum dimuat — pola sama
+modul-modul Tahap 7C sebelumnya.
+
+TIDAK ada tombol/entry-point UI baru ditaruh ke halaman manapun sesi ini
+(belum ada container/modal OCR nyata, sama seperti Tahap 7C-1..7C-3c) —
+wiring ke tombol scan label nyata tetap kandidat tahap lanjutan setelah
+orkestrator ini disetujui.
+
+`scripts/build.js` (GROUP_B): entri baru
+`modules/vehicle/sparepart-ocr-orchestrator.js`, ditaruh setelah
+`modules/vehicle/sparepart-ocr-catalog-add.js` (dependency terakhir yang
+dipanggilnya).
+
+`tests/sparepart-ocr-orchestrator.test.js` (**baru**, 10 test): cakupan
+seluruh percabangan — dependency belum tersedia di tiap tahap (scan/
+parse/find), scan `null` vs `''` (berhenti, tidak lanjut), `found:true` ->
+Detail dipanggil & Add TIDAK dipanggil (+ Detail belum tersedia -> gagal
+aman), `found:false` -> Add dipanggil & Detail TIDAK dipanggil (+ Add
+belum tersedia -> gagal aman), dan `findResult` tanpa property `found`
+sama sekali tetap dianggap tidak ditemukan.
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 682 / pass 682 / fail 0 (naik dari 672, 10 test baru, 0 regresi)
+
+node scripts/build.js kw187-tahap7C4b-sparepart-ocr-orchestrator
+# ✅ Build selesai, ?v=656, index.html & app_production.html identik
+
+node --test tests/*.test.js   # setelah build
+# tests 682 / pass 682 / fail 0
+```
+
+Catatan: `npm run lint` tidak bisa dijalankan di environment sesi ini
+(sandbox tanpa akses jaringan, `eslint` belum ter-install/tidak bisa
+di-fetch) — disebutkan apa adanya, bukan diklaim lolos. `node --check`
+bawaan `scripts/build.js` (bagian dari langkah build di atas) tetap
+memverifikasi sintaks kedua bundle dan lolos.
+
+---
+
+# Changelog — Sesi 187 (Tahap 7C-3d): verifikasi build + full test run (tidak ada perubahan kode)
+
+Lanjutan Tahap 7C-3c. Target sesi ini (sempit & eksplisit): tambah/update
+test seperlunya, perbaiki HANYA error build/test kalau ada, jalankan build
+final, jalankan seluruh test sampai PASS.
+
+Hasil audit: **0 error build, 0 test gagal** — `node --test tests/*.test.js`
+sudah 672/672 pass sebelum sesi ini dimulai (baseline dari Tahap 7C-3c),
+dan `node scripts/build.js` selesai bersih tanpa error sintaks/lint
+internal. Karena tidak ada error yang perlu diperbaiki, TIDAK ada perubahan
+kode (0 file source/test diubah) — sesi ini murni menjalankan ulang
+build+test sebagai verifikasi checkpoint, sesuai instruksi "perbaiki HANYA
+error build/test" (tidak ada yang diperbaiki krn tidak ada yang error).
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 672 / pass 672 / fail 0 (sama dgn baseline Tahap 7C-3c, 0 test baru)
+
+node scripts/build.js kw187-tahap7C3d-sparepart-ocr-verify
+# ✅ Build selesai, ?v=655, index.html & app_production.html identik
+
+node --test tests/*.test.js   # setelah build
+# tests 672 / pass 672 / fail 0
+```
+
+Catatan: `npm run lint` tidak bisa dijalankan di environment sesi ini
+(sandbox tanpa akses jaringan, `eslint` belum ter-install/tidak bisa
+di-fetch) — disebutkan apa adanya, bukan diklaim lolos. `node --check`
+bawaan `scripts/build.js` (bagian dari langkah build di atas) tetap
+memverifikasi sintaks kedua bundle dan lolos.
+
+---
+
+# Changelog — Sesi 187 (Tahap 7C-3c): part tidak ditemukan -> buka form tambah + prefill OCR + konfirmasi sebelum simpan
+
+Lanjutan Tahap 7C-3b (tampilkan detail part kalau ditemukan). Target sesi
+ini (sempit & eksplisit): kalau part TIDAK ditemukan, buka form tambah
+part, isi otomatis data OCR, minta konfirmasi sebelum benar-benar disimpan.
+TIDAK ubah parser (7C-2), TIDAK ubah pencarian (7C-3a), TIDAK ubah kartu
+detail (7C-3b), TIDAK ubah fitur lain.
+
+**Baru: `modules/vehicle/sparepart-ocr-catalog-add.js`**:
+- `fields(parsed)` — presenter MURNI: hasil parse `{oemCode, partName,
+  brand, barcode}` (bentuk PERSIS `SparepartOcrParser.parseText()`, Tahap
+  7C-2) -> prefill data siap tulis ke form tambah part. HANYA 3 field yang
+  dipetakan (`partName`/`oemCode`/`barcode`) krn HANYA 3 itu yang punya
+  input di form add-part `vehicle-catalog-ui.js`
+  (`catPartName`/`catOemCode`/`catBarcode`). `category` SENGAJA
+  dikosongkan (parser tidak mengekstrak kategori), `brand` SENGAJA TIDAK
+  dipetakan (tidak ada field brand di skema/form VehicleCatalog).
+- `open(findResult, parsed)` — orkestrasi utama: HANYA berjalan kalau
+  `findResult.found` falsy (part belum ada). `found:true` -> TIDAK
+  melakukan apa pun, return `null` (kartu detail 7C-3b yang tampil, bukan
+  form tambah). `found:false` -> panggil `VehicleCatalogUI.openForm()`
+  yang SUDAH ADA TANPA id (mode "Tambah Part Baru", 100% reuse) lalu tulis
+  field prefill ke DOM (`catPartName`/`catOemCode`/`catBarcode`) KALAU
+  elemennya ada & nilainya tidak kosong. TIDAK memanggil
+  `VehicleCatalog.create()` di sini — form tetap "belum disimpan".
+- `confirmAndSave()` — SATU-SATUNYA jalur simpan alur ini: minta
+  konfirmasi (`askConfirm()`, SUDAH ADA `modal-navigasi.js`, pola sama
+  `catalogUiRemove()`) dulu, BARU kalau user tekan "Ya" -> panggil
+  `VehicleCatalogUI.save()` yang SUDAH ADA (0 logic simpan baru). User
+  tekan "Batal" -> `save()` TIDAK pernah dipanggil, form tetap terbuka.
+  Alur simpan manual "+ Tambah Part"/"Simpan Perubahan" yang SUDAH ADA
+  (TANPA konfirmasi) TIDAK tersentuh sama sekali — `save()` dipanggil apa
+  adanya, tidak didefinisikan ulang.
+
+TIDAK ada tombol/entry-point baru ditaruh ke halaman manapun sesi ini —
+belum ada container/modal OCR nyata di halaman manapun (sama seperti
+Tahap 7C-1/7C-2/7C-3a/7C-3b, semuanya logic/orkestrasi siap pakai, wiring
+ke tombol scan label nyata adalah kandidat tahap lanjutan).
+
+Dependency `VehicleCatalogUI` (`vehicle-catalog-ui.js`) & `askConfirm()`
+(`modal-navigasi.js`) keduanya opsional (guard typeof), fallback gagal
+aman (`null`/`false`) kalau belum dimuat.
+
+`scripts/build.js` (GROUP_B): entri baru
+`modules/vehicle/sparepart-ocr-catalog-add.js`, ditaruh setelah
+`modules/vehicle/sparepart-ocr-catalog-detail.js`.
+
+`tests/sparepart-ocr-catalog-add.test.js` (**baru**, 15 test): cakupan
+penuh ketiga fungsi — pemetaan field & trim, `found:true` vs `found:false`,
+mode tambah (openForm TANPA id), guard nilai kosong tidak menimpa form,
+guard dependency belum tersedia, dan konfirmasi WAJIB sebelum `save()`
+benar-benar terpanggil (`askConfirm()` Ya vs Batal).
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 672 / pass 672 / fail 0 (naik dari 657, 15 test baru, 0 regresi)
+
+node scripts/build.js kw187-tahap7C3c-sparepart-ocr-catalog-add
+# ✅ Build selesai, ?v=654, index.html & app_production.html identik
+
+node --test tests/*.test.js   # setelah build
+# tests 672 / pass 672 / fail 0
+```
+
+Catatan: `npm run lint` tidak bisa dijalankan di environment sesi ini
+(sandbox tanpa akses jaringan, `eslint` belum ter-install/tidak bisa
+di-fetch) — disebutkan apa adanya, bukan diklaim lolos. `node --check`
+bawaan `scripts/build.js` (bagian dari langkah build di atas) tetap
+memverifikasi sintaks kedua bundle dan lolos.
+
+---
+
+# Changelog — Sesi 187 (Tahap 7C-3b): tampilkan detail part kalau hasil pencarian ditemukan
+
+Lanjutan Tahap 7C-3a (jembatan hasil parser <-> VehicleCatalog, hanya
+cari, kembalikan found/not found). Target sesi ini (sempit & eksplisit):
+kalau hasil pencarian ditemukan, tampilkan detail part. TIDAK ubah
+parser (7C-2), TIDAK ubah pencarian (7C-3a), TIDAK ada fitur lain.
+
+**Baru: `modules/vehicle/sparepart-ocr-catalog-detail.js`** — presenter
+MURNI, TANPA UI/wiring DOM (belum ada container/modal OCR nyata di
+halaman manapun sesi ini — Tahap 7C-1/7C-2/7C-3a semuanya logic-only,
+jadi kartu detail ini pun BELUM ditaruh ke DOM mana pun, itu wiring UI
+tahap lanjutan):
+- `fields(item)` — normalisasi 1 item VehicleCatalog jadi field siap
+  tampil: `partName`/`category`/`oemCode`/`barcode`/`partNumber`
+  (`aftermarketCode`, istilah SAMA PERSIS Tahap 7C-3a)/`price` (diformat
+  via `fmt()` kalau ada)/`supplier`/`location`/`notes`/`serviceNotes`/
+  `photos`/`compatibleVehicleIds`/`isDraft`. Field opsional kosong ->
+  fallback `"Belum diisi"` (istilah SAMA PERSIS `vehicle-core.js`/
+  `fuel-gauge-engine.js`). `price` bernilai `0` (angka valid) TIDAK
+  dianggap kosong.
+- `html(item)` — 1 potongan HTML kartu detail read-only (escaped via
+  `escapeHtml()`), TIDAK ADA tombol aksi apa pun (bukan alur edit/hapus,
+  murni presentasi baca-saja).
+- `show(result)` — orkestrasi utama: terima hasil `{found, item,
+  matchedBy}` dari `SparepartOcrCatalogLink.findFromParsed()`/
+  `findFromText()` (Tahap 7C-3a) APA ADANYA (tidak memanggil
+  VehicleCatalog/SparepartOcrParser sendiri, 0 duplikasi logic).
+  `found:true` & ada `item` -> `{fields, html, matchedBy}` siap tampil.
+  `found:false` (atau `item` kosong/cacat) -> `null` — TIDAK ADA yang
+  ditampilkan, sesuai instruksi "jika ditemukan, tampilkan".
+
+Dependency `escapeHtml()` (helper-teks.js) & `fmt()` (format-tema.js)
+keduanya opsional (guard typeof), fallback ke `String(...)` polos kalau
+belum dimuat.
+
+`scripts/build.js` (GROUP_B): entri baru
+`modules/vehicle/sparepart-ocr-catalog-detail.js`, ditaruh setelah
+`modules/vehicle/sparepart-ocr-catalog-link.js` (dependency logic,
+dipakai sbg bentuk input `show()`).
+
+`tests/sparepart-ocr-catalog-detail.test.js` (**baru**, 15 test):
+cakupan penuh ketiga fungsi — item lengkap vs field kosong (fallback),
+`price:0` bukan dianggap kosong, `fmt()`/`escapeHtml()` belum tersedia
+(fallback), foto ada/tidak ada, badge draft, tidak ada tombol aksi di
+HTML, dan `show()` hanya mengembalikan detail KALAU `found:true` (null
+utk `found:false`/item cacat/result undefined).
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 657 / pass 657 / fail 0 (naik dari 642, 15 test baru, 0 regresi)
+
+node scripts/build.js kw187-tahap7C3b-sparepart-ocr-catalog-detail
+# ✅ Build selesai, ?v=653, index.html & app_production.html identik
+
+node --test tests/*.test.js   # setelah build
+# tests 657 / pass 657 / fail 0
+```
+
+Catatan: `npm run lint` tidak bisa dijalankan di environment sesi ini
+(sandbox tanpa akses jaringan, `eslint` belum ter-install/tidak bisa
+di-fetch) — disebutkan apa adanya, bukan diklaim lolos. `node --check`
+bawaan `scripts/build.js` (bagian dari langkah build di atas) tetap
+memverifikasi sintaks kedua bundle dan lolos.
+
+---
+
+# Changelog — Sesi 187 (Tahap 7C-3a): jembatan hasil SparepartOcrParser <-> VehicleCatalog (cari saja)
+
+Lanjutan Tahap 7C-2 (Parser Hasil OCR Sparepart, murni logic, belum
+terhubung ke Vehicle Catalog). Target sesi ini (sempit & eksplisit):
+hubungkan hasil parser ke VehicleCatalog untuk PENCARIAN saja — cari
+berdasar OEM Code, Barcode, atau Part Number, kembalikan hasil
+ditemukan/tidak ditemukan. TIDAK ubah UI, TIDAK buka form, TIDAK ada
+fitur lain (mis. TIDAK bikin draft otomatis — beda dari
+`VehicleCatalog.handleOcrLabel()` Tahap 3 yang sudah ada, tidak
+diduplikasi/diubah).
+
+**Baru: `modules/vehicle/sparepart-ocr-catalog-link.js`** — jembatan
+MURNI LOGIC, TANPA UI, pola sama persis `vehicle-catalog-servis-link.js`/
+`vehicle-catalog-tx-link.js`:
+- `findByCode(code)` — cari 1 part persis (exact, case-insensitive) di
+  VehicleCatalog berdasar OEM Code ATAU Barcode (100% reuse
+  `VehicleCatalog.findByCode()` yang sudah ada) ATAU Part Number (field
+  `aftermarketCode` — belum dicek `findByCode()` existing, ditambah HANYA
+  di file ini lewat `VehicleCatalog.getAll()`, TIDAK mengubah
+  `vehicle-catalog.js`).
+- `findFromParsed(parsed)` — orkestrasi utama: terima hasil parse bentuk
+  persis output `SparepartOcrParser.parseText()`
+  (`{oemCode, barcode, partName, brand}`), cari OEM Code dulu lalu
+  Barcode (berhenti di kecocokan pertama), kembalikan
+  `{found, item, matchedBy}` / `{found:false, item:null}`. Tidak ada kode
+  terdeteksi sama sekali -> `{found:false, item:null, error}`, tidak query
+  VehicleCatalog sama sekali.
+- `findFromText(text)` — varian terima STRING teks OCR mentah, reuse
+  `SparepartOcrParser.parseText()` (Tahap 7C-2, guard typeof) untuk parse
+  dulu, baru panggil `findFromParsed()`.
+
+Semua fungsi async (baca `VehicleCatalog`/IDBStore) tapi read-only murni —
+TIDAK pernah memanggil `VehicleCatalog.create()`/`update()`. Dependency
+`SparepartOcrParser`/`VehicleCatalog` keduanya opsional (guard typeof),
+gagal aman (`found:false` + pesan error) kalau belum dimuat.
+
+`scripts/build.js` (GROUP_B): entri baru
+`modules/vehicle/sparepart-ocr-catalog-link.js`, ditaruh setelah
+`modules/vehicle/sparepart-ocr-parser.js` (dependency).
+
+`tests/sparepart-ocr-catalog-link.test.js` (**baru**, 15 test): cakupan
+penuh ketiga fungsi — match OEM Code/Barcode/Part Number, exact vs tidak
+cocok, kode/parsed kosong, guard `VehicleCatalog`/`SparepartOcrParser`
+belum tersedia, dan verifikasi eksplisit `create()`/`update()` TIDAK
+pernah terpanggil.
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 642 / pass 642 / fail 0 (naik dari 627, 15 test baru, 0 regresi)
+
+node scripts/build.js kw187-tahap7C3a-sparepart-ocr-catalog-link
+# ✅ Build selesai, ?v=652, index.html & app_production.html identik
+
+node --test tests/*.test.js   # setelah build
+# tests 642 / pass 642 / fail 0
+```
+
+Catatan: `npm run lint` tidak bisa dijalankan di environment sesi ini
+(sandbox tanpa akses jaringan, `eslint` belum ter-install/tidak bisa
+di-fetch) — disebutkan apa adanya, bukan diklaim lolos. `node --check`
+bawaan `scripts/build.js` (bagian dari langkah build di atas) tetap
+memverifikasi sintaks kedua bundle dan lolos.
+
+---
+
+# Changelog — Sesi 186 (Tahap 7A): Smart Transaction Foundation — jembatan D.transactions <-> VehicleCatalog
+
+Target sesi ini (dari `kw_release_sesi181_vehiclecatalog-stock-foundation.zip`,
+sempit & eksplisit): tambahkan referensi transaksi ke Vehicle Catalog secara
+additive. Tidak audit ulang repo, tidak bikin blueprint/ADR/BP-015/Governance
+baru, tidak ubah arsitektur/business logic existing — reuse pola
+`modules/vehicle/vehicle-catalog-servis-link.js` (Tahap 6 Sesi 1) &
+snapshot flat `catalogPartId/catalogPartQty/catalogPartOemCode` (Sesi 180,
+Tahap 6B2) apa adanya, direplikasi untuk `D.transactions`.
+
+**Baru: `modules/finance/vehicle-catalog-tx-link.js`** — jembatan MURNI
+LOGIC, TANPA UI (wiring ke `txModal`/`_saveTxInner()` sengaja belum
+dikerjakan, sama seperti Tahap 6 Sesi 1 vs Sesi 2). Dua mekanisme, sama
+persis pola servis:
+- `catalogPartRefs` (array `{catalogId, qty}[]`, sumber kebenaran
+  multi-part + resolve live): `normalizeRefs()`, `getTxRefs()`,
+  `attachToTx()`, `detachFromTx()`, `resolveTxParts()`.
+- Snapshot flat 4-field (`catalogPartId`, `catalogPartName`,
+  `catalogPartOemCode`, `catalogPartQty`) langsung di record transaksi,
+  additive & backward compatible (transaksi lama tanpa field ini ->
+  `null`/`''`/`0`, bukan `undefined`): `buildSnapshot()` (murni),
+  `getSnapshot()`, `attachSnapshotToTx()` (resolve 1x via
+  `VehicleCatalog.getById()`, gagal aman kalau part tidak ada di
+  katalog — tidak menyimpan snapshot palsu), `clearSnapshot()`.
+
+Tidak ada database/storage baru — reuse `VehicleCatalog`/`IDBStore` yang
+sudah ada (baca saja, lewat `VehicleCatalog.getById()`) dan `D.transactions`
+yang sudah ada (`modules/finance/transaksi.js`). Modul ini tidak pernah
+memanggil `save()` global (pola sama servis-link — 1 titik `save()` per
+alur, di tangan pemanggil/UI masa depan).
+
+`scripts/build.js` (GROUP_B): entri baru `modules/finance/vehicle-catalog-tx-link.js`,
+ditaruh setelah `modules/vehicle/vehicle-catalog-servis-link.js` (dependency
+`D`/`VehicleCatalog` sudah dimuat lebih dulu di blok atas).
+
+`tests/vehicle-catalog-tx-link.test.js` (**baru**, 30 test): cakupan penuh
+kedua mekanisme (normalize/get/attach/detach/resolve untuk `catalogPartRefs`;
+build/get/attach/clear untuk snapshot flat), termasuk backward compatibility
+(transaksi lama tanpa field), guard `D.transactions`/`VehicleCatalog` belum
+tersedia, replace-total vs merge, idempotency detach, dan kegagalan aman
+kalau `catalogId` diisi tapi part sudah tidak ada di katalog.
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 581 / pass 581 / fail 0 (naik dari 551, 30 test baru, 0 regresi)
+
+node scripts/build.js kw186-tahap7A-smart-transaction-foundation
+# ✅ Build selesai, ?v=647, index.html & app_production.html identik
+
+node --test tests/*.test.js   # setelah build
+# tests 581 / pass 581 / fail 0
+```
+
+Catatan: `npm run lint` tidak bisa dijalankan di environment sesi ini
+(sandbox tanpa akses jaringan, `eslint` belum ter-install/tidak bisa
+di-fetch) — disebutkan apa adanya, bukan diklaim lolos. `node --check`
+bawaan `scripts/build.js` (bagian dari langkah build di atas) tetap
+memverifikasi sintaks kedua bundle dan lolos.
+
 # Changelog — Sesi 180 (Tahap 6B2): snapshot catalogPartId/catalogPartQty/catalogPartOemCode di D.servisLogs
 
 Target sesi ini (dari `kw_release_sesi179_tahap6B1.zip`, sempit &
@@ -7511,4 +8205,49 @@ node scripts/build.js kw161-investment-planner-gap-fix-610
 
 node --test tests/*.test.js   # setelah build
 # tests 387 / pass 387 / fail 0
+```
+
+---
+
+# Changelog — Sesi 188 (Tahap 7C-4b lanjutan): prefill form tambah part dari hasil OCR dikembalikan
+
+## Konteks
+Instruksi eksplisit user: "Prefill form dengan hasil OCR", "Jangan ubah proses
+simpan", "Jangan ubah fitur lain". Baseline sesi ini adalah
+`kw187-sparepart-ocr-add-noprefill-657` (Sesi 187 override: `open()` di
+`sparepart-ocr-catalog-add.js` sempat dibuat TIDAK menulis prefill ke DOM).
+Sesi ini mengembalikan perilaku prefill (Tahap 7C-3c) tanpa menyentuh alur
+simpan atau fitur lain.
+
+## Perubahan
+
+- **`modules/vehicle/sparepart-ocr-catalog-add.js`**: `sparepartOcrCatalogAddOpen()`
+  sekarang memanggil helper baru `_sparepartOcrCatalogAddWritePrefill(parsed)`
+  SETELAH `VehicleCatalogUI.openForm()` (mode "Tambah Part Baru" tanpa id).
+  Helper ini reuse `fields(parsed)` yang sudah ada (0 logic parsing baru) dan
+  menulis ke `catPartName`/`catOemCode`/`catBarcode` — HANYA kalau elemen ada
+  di DOM & nilainya tidak kosong (guard sama seperti desain awal Tahap 7C-3c).
+  `confirmAndSave()`/alur simpan TIDAK diubah sama sekali — form tetap
+  berstatus "belum disimpan" sampai user konfirmasi.
+- Header komentar file diperbarui menjelaskan perubahan ini.
+- `tests/sparepart-ocr-catalog-add.test.js`: 3 test "no prefill" lama diganti
+  jadi 5 test prefill (isi field dari hasil parse, guard nilai kosong tidak
+  menimpa, guard parsed undefined, guard elemen DOM sebagian tidak ada) — net
+  +2 test (17 total file ini, naik dari 15... eh dari kondisi noprefill).
+  Test lain (`fields()`, `confirmAndSave()`, guard dependency) TIDAK diubah.
+
+TIDAK ada perubahan ke parser (7C-2), pencarian (7C-3a), kartu detail (7C-3b),
+orkestrator (7C-4/Sesi 187 awal), `VehicleCatalogUI.openForm()`/`save()`, atau
+fitur lain manapun.
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 684 / pass 684 / fail 0 (naik dari 682, +2 test baru, 0 regresi)
+
+node scripts/build.js kw188-tahap7C4b-sparepart-ocr-add-prefill
+# ✅ Build selesai, ?v=658, index.html & app_production.html identik
+
+node --test tests/*.test.js   # setelah build
+# tests 684 / pass 684 / fail 0
 ```
