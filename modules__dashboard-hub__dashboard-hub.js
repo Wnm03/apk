@@ -584,6 +584,23 @@ const DashboardHub = {
     // EIEDashboard.render()), jadi tidak memblokir render kartu lain.
     if (typeof EIEDashboard !== 'undefined') EIEDashboard.render();
 
+    // Dana Kelolaan / Managed Funds Foundation (S195, lihat
+    // #danaKelolaanWrap di index.html/app_production.html). Tambahan
+    // murni, pola sama dgn PropertyManagementPresenter.render() di atas —
+    // tidak mengubah baris manapun sebelum ini. 100% reuse
+    // DanaKelolaan.summary() (S195, sendiri 100% reuse OwnershipEngine +
+    // nilai akun/aset/investasi/shop yang sudah ada), UI hanya presenter.
+    if (typeof DanaKelolaanPresenter !== 'undefined') DanaKelolaanPresenter.render();
+    if (typeof DanaKelolaanInsight !== 'undefined') DanaKelolaanInsight.render();
+
+    // Shop Business Engine Integration (S199, Finalisasi Integrasi Shop,
+    // lihat #shopBusinessEngineWrap di index.html/app_production.html).
+    // Tambahan murni, pola sama dgn DanaKelolaanPresenter.render() di atas
+    // — tidak mengubah baris manapun sebelum ini. 100% reuse
+    // InventoryEngine/PurchaseEngine/ProfitEngine (S198, modules/shop/
+    // *-engine.js), UI hanya presenter.
+    if (typeof ShopBusinessEnginePresenter !== 'undefined') ShopBusinessEnginePresenter.render();
+
     // Tab switcher "Semua Fitur"/"Pinned Widgets" (dashHubMainTabsRow) sudah
     // DIHAPUS 2026-07-17 — #dashHubMainGridCard & #dashboardHubPinnedWrap
     // sekarang cuma ditumpuk berurutan (masing-masing sudah collapsible

@@ -191,11 +191,15 @@ out.push({id:'shop-stok-menipis',level:'warning',icon:'🟠',text:`${menipis.len
 }
 // (2) Margin profit bulan ini turun jauh dari bulan lalu (min. 3 transaksi biar tidak false-positive).
 try{
+// Sesi 194 (Ownership Sync Shop): AI Insight margin Shop HANYA hitung
+// transaksi ownership SELF (guard typeof biar aman kalau ownership-engine.js
+// belum dimuat — fallback isCobekOwnershipSelf true).
+const cobSelfFilter=typeof isCobekOwnershipSelf==='function'?isCobekOwnershipSelf:(()=>true);
 const now=new Date(),m=now.getMonth(),y=now.getFullYear();
 const cobek=D.cobek||[];
-const cobThis=cobek.filter(t=>{const d=new Date(t.date);return d.getMonth()===m&&d.getFullYear()===y;});
+const cobThis=cobek.filter(t=>{const d=new Date(t.date);return d.getMonth()===m&&d.getFullYear()===y;}).filter(cobSelfFilter);
 const prevD=new Date(y,m-1,1);
-const cobPrev=cobek.filter(t=>{const d=new Date(t.date);return d.getMonth()===prevD.getMonth()&&d.getFullYear()===prevD.getFullYear();});
+const cobPrev=cobek.filter(t=>{const d=new Date(t.date);return d.getMonth()===prevD.getMonth()&&d.getFullYear()===prevD.getFullYear();}).filter(cobSelfFilter);
 const marginOf=rows=>{const omzet=rows.reduce((s,t)=>s+(t.total||0),0);const profit=rows.reduce((s,t)=>s+(t.profit||0),0);return omzet>0?profit/omzet:null;};
 const mThis=marginOf(cobThis),mPrev=marginOf(cobPrev);
 if(mThis!=null&&mPrev!=null&&mPrev>0&&mThis<mPrev*ShopInsight.MARGIN_DROP_RATIO&&cobThis.length>=3){
@@ -205,7 +209,9 @@ out.push({id:'shop-margin',level:'warning',icon:'🟠',text:`Margin profit Shop 
 // (3) Produk terlaris bulan ini (penguat positif, bukan cuma peringatan).
 try{
 const now=new Date(),m=now.getMonth(),y=now.getFullYear();
-const cobThis=(D.cobek||[]).filter(t=>{const d=new Date(t.date);return d.getMonth()===m&&d.getFullYear()===y;});
+// Sesi 194 (Ownership Sync Shop): "Produk terlaris" HANYA hitung transaksi ownership SELF.
+const cobSelfFilter2=typeof isCobekOwnershipSelf==='function'?isCobekOwnershipSelf:(()=>true);
+const cobThis=(D.cobek||[]).filter(t=>{const d=new Date(t.date);return d.getMonth()===m&&d.getFullYear()===y;}).filter(cobSelfFilter2);
 if(cobThis.length>=3){
 const perProduk={};
 cobThis.forEach(t=>{(t.items||[]).forEach(it=>{const key=it.productId||it.name;if(!key)return;perProduk[key]=(perProduk[key]||{name:it.name,qty:0});perProduk[key].qty+=(it.qty||1);});});
@@ -215,6 +221,23 @@ out.push({id:'shop-terlaris',level:'good',icon:'🟢',text:`Produk terlaris bula
 }
 }
 }catch(e){console.warn('ShopInsight: gagal cek produk terlaris',e);}
+// (4) Estimasi modal restock (S199, Finalisasi Integrasi Shop) — 100%
+// reuse ShopBusinessEnginePresenter.summary().purchase (S198
+// InventoryEngine.restockScan()+PurchaseEngine.estimatedCost()), 0 rumus
+// baru di sini. Beda dari insight (1) di atas: (1) cuma menghitung JUMLAH
+// produk stok menipis (ambang stock<=2), item ini menambahkan ESTIMASI
+// MODAL (Rp) yang dibutuhkan utk restock semua produk yang direkomendasikan
+// StockRekoWidget.scan() (bisa beda produk/ambang dari (1), krn StockRekoWidget
+// juga mempertimbangkan histori penjualan/estimasi hari stok tersisa).
+try{
+if(typeof ShopBusinessEnginePresenter!=='undefined'){
+const s=ShopBusinessEnginePresenter.summary();
+if(s.purchase&&s.purchase.ok&&s.purchase.itemCount>0){
+const money=typeof fmt==='function'?fmt:(n=>'Rp '+Math.round(n||0));
+out.push({id:'shop-restock-modal',level:'warning',icon:'🟠',text:`${s.purchase.itemCount} produk direkomendasikan direstock — estimasi modal ${money(s.purchase.totalCost)}.`,action:{label:'Lihat Shop',page:'shop',navIdx:2}});
+}
+}
+}catch(e){console.warn('ShopInsight: gagal cek estimasi modal restock',e);}
 return out;
 },
 render(){
@@ -226,7 +249,13 @@ FeatureInsightUI.renderInto('shopInsightCard','shopInsightBody',hasData,ShopInsi
 const MobilInsight={
 compute(){
 const out=[];
-const vehicles=D.vehicles||[];
+// Sesi 197 (Ownership Sync — Insight): TAMBAH 1 filter
+// isVehicleOwnershipSelf(v.id) di atas D.vehicles (0 logic lama diubah) —
+// kendaraan ber-ownership INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY dikecualikan
+// dari insight pajak kendaraan, pola sama persis isVehicleOwnershipSelf()
+// di vehicle-core.js (Sesi 196). SIM (D.simList) TIDAK difilter — bukan
+// entitas kendaraan, tidak punya konsep ownership.
+const vehicles=(D.vehicles||[]).filter(v=>typeof isVehicleOwnershipSelf!=='function'||isVehicleOwnershipSelf(v.id));
 if(typeof daysUntilDate!=='function')return out;
 // (1) Pajak Kendaraan (STNK Tahunan/Ganti Plat 5th/Uji Kelayakan) jatuh tempo dekat/lewat.
 vehicles.forEach(v=>{

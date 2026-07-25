@@ -110,7 +110,7 @@ const AssetPortfolioAPI = {
       assetValue,
       investmentValue,
       totalValue,
-      assetCount: (typeof D !== 'undefined' && D && Array.isArray(D.assets)) ? D.assets.length : 0,
+      assetCount: (typeof D !== 'undefined' && D && Array.isArray(D.assets)) ? D.assets.filter(typeof isAssetOwnershipSelf === 'function' ? isAssetOwnershipSelf : () => true).length : 0,
       investmentHoldingsCount: investment.summary.holdingsCount || 0,
     };
   },

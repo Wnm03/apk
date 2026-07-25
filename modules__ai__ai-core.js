@@ -188,11 +188,18 @@ function _aiContextAsset() {
 // balikin {ok:false}) TETAP masuk daftar (rpPerKm/estMonthlyCost null),
 // TIDAK di-skip dari array, supaya vehicleCount tetap konsisten dgn
 // D.vehicles.length.
+// _aiContextVehicle() (Sesi 197, Ownership Sync — AI): TAMBAH 1 filter
+// isVehicleOwnershipSelf(v.id) di atas D.vehicles (0 logic lama diubah) —
+// kendaraan ber-ownership INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY dikecualikan
+// dari context AI Daily Briefing, pola sama persis isVehicleOwnershipSelf()
+// di vehicle-core.js (Sesi 196). Guard typeof: kalau helper belum dimuat,
+// anggap semua SELF (tidak exclude apa pun).
 function _aiContextVehicle() {
   if (typeof D === 'undefined' || !D || !Array.isArray(D.vehicles) || typeof fuelEfficiency !== 'function') {
     return { available: false };
   }
-  const vehicles = D.vehicles.map((v) => {
+  const selfVehicles = D.vehicles.filter((v) => typeof isVehicleOwnershipSelf !== 'function' || isVehicleOwnershipSelf(v.id));
+  const vehicles = selfVehicles.map((v) => {
     const eff = fuelEfficiency(v.id);
     return {
       id: v.id,

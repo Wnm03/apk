@@ -96,6 +96,24 @@ init(suffix){
 AlokasiAset.renderOne(suffix||'');
 }
 };
+// isAssetOwnershipSelf(a) — helper REUSE dari OwnershipEngine (Sesi 193,
+// Ownership Sync Asset & Investasi). Balikin true kalau kepemilikan EFEKTIF
+// aset ini SELF (termasuk aset lama yg belum punya field `ownership` sama
+// sekali — via OwnershipEngine.resolve() otomatis fallback ke SELF/DEFAULT,
+// 100% backward compatible, TIDAK ada aset existing yang tiba-tiba
+// ke-exclude). Balikin false kalau ownership-nya salah satu dari INVESTOR/
+// CUSTOMER/THIRD_PARTY/FAMILY (sesuai spesifikasi sesi ini: aset2 tipe ini
+// WAJIB dikecualikan dari agregat Total Aset/Dashboard Aset/AI Insight/Net
+// Worth — tapi TIDAK dari Aset.renderList() [Buku Aset], aset & histori
+// tersebut tetap tampil & tersimpan apa adanya di daftar, cuma tidak ikut
+// dijumlah ke total).
+// Guard typeof OwnershipEngine: kalau engine belum dimuat, fallback true
+// (anggap SELF/tidak exclude apa pun) — pola sama persis
+// isAccOwnershipSelf() (modules/finance/akun.js, Sesi 192).
+function isAssetOwnershipSelf(a){
+if(typeof OwnershipEngine==='undefined')return true;
+return OwnershipEngine.resolve(a).type==='SELF';
+}
 // AssetInsight — kartu "💡 Insight Aset" di paling atas halaman Aset (page-aset).
 // Tujuan: kasih ringkasan cepat yg butuh perhatian, TANPA user perlu buka semua
 // card di bawahnya satu-satu (Dashboard Aset, Performa Investasi, Histori
@@ -111,7 +129,7 @@ CONCENTRATION_THRESHOLD:60,
 // mengubah sedikit pun teks/urutan insight yang sudah ada & sudah dites di aset.test.js —
 // murni ekstraksi array `insights` yang sebelumnya dibangun langsung di render().
 compute(){
-const list=D.assets||[];
+const list=(D.assets||[]).filter(isAssetOwnershipSelf);
 const totalNilai=list.reduce((s,a)=>s+(a.nilai||0),0);
 const insights=[];
 // (1) Konsentrasi kategori — kalau 1 jenis aset mendominasi porsi terbesar,
@@ -165,7 +183,7 @@ render(){
 const card=document.getElementById('assetInsightCard');
 const box=document.getElementById('assetInsightBody');
 if(!card||!box)return;
-const list=D.assets||[];
+const list=(D.assets||[]).filter(isAssetOwnershipSelf);
 if(!list.length){card.classList.add('u-dnone');return;}
 card.classList.remove('u-dnone');
 const totalNilai=list.reduce((s,a)=>s+(a.nilai||0),0);
@@ -367,7 +385,13 @@ PajakAset.renderList();
 LaporanAset.renderList();
 AssetInsight.render();
 },
-totalValue(){return(D.assets||[]).reduce((s,a)=>s+(a.nilai||0),0);},
+// totalValue() — Sesi 193 (Ownership Sync): TAMBAH 1 filter isAssetOwnershipSelf(a)
+// (0 logic lama diubah, cuma nambah 1 syarat filter sebelum reduce). Aset
+// ber-ownership INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY dikecualikan dari Total
+// Aset (dipakai jg oleh Kekayaan.currentNetWorth() & AssetPortfolioAPI —
+// keduanya ikut ter-fix otomatis lewat titik ini, 0 perubahan tambahan di
+// modul lain), tapi TETAP muncul apa adanya di Aset.renderList() (Buku Aset).
+totalValue(){return(D.assets||[]).filter(isAssetOwnershipSelf).reduce((s,a)=>s+(a.nilai||0),0);},
 // FITUR BARU: Dashboard Aset — ringkasan Total Aset / Nilai Buku / Nilai Pasar +
 // breakdown per kategori (jenis). Nilai Pasar = total a.nilai (estimasi nilai saat
 // ini, sesuai yang diisi user di modal Aset). Nilai Buku = total modal/harga
@@ -379,7 +403,11 @@ totalValue(){return(D.assets||[]).reduce((s,a)=>s+(a.nilai||0),0);},
 renderDashboard(){
 const box=document.getElementById('assetDashboard');
 if(!box)return;
-const list=D.assets||[];
+// Sesi 193 (Ownership Sync): filter isAssetOwnershipSelf() -- Dashboard Aset
+// (ringkasan Total Aset/Nilai Buku/Nilai Pasar/breakdown kategori) HANYA
+// menghitung aset ber-ownership SELF, sesuai spesifikasi (dikecualikan dari
+// "Dashboard"). Aset non-SELF tetap ada apa adanya di Aset.renderList().
+const list=(D.assets||[]).filter(isAssetOwnershipSelf);
 box.classList.remove('u-dnone');
 if(!list.length){
 const t=document.getElementById('assetDashTotal');if(t)t.textContent=fmtFull(0);
@@ -1019,8 +1047,14 @@ return{akunTertaut,recentTx,totalTx:gabungan.length};
 },
 // Nilai Aset: total Nilai Pasar (a.nilai) vs Nilai Buku (modal/harga perolehan,
 // definisi SAMA dgn Aset.renderDashboard()) + breakdown per kategori (jenis).
+// S201 (Finalisasi Sinkronisasi Lintas Modul): fix — filter isAssetOwnershipSelf
+// ditambahkan supaya BENAR-BENAR "SAMA dgn Aset.renderDashboard()" seperti
+// diklaim komentar di atas (Sesi 193 sudah menambah filter ini di
+// renderDashboard(), tapi LaporanAset.nilaiAset() sempat luput -> Dashboard
+// Aset & Laporan Aset bisa beda angka kalau ada aset ber-ownership non-SELF).
+// 0 rumus baru — reuse isAssetOwnershipSelf() yang sudah ada apa adanya.
 nilaiAset(){
-const list=D.assets||[];
+const list=(D.assets||[]).filter(isAssetOwnershipSelf);
 let totalPasar=0,totalBuku=0;
 const perKategori={};
 list.forEach(a=>{
@@ -1053,7 +1087,11 @@ return{jumlahAktif:list.length,totalAkumulasi,totalBukuSekarang,belumLengkap};
 // Ringkasan Kekayaan (dari Aset) — SENGAJA cuma sisi aset (bukan gabungan akun+
 // utang spt renderKekayaanBersih() global), supaya laporan ini murni & mandiri.
 ringkasanKekayaan(){
-const list=D.assets||[];
+// S201: filter isAssetOwnershipSelf() supaya jumlahAset KONSISTEN dgn
+// totalNilaiPasar/totalNilaiBuku (nilaiAset(), sudah difilter di atas) —
+// 1 laporan, 1 populasi aset yang sama, bukan jumlah dari populasi lebih
+// besar dipasangkan dgn nilai dari populasi lebih kecil.
+const list=(D.assets||[]).filter(isAssetOwnershipSelf);
 const nilai=LaporanAset.nilaiAset();
 const zakat=(typeof PajakAset!=='undefined'?PajakAset.hitungZakatAset():{totalNilai:0,totalZakat:0,list:[]});
 const kategoriRows=Object.entries(nilai.perKategori).sort((a,b)=>b[1].nilai-a[1].nilai);

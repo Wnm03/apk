@@ -39,6 +39,23 @@
 
 const INVESTMENT_TYPES = ['Saham', 'Reksa Dana', 'Obligasi', 'Deposito', 'Kripto', 'Emas', 'Lainnya'];
 
+// isHoldingOwnershipSelf(h) — helper REUSE dari OwnershipEngine (Sesi 193,
+// Ownership Sync Asset & Investasi). Balikin true kalau kepemilikan EFEKTIF
+// holding investasi ini SELF (termasuk holding lama yg belum punya field
+// `ownership` sama sekali — via OwnershipEngine.resolve() otomatis fallback
+// ke SELF/DEFAULT, 100% backward compatible). Balikin false utk INVESTOR/
+// CUSTOMER/THIRD_PARTY/FAMILY — holding2 tipe ini WAJIB dikecualikan dari
+// agregat Investment.portfolioSummary()/assetAllocation() (dipakai jg oleh
+// AssetPortfolioAPI "Portfolio") sesuai spesifikasi sesi ini, TAPI TIDAK
+// dari Investment.getHoldings() — holding & riwayat transaksinya tetap ada
+// & tetap bisa diakses/diedit apa adanya, cuma tidak ikut dijumlah ke total.
+// Guard typeof OwnershipEngine: kalau engine belum dimuat, fallback true
+// (anggap SELF/tidak exclude apa pun) — pola sama persis
+// isAccOwnershipSelf()/isAssetOwnershipSelf() (Sesi 192/193).
+function isHoldingOwnershipSelf(h) {
+  if (typeof OwnershipEngine === 'undefined') return true;
+  return OwnershipEngine.resolve(h).type === 'SELF';
+}
 function _invUid() {
   return typeof uid === 'function' ? uid() : Date.now() + Math.random();
 }
@@ -263,14 +280,22 @@ const Investment = {
 
   // ---------- Ringkasan Portofolio & Alokasi Aset ----------
 
+  // portfolioSummary() — Sesi 193 (Ownership Sync): holdings difilter
+  // isHoldingOwnershipSelf() dulu (0 rumus baru, cuma nambah 1 filter di
+  // awal). totalDividend/totalRealizedGain SEBELUMNYA dihitung lewat
+  // dividendTotal()/realizedGainLoss() TANPA investmentId (agregat semua
+  // holding sekaligus) — sekarang dijumlah PER holding SELF yang lolos
+  // filter (Investment.dividendTotal(h.id)/realizedGainLoss(h.id), fungsi
+  // yang SUDAH ADA, 0 logic baru), supaya holding non-SELF ikut
+  // dikecualikan dari kedua total itu juga.
   portfolioSummary() {
-    const holdings = Investment.getHoldings();
+    const holdings = Investment.getHoldings().filter(isHoldingOwnershipSelf);
     const totalValue = holdings.reduce((s, h) => s + Investment.holdingValue(h), 0);
     const totalCost = holdings.reduce((s, h) => s + Investment.holdingCost(h), 0);
     const totalGainLoss = totalValue - totalCost;
     const roiPct = totalCost > 0 ? (totalGainLoss / totalCost) * 100 : 0;
-    const totalDividend = Investment.dividendTotal();
-    const totalRealizedGain = Investment.realizedGainLoss();
+    const totalDividend = holdings.reduce((s, h) => s + Investment.dividendTotal(h.id), 0);
+    const totalRealizedGain = holdings.reduce((s, h) => s + Investment.realizedGainLoss(h.id), 0);
     return {
       holdingsCount: holdings.length,
       totalValue,
@@ -282,8 +307,10 @@ const Investment = {
     };
   },
 
+  // assetAllocation() — Sesi 193 (Ownership Sync): holdings difilter
+  // isHoldingOwnershipSelf() dulu (0 rumus baru, cuma nambah 1 filter).
   assetAllocation() {
-    const holdings = Investment.getHoldings();
+    const holdings = Investment.getHoldings().filter(isHoldingOwnershipSelf);
     const totalValue = holdings.reduce((s, h) => s + Investment.holdingValue(h), 0);
     const byType = new Map();
     for (const h of holdings) {
