@@ -40,8 +40,18 @@ curVehicleId: null, // dipakai HANYA utk highlight baris terakhir dibuka, pola s
 sortKey: 'healthScore', // default: Highest Health Risk -> Lowest (healthScore ASC = risk tertinggi dulu)
 sortDir: 'asc',
 
+// _vehicles() (Sesi 197, Ownership Sync — Report): TAMBAH 1 filter
+// isVehicleOwnershipSelf(v.id) di atas D.vehicles (0 logic lama diubah) —
+// kendaraan ber-ownership INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY dikecualikan
+// dari Multi Vehicle Fuel Comparison & Export All (exportFleetJSON/
+// exportFleetHTML) — SATU titik ubah ini otomatis mencakup render()/_rows()/
+// kedua fungsi export, karena semuanya memanggil _vehicles() ini. Pola sama
+// persis isVehicleOwnershipSelf() di vehicle-core.js (Sesi 196)/_vehicles()
+// di vehicle-reminder.js (Sesi 196). Guard typeof: kalau helper belum
+// dimuat, anggap semua SELF (tidak exclude apa pun).
 _vehicles() {
-  return (typeof D !== 'undefined' && Array.isArray(D.vehicles)) ? D.vehicles : [];
+  const all = (typeof D !== 'undefined' && Array.isArray(D.vehicles)) ? D.vehicles : [];
+  return all.filter((v) => typeof isVehicleOwnershipSelf !== 'function' || isVehicleOwnershipSelf(v.id));
 },
 
 // _rows() — kumpulkan {vehicle, summary} utk tiap kendaraan yang valid

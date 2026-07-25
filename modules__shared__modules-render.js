@@ -2,9 +2,14 @@
 // Dipindah ke modules/shared/modules-render.js (Sesi 17-18 restrukturisasi folder — lihat docs/FILE-MAP.md & RENCANA-SESI.md; isi & nama file TIDAK berubah, cuma lokasi folder).
 // Semua fungsi ini murni definisi function global (bukan module), jadi tetap bisa dipanggil dari file manapun
 // yang loadnya belakangan (sama seperti modules-calc.js/features-*.js).
-const MODULE_RENDER_VERSION='kw171-vehicle-daily-brief-redundansi-628';
+const MODULE_RENDER_VERSION='kw201-finalisasi-sinkronisasi-lintas-modul-714';
 
 function renderPageContent(name){
+// KW perf fix: jaring pengaman selain hook di save() -- pastikan cache saldo akun juga fresh
+// tiap ganti halaman/refresh page penuh (mis. showPage(), restore data), bukan cuma tiap save().
+if(typeof invalidateAccBalCache==='function')invalidateAccBalCache();
+if(typeof invalidateCashflowForecastCache==='function')invalidateCashflowForecastCache();
+if(typeof FinanceIntelligence!=='undefined'&&typeof FinanceIntelligence.invalidateCache==='function')FinanceIntelligence.invalidateCache();
 if(name==='dashboard')renderDashboard();
 if(name==='dashboard-hub'&&typeof DashboardHub!=='undefined')DashboardHub.render();
 if(name==='keuangan'){
@@ -451,13 +456,23 @@ document.getElementById('ldrFill').style.width=Math.max(0,Math.min(100,pct))+'%'
 document.getElementById('ldrDate').textContent=pulang.toLocaleDateString('id-ID',{day:'numeric',month:'short'});
 }
 
+// Sesi 197 (Ownership Sync — Dashboard): TAMBAH 1 filter
+// isVehicleOwnershipSelf(v.id) di atas D.vehicles (0 logic lama diubah) —
+// kendaraan ber-ownership INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY dikecualikan
+// dari widget Beranda "Reminder Servis" (chip filter & daftar reminder),
+// pola sama persis isVehicleOwnershipSelf() di vehicle-core.js (Sesi 196).
+// Guard typeof: kalau helper belum dimuat, anggap semua SELF.
+function _dashServisSelfVehicles(){
+return D.vehicles.filter(v=>typeof isVehicleOwnershipSelf!=='function'||isVehicleOwnershipSelf(v.id));
+}
 function renderDashServisVehChips(){
-if(dashServisVehFilter!=='semua'&&!D.vehicles.find(v=>v.id===dashServisVehFilter)){
+const selfVehicles=_dashServisSelfVehicles();
+if(dashServisVehFilter!=='semua'&&!selfVehicles.find(v=>v.id===dashServisVehFilter)){
 dashServisVehFilter='semua';
 safeSetItem('kw_dashServisVehFilter','semua');
 }
-if(D.vehicles.length<2)return'';
-const chips=[{id:'semua',label:'Semua'},...D.vehicles.map(v=>({id:v.id,label:`${v.emoji||'🏍️'} ${escapeHtml(v.name)}`}))];
+if(selfVehicles.length<2)return'';
+const chips=[{id:'semua',label:'Semua'},...selfVehicles.map(v=>({id:v.id,label:`${v.emoji||'🏍️'} ${escapeHtml(v.name)}`}))];
 return `<div class="u-flex u-gap6 u-mb10" style="overflow-x:auto;padding-bottom:2px">`
 +chips.map(c=>`<button class="chip-btn${dashServisVehFilter===c.id?' active':''}" data-action="setDashServisVehFilter" data-args="${escapeHtml(JSON.stringify([c.id]))}">${escapeHtml(c.label)}</button>`).join('')
 +`</div>`;
@@ -466,9 +481,10 @@ return `<div class="u-flex u-gap6 u-mb10" style="overflow-x:auto;padding-bottom:
 function renderDashboardServisReminder(){
 const card=document.getElementById('dashServisReminderCard');
 if(!card)return;
-if(!D.vehicles.length||!D.sparepartCats.length){card.style.display='none';return;}
+const selfVehicles=_dashServisSelfVehicles();
+if(!selfVehicles.length||!D.sparepartCats.length){card.style.display='none';return;}
 const vehChipsHTML=renderDashServisVehChips();
-const vehicles=dashServisVehFilter==='semua'?D.vehicles:D.vehicles.filter(v=>v.id===dashServisVehFilter);
+const vehicles=dashServisVehFilter==='semua'?selfVehicles:selfVehicles.filter(v=>v.id===dashServisVehFilter);
 const rows=[];
 vehicles.forEach(veh=>{
 const curKm=getVehicleKm(veh.id);
@@ -789,6 +805,10 @@ _safeRender('PropertyManagementPresenter',function(){if(typeof PropertyManagemen
 _safeRender('RentalManagementPresenter',function(){if(typeof RentalManagementPresenter!=='undefined')RentalManagementPresenter.render();});
 _safeRender('AssetPortfolioPresenter',function(){if(typeof AssetPortfolioPresenter!=='undefined')AssetPortfolioPresenter.render();});
 _safeRender('AssetMaintenancePresenter',function(){if(typeof AssetMaintenancePresenter!=='undefined')AssetMaintenancePresenter.render();});
+// Shop Business Engine Integration (S199, Finalisasi Integrasi Shop) —
+// tambahan murni, pola sama _safeRender di atas. 100% reuse
+// InventoryEngine/PurchaseEngine/ProfitEngine (S198), UI hanya presenter.
+_safeRender('ShopBusinessEnginePresenter',function(){if(typeof ShopBusinessEnginePresenter!=='undefined')ShopBusinessEnginePresenter.render();});
 // VehicleDashboard/VehicleInsightPresenter/VehicleDailyBrief/VehicleAlertPanel/
 // VehicleInsightFeed/VehicleAnalyticsPresenter/VehicleDecisionPresenter/
 // VehicleAutomationPresenter (8 presenter) — DIHAPUS dari live-wiring ini di Sesi 134
@@ -1024,6 +1044,10 @@ renderGrafik();
 renderLapAccList();
 renderCashflowForecast();
 if(typeof AsetKeluarga!=='undefined')AsetKeluarga.render();
+// S195 (Dana Kelolaan / Managed Funds): tambahan murni, pola sama
+// AsetKeluarga.render() di atas — 100% reuse DanaKelolaan.summary(),
+// tidak mengubah baris manapun sebelum ini.
+if(typeof DanaKelolaanPresenter!=='undefined')DanaKelolaanPresenter.renderLaporan();
 const km={};
 txs.forEach(t=>{if(!km[t.category])km[t.category]={inc:0,exp:0,n:0};if(t.type==='income')km[t.category].inc+=t.amount;else km[t.category].exp+=t.amount;km[t.category].n++;});
 const ks=Object.entries(km).sort((a,b)=>(b[1].inc+b[1].exp)-(a[1].inc+a[1].exp));
@@ -1434,6 +1458,7 @@ document.getElementById('sGaji').value=D.profile.gajiPokok||65000;
 document.getElementById('sKirim').value=D.profile.kiriman||500000;
 const sLemburMxEl=document.getElementById('sLemburMx'); if(sLemburMxEl) sLemburMxEl.value=D.profile.lemburMultiplier||1.5;
 const sTarifMingguEl=document.getElementById('sTarifMinggu'); if(sTarifMingguEl) sTarifMingguEl.value=D.profile.tarifMinggu||139000;
+const sInsightMingguanAktifEl=document.getElementById('sInsightMingguanAktif'); if(sInsightMingguanAktifEl) sInsightMingguanAktifEl.checked=!(D.profile&&D.profile.insightMingguanAktif===false);
 const sTglLahirEl=document.getElementById('sTanggalLahir'); if(sTglLahirEl) sTglLahirEl.value=(D.profile&&D.profile.tanggalLahir)||'';
 const kawinVal=!!(D.profile&&D.profile.statusKawin);
 document.querySelectorAll('#sStatusKawinPicker .chip-btn').forEach(b=>b.classList.toggle('active',(b.dataset.val==='1')===kawinVal));

@@ -61,6 +61,22 @@ try{
 const eieStore=await IDBStore.get('eie:store');
 if(eieStore)backupD._eieStore=eieStore;
 }catch(e){console.warn('Backup: gagal baca eie:store dari IndexedDB (dilewati):',e);}
+// Vehicle Catalog (Milestone 0 Phase 1, key 'vehicle-catalog:store',
+// lihat modules/vehicle/vehicle-catalog.js & ACR-001) — pola SAMA PERSIS
+// lifeos:store/eie:store di atas: data terpisah dari D, wajib didaftarkan
+// manual di sini atau tidak akan ikut ter-backup (FOUNDATION_AUDIT.md §3).
+try{
+const vehicleCatalogStore=await IDBStore.get('vehicle-catalog:store');
+if(vehicleCatalogStore)backupD._vehicleCatalogStore=vehicleCatalogStore;
+}catch(e){console.warn('Backup: gagal baca vehicle-catalog:store dari IndexedDB (dilewati):',e);}
+// Honda PDF Import (Tahap 7D-1, key 'honda-pdf-import:store', lihat
+// modules/vehicle/honda-pdf-import.js) — pola SAMA PERSIS vehicle-catalog:store
+// di atas: data terpisah dari D, wajib didaftarkan manual di sini atau tidak
+// akan ikut ter-backup (FOUNDATION_AUDIT.md §3).
+try{
+const hondaPdfImportStore=await IDBStore.get('honda-pdf-import:store');
+if(hondaPdfImportStore)backupD._hondaPdfImportStore=hondaPdfImportStore;
+}catch(e){console.warn('Backup: gagal baca honda-pdf-import:store dari IndexedDB (dilewati):',e);}
 return backupD;
 }
 async function exportData(){
@@ -390,10 +406,18 @@ const prevD=JSON.parse(JSON.stringify(D));
 // merge, lalu dihapus dari D supaya tidak nyangkut sbg field liar di D.
 const _restoredLifeosStore=imp._lifeosStore;
 const _restoredEieStore=imp._eieStore;
+// Vehicle Catalog (Milestone 0 Phase 1) — titipan sama seperti
+// _lifeosStore/_eieStore di atas, BUKAN properti D.
+const _restoredVehicleCatalogStore=imp._vehicleCatalogStore;
+// Honda PDF Import (Tahap 7D-1) — titipan sama seperti
+// _lifeosStore/_eieStore/_vehicleCatalogStore di atas, BUKAN properti D.
+const _restoredHondaPdfImportStore=imp._hondaPdfImportStore;
 try{
 D={...D,...imp};
 delete D._lifeosStore;
 delete D._eieStore;
+delete D._vehicleCatalogStore;
+delete D._hondaPdfImportStore;
 applyRestoredDataMigrations();
 runDataMigrations(backupVersion);
 saveFlush();init();
@@ -406,7 +430,15 @@ if(_restoredEieStore!==undefined){
 await IDBStore.set('eie:store',_restoredEieStore);
 if(typeof eieInvalidateCache==='function')eieInvalidateCache();
 }
-}catch(e){console.error('Restore data LifeOS/EIE (IndexedDB) gagal (data D lain tetap ter-restore):',e);}
+if(_restoredVehicleCatalogStore!==undefined){
+await IDBStore.set('vehicle-catalog:store',_restoredVehicleCatalogStore);
+if(typeof vehicleCatalogInvalidateCache==='function')vehicleCatalogInvalidateCache();
+}
+if(_restoredHondaPdfImportStore!==undefined){
+await IDBStore.set('honda-pdf-import:store',_restoredHondaPdfImportStore);
+if(typeof hondaPdfImportInvalidateCache==='function')hondaPdfImportInvalidateCache();
+}
+}catch(e){console.error('Restore data LifeOS/EIE/Vehicle Catalog/Honda PDF Import (IndexedDB) gagal (data D lain tetap ter-restore):',e);}
 return true;
 }catch(e){
 console.error('Restore gagal, mengembalikan data sebelumnya:',e);

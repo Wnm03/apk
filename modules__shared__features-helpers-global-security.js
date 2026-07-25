@@ -43,15 +43,15 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1')return true;
 }catch(e){ /* anggap bukan dev mode kalau gagal deteksi */ }
 return false;
 }
-const APP_BUILD_VERSION = 'kw171-vehicle-daily-brief-redundansi-628';
-const PRODUCTION_BUILD_SYNCED_VERSION = 'kw171-vehicle-daily-brief-redundansi-628';
+const APP_BUILD_VERSION = 'kw201-finalisasi-sinkronisasi-lintas-modul-714';
+const PRODUCTION_BUILD_SYNCED_VERSION = 'kw201-finalisasi-sinkronisasi-lintas-modul-714';
 let D = {
 schemaVersion:SCHEMA_VERSION,
 transactions:[],cobek:[],products:[],produsen:[],cobekKategori:JSON.parse(JSON.stringify(DEFAULT_COBEK_KATEGORI)),targets:[],eduFunds:[],reminders:[],bills:[],billsArchive:[],
 catatan:{anak:[]},
 milestones:[false,false,false,false,false],
 nextPulang:'',lastBackup:null,lastResetPromptDate:null,
-profile:{nama:'W',gajiPokok:65000,kiriman:500000,theme:'dark',lemburMultiplier:1.5,tarifMinggu:139000,tanggalLahir:null,statusKawin:false,tanggungan:0,statusPekerjaan:null,targetGajiBulanan:null},
+profile:{nama:'W',gajiPokok:65000,kiriman:500000,theme:'dark',lemburMultiplier:1.5,tarifMinggu:139000,tanggalLahir:null,statusKawin:false,tanggungan:0,statusPekerjaan:null,targetGajiBulanan:null,insightMingguanAktif:true},
 categories:{income:JSON.parse(JSON.stringify(DEFAULT_CATS.income)),expense:JSON.parse(JSON.stringify(DEFAULT_CATS.expense))},
 accounts:JSON.parse(JSON.stringify(DEFAULT_ACCOUNTS)),
 vehicles:[{id:'veh_1',name:'Vario 125',emoji:'🏍️',serviceIntervalKm:3000}],
@@ -211,6 +211,13 @@ console.error('Gagal menyimpan data:',e);
 }
 }
 function save(){
+// KW perf fix: save() adalah titik tunggal yang selalu dipanggil SEBELUM burst render
+// (renderAccGrid/renderDashAccList/renderLapAccList/dll) tiap ada mutasi data akun/transaksi.
+// Invalidate cache saldo akun di sini supaya burst render sesudahnya baca data akun terbaru,
+// tapi tiap fungsi di dalam burst yang sama tidak hitung ulang dari nol. Lihat akun.js.
+if(typeof invalidateAccBalCache==='function')invalidateAccBalCache();
+if(typeof invalidateCashflowForecastCache==='function')invalidateCashflowForecastCache();
+if(typeof FinanceIntelligence!=='undefined'&&typeof FinanceIntelligence.invalidateCache==='function')FinanceIntelligence.invalidateCache();
 if(_saveDebounceTimer)clearTimeout(_saveDebounceTimer);
 _saveDebounceTimer=setTimeout(()=>{_saveDebounceTimer=null;_saveImmediate();},400);
 }

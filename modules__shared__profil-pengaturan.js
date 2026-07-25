@@ -10,6 +10,7 @@ D.profile.kiriman=parseInt(document.getElementById('sKirim').value)||500000;
 const sLemburMxEl2=document.getElementById('sLemburMx'); if(sLemburMxEl2) D.profile.lemburMultiplier=parseFloat(sLemburMxEl2.value)||1.5;
 const sTarifMingguEl2=document.getElementById('sTarifMinggu'); if(sTarifMingguEl2) D.profile.tarifMinggu=parseInt(sTarifMingguEl2.value)||139000;
 const sTglLahirEl=document.getElementById('sTanggalLahir'); if(sTglLahirEl) D.profile.tanggalLahir=sTglLahirEl.value||null;
+const sInsightMingguanEl=document.getElementById('sInsightMingguanAktif'); if(sInsightMingguanEl){ D.profile.insightMingguanAktif=sInsightMingguanEl.checked; if(typeof InsightTargetMingguan!=='undefined')InsightTargetMingguan.render(); }
 const apiKeyEl=document.getElementById('sApiKey');
 if(apiKeyEl){ D.profile.apiKey=apiKeyEl.value.trim(); persistApiKeyEncrypted(); }
 const providerEl=document.getElementById('sApiProvider');

@@ -49,10 +49,11 @@ const FinanceDashboard = {
       this._cashFlowCard(hook.cashflow),
       this._budgetCard(hook.budget),
       this._healthCard(hook.healthScore),
+      ...this._sparepartCards(),
     ];
 
     el.innerHTML = cards.map((c) => `
-      <div class="findash-card">
+      <div class="findash-card${c.onClick ? ' u-pointer' : ''}"${c.onClick ? ` data-action="${escapeHtml(c.onClick.action)}" data-args="${escapeHtml(JSON.stringify(c.onClick.args))}"` : ''}>
         <div class="findash-card-icon">${c.icon}</div>
         <div class="findash-card-body">
           <div class="findash-card-label">${escapeHtml(c.label)}</div>
@@ -61,6 +62,58 @@ const FinanceDashboard = {
         </div>
       </div>
     `).join('');
+  },
+
+  // _sparepartCards() — Tahap 8D: integrasi Dashboard Keuangan + Sparepart.
+  // 100% REUSE Sparepart.calcFinanceStats() (modules/vehicle/sparepart-
+  // servis.js, dipanggil dgn D.partsStock/D.servisLogs apa adanya, 0 rumus
+  // baru di sini) — file ini HANYA presenter, sama prinsip RULE #1 di
+  // header file. Tiap kartu klik -> goToList() (fungsi yang sudah ada,
+  // modules/finance/filter-laporan.js) membuka #page-carnotes tab Servis
+  // (tempat Dashboard Sparepart & Stok Sparepart berada).
+  _sparepartCards() {
+    const money = (n) => (typeof fmt === 'function') ? fmt(n) : ('Rp ' + Math.round(n || 0));
+    if (typeof Sparepart === 'undefined' || typeof Sparepart.calcFinanceStats !== 'function') return [];
+    const stats = Sparepart.calcFinanceStats(D.partsStock, D.servisLogs);
+    const trendSub = (tren) => {
+      if (!tren.length) return undefined;
+      const last = tren[tren.length - 1];
+      const prev = tren.length > 1 ? tren[tren.length - 2] : null;
+      if (!prev || prev.total <= 0) return last.label;
+      const pct = Math.round(((last.total - prev.total) / prev.total) * 100);
+      return `${last.label}: ${pct >= 0 ? '▲' : '▼'}${Math.abs(pct)}% vs ${prev.label}`;
+    };
+    const goSparepart = (targetId) => ({ action: 'goToList', args: [targetId, 'carnotes', 4, null, 'servis'] });
+    return [
+      {
+        icon: '🛒', label: 'Total Pembelian Sparepart', value: money(stats.totalPembelian),
+        onClick: goSparepart('stockList'),
+      },
+      {
+        icon: '📦', label: 'Total Nilai Stok', value: money(stats.totalNilaiStok),
+        onClick: goSparepart('stockList'),
+      },
+      {
+        icon: '🔧', label: 'Total Nilai Sparepart Terpakai', value: money(stats.totalNilaiTerpakai),
+        onClick: goSparepart('servisList'),
+      },
+      {
+        icon: '🧾', label: 'Biaya Servis Sparepart', value: money(stats.biayaServisSparepart),
+        onClick: goSparepart('servisList'),
+      },
+      {
+        icon: '📈', label: 'Tren Pembelian Bulanan',
+        value: stats.trenPembelianBulanan.length ? money(stats.trenPembelianBulanan[stats.trenPembelianBulanan.length - 1].total) : '—',
+        sub: trendSub(stats.trenPembelianBulanan),
+        onClick: goSparepart('sparepartDashboard'),
+      },
+      {
+        icon: '📉', label: 'Tren Pemakaian Bulanan',
+        value: stats.trenPemakaianBulanan.length ? money(stats.trenPemakaianBulanan[stats.trenPemakaianBulanan.length - 1].total) : '—',
+        sub: trendSub(stats.trenPemakaianBulanan),
+        onClick: goSparepart('sparepartDashboard'),
+      },
+    ];
   },
 
   // _netWorthCard() — reuse totalSaldoAkun()/totalDebtValue() apa adanya

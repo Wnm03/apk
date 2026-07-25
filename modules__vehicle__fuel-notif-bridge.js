@@ -74,7 +74,8 @@ TITLE_MAP: {
 // persis pola VehicleNotifBridge.items(undefined, ...)).
 _vehicles(vehicleId) {
   const list = (typeof D !== 'undefined' && D.vehicles) ? D.vehicles : [];
-  return vehicleId ? list.filter((v) => v.id === vehicleId) : list;
+  if (vehicleId) return list.filter((v) => v.id === vehicleId);
+  return list.filter((v) => (typeof isVehicleOwnershipSelf !== 'function') || isVehicleOwnershipSelf(v.id));
 },
 
 // items(vehicleId?, firedIds?) — daftar {fireKey,title,body,vehicleId}

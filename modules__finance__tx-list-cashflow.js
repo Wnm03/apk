@@ -44,6 +44,11 @@ async function delTx(id){
 if(!await askConfirm('Hapus transaksi ini?'))return;
 const t=D.transactions.find(x=>x.id===id);
 if(t&&t.bbmLinkId&&D.bbmLogs)D.bbmLogs=D.bbmLogs.filter(b=>b.id!==t.bbmLinkId);
+if(t&&t.partStockId&&typeof revertStockPurchase==='function'){
+revertStockPurchase(t.partStockId,t.partStockQty);
+toast(`📦 Stok sparepart dikurangi (transaksi dihapus)`,2600);
+renderStockList();
+}
 if(t&&t.stockItems&&t.stockItems.length){
 t.stockItems.forEach(si=>{
 const p=D.products.find(x=>x.id===si.productId);
@@ -86,7 +91,7 @@ Tukang.unmarkPaidEntries(t.tukangPaymentEntryIds);
 }
 D.transactions=D.transactions.filter(t=>t.id!==id);
 save();renderDashboard();renderKeuangan();renderCnTab();renderProductList();
-if(!t||(!t.stockProductId&&!t.cobekLinkId&&!t.servisLinkId&&!(t.stockItems&&t.stockItems.length)))toast('🗑 Dihapus'+(t&&t.renovItemLinkId?' (status lunas di Proyek Renovasi dibatalkan)':(t&&t.wishlistLinkId?' (barang dikembalikan ke Prioritas Belanja)':(t&&t.tukangPaymentEntryIds&&t.tukangPaymentEntryIds.length?' (absensi tukang terkait dibuka kembali)':''))));
+if(!t||(!t.stockProductId&&!t.cobekLinkId&&!t.servisLinkId&&!t.partStockId&&!(t.stockItems&&t.stockItems.length)))toast('🗑 Dihapus'+(t&&t.renovItemLinkId?' (status lunas di Proyek Renovasi dibatalkan)':(t&&t.wishlistLinkId?' (barang dikembalikan ke Prioritas Belanja)':(t&&t.tukangPaymentEntryIds&&t.tukangPaymentEntryIds.length?' (absensi tukang terkait dibuka kembali)':''))));
 }
 function changeMonth(dir){
 curMonth+=dir;
@@ -132,7 +137,17 @@ else if(filterPeriode==='tahun'){from=new Date(now.getFullYear(),0,1);}
 else{const f=document.getElementById('fFrom').value,t2=document.getElementById('fTo').value;return{from:f?new Date(f):new Date(0),to:t2?new Date(t2+'T23:59:59'):now};}
 return{from,to:now};
 }
+// KW perf fix lanjutan: computeCashflowForecast() dipanggil berulang di siklus render yang
+// sama (FinanceIntelligence.cashflowSummary()/healthScore()/insights(), renderCashflowForecast(),
+// ai-core.js) — tiap panggilan scan D.transactions dari nol walau datanya sama persis. Cache
+// singleton (fungsi ini tanpa parameter), invalidate lewat hook yang sama dgn cache saldo akun
+// (save()/renderPageContent(), lihat akun.js/features-helpers-global-security.js/modules-render.js).
+let _cashflowForecastCache=undefined;
+function invalidateCashflowForecastCache(){
+_cashflowForecastCache=undefined;
+}
 function computeCashflowForecast(){
+if(_cashflowForecastCache!==undefined)return _cashflowForecastCache;
 const avail=(typeof BudgetReko!=='undefined')?BudgetReko.monthsAvailable():0;
 const months=(typeof BudgetReko!=='undefined')?BudgetReko.effectiveMonths():3;
 const from=(typeof BudgetReko!=='undefined')?BudgetReko.rangeFrom():(()=>{const n=new Date();return new Date(n.getFullYear(),n.getMonth()-2,1);})();
@@ -145,7 +160,9 @@ const in30=new Date(now);in30.setDate(in30.getDate()+30);
 const upcoming=(D.bills||[]).filter(b=>{const d=new Date(b.nextDue);return d>=now&&d<=in30;});
 const billsDue=upcoming.reduce((s,b)=>s+b.amount,0);
 const projected=saldoNow+incAvg-expAvg-billsDue;
-return{incAvg,expAvg,saldoNow,billsDue,upcoming,projected,months,avail};
+const result={incAvg,expAvg,saldoNow,billsDue,upcoming,projected,months,avail};
+_cashflowForecastCache=result;
+return result;
 }
 const KEU_TAB_ORDER=['kelola','tagihan','budget','utangpiutang','asetproyek','laporan'];
 function setKeuanganTab(t,el){
