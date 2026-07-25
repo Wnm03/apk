@@ -70,7 +70,7 @@ const SHOP_TAB_IDX = { kasir: 0, jual: 1, etalase: 2, produsen: 3, riwayat: 4, p
 // app_production.html/index.html).
 const CN_TAB_IDX = { insight: 0, bbm: 1, servis: 2, pajak: 3 };
 const PAJAK_TAB_IDX = { zakat: 0, pajak: 1 };
-const ASET_TAB_IDX = { ringkasan: 0, buku: 1, analisis: 2 };
+const ASET_TAB_IDX = { ringkasan: 0, buku: 1, analisis: 2, manajemen: 3 };
 // Sub-tab nested DI DALAM tab 'laporan' (page keuangan) — lihat setLaporanTab
 // di tx-list-cashflow.js & catatan split 2026-07-17 di CLAUDE.md.
 const LAPORAN_SUBTAB_IDX = { ringkasan: 0, aruskas: 1, transaksi: 2 };
@@ -531,34 +531,12 @@ const DashboardHub = {
     // Tambahan murni, pola sama dgn FinancialRiskDashboardPresenter.
     // render() di atas — tidak mengubah baris manapun sebelum ini. 100%
     // reuse PropertyManagementAPI.summary() (S102), UI hanya presenter.
-    if (typeof PropertyManagementPresenter !== 'undefined') PropertyManagementPresenter.render();
-
-    // Rental Management Foundation (S103, Batch 10 — presenter+UI
-    // ditambahkan Sesi 132, lihat modules/asset/
-    // rental-management-presenter.js & #rentalManagementWrap di
-    // index.html/app_production.html). Tambahan murni, pola sama dgn
-    // PropertyManagementPresenter.render() di atas — tidak mengubah
-    // baris manapun sebelum ini. 100% reuse RentalManagementAPI.summary()
-    // (S103), UI hanya presenter.
-    if (typeof RentalManagementPresenter !== 'undefined') RentalManagementPresenter.render();
-
-    // Asset Portfolio Foundation (S101, Batch 10 — presenter+UI
-    // ditambahkan Sesi 132, lihat modules/asset/
-    // asset-portfolio-presenter.js & #assetPortfolioWrap di
-    // index.html/app_production.html). Tambahan murni, pola sama dgn
-    // RentalManagementPresenter.render() di atas — tidak mengubah baris
-    // manapun sebelum ini. 100% reuse AssetPortfolioAPI.summary()
-    // (S101), UI hanya presenter.
-    if (typeof AssetPortfolioPresenter !== 'undefined') AssetPortfolioPresenter.render();
-
-    // Asset Maintenance Foundation (S104, Batch 10 — presenter+UI
-    // ditambahkan Sesi 132, lihat modules/asset/
-    // asset-maintenance-presenter.js & #assetMaintenanceWrap di
-    // index.html/app_production.html). Tambahan murni, pola sama dgn
-    // AssetPortfolioPresenter.render() di atas — tidak mengubah baris
-    // manapun sebelum ini. 100% reuse AssetMaintenanceAPI.summary()
-    // (S104), UI hanya presenter.
-    if (typeof AssetMaintenancePresenter !== 'undefined') AssetMaintenancePresenter.render();
+    // Property/Rental Management, Asset Portfolio, Asset Maintenance
+    // (S101-104) — DIPINDAH (pola sama Sesi 133 Finance/Vehicle) ke tab
+    // "Manajemen" di #page-aset (lihat renderPageContent('aset'),
+    // modules/shared/modules-render.js). Container-nya sudah tidak ada
+    // di Dashboard Hub, jadi panggilan .render() di sini juga dipindah
+    // (bukan cuma disembunyikan) — fungsi presenter sendiri 0 perubahan.
 
     // Vehicle Dashboard/Insight/Brief/Alert/Insight Feed/Analytics/
     // Decision/Automation (Sesi 77-83, Batch 7) — DIPINDAH (Sesi 133,
@@ -629,32 +607,18 @@ const DashboardHub = {
     // tidak mengubah baris manapun sebelum ini. 100% reuse
     // DanaKelolaan.summary() (S195, sendiri 100% reuse OwnershipEngine +
     // nilai akun/aset/investasi/shop yang sudah ada), UI hanya presenter.
-    if (typeof DanaKelolaanPresenter !== 'undefined') DanaKelolaanPresenter.render();
-    if (typeof DanaKelolaanInsight !== 'undefined') DanaKelolaanInsight.render();
-
-    // Shop Business Engine Integration (S199, Finalisasi Integrasi Shop,
-    // lihat #shopBusinessEngineWrap di index.html/app_production.html).
-    // Tambahan murni, pola sama dgn DanaKelolaanPresenter.render() di atas
-    // — tidak mengubah baris manapun sebelum ini. 100% reuse
-    // InventoryEngine/PurchaseEngine/ProfitEngine (S198, modules/shop/
-    // *-engine.js), UI hanya presenter.
-    if (typeof ShopBusinessEnginePresenter !== 'undefined') ShopBusinessEnginePresenter.render();
-
-    // Trip Presenter (S204-A, lihat #tripPresenterWrap di index.html/
-    // app_production.html). Tambahan murni, pola sama dgn
-    // ShopBusinessEnginePresenter.render() di atas — tidak mengubah baris
-    // manapun sebelum ini. 100% reuse field D.cobek yang sudah tersimpan
-    // (ongkir/delivered/marginPct) + getAIDeliveryThinMarginThreshold()
-    // (S9), UI hanya presenter.
-    if (typeof TripPresenter !== 'undefined') TripPresenter.render();
-
-    // Business Flow Presenter (S205, lihat #businessFlowWrap di
-    // index.html/app_production.html). WIRE ONLY: menyusun 4 tahap
-    // Purchase->Trip->Stock->Sale dari ShopBusinessEnginePresenter.
-    // summary() + TripPresenter.summary() yang SUDAH ADA — 0 rumus/
-    // engine baru. Tambahan murni, pola sama TripPresenter.render() di
-    // atas — tidak mengubah baris manapun sebelum ini.
-    if (typeof BusinessFlowPresenter !== 'undefined') BusinessFlowPresenter.render();
+    // Dana Kelolaan / Shop Business Engine / Pengiriman Shop / Alur Bisnis
+    // Shop — DIPINDAH (dedup, permintaan user "cek dashboard dobel") ke
+    // KHUSUS tab Shop -> Laporan/Statistik (Laporan.renderTab(), modules/
+    // shop/cobek-order.js), karena angkanya 100% sama & sudah dirender di
+    // sana juga (ShopBusinessEnginePresenter.renderTab()/TripPresenter.
+    // renderTab()/BusinessFlowPresenter.renderTab()/DanaKelolaanPresenter.
+    // renderStatistik()). Container-nya (#danaKelolaanWrap/
+    // #shopBusinessEngineWrap/#tripPresenterWrap/#businessFlowWrap) di
+    // Dashboard Hub disembunyikan via CSS (lihat styles.css), fungsi
+    // .render() presenter TETAP ada (tidak dihapus) supaya test lama
+    // (mis. shop-business-engine-integration.test.js) tetap lolos — pola
+    // sama persis DASHBOARD-DEDUP.md fix #1.
 
     // Tab switcher "Semua Fitur"/"Pinned Widgets" (dashHubMainTabsRow) sudah
     // DIHAPUS 2026-07-17 — #dashHubMainGridCard & #dashboardHubPinnedWrap
@@ -710,17 +674,14 @@ const DashboardHub = {
       // pindah — lihat catatan render() di atas). Sisa di grup ini murni
       // konten LINTAS-DOMAIN (Cross/LifeOS/EIE) yang tidak punya "rumah"
       // 1 fitur tunggal.
-      // Sesi 158 (bugfix, permintaan eksplisit user): #propertyManagementWrap/
-      // #rentalManagementWrap/#assetPortfolioWrap/#assetMaintenanceWrap
-      // (S101-104, Sesi 132) & #recommendationPanelWrap/#actionQueueWrap
-      // (Sesi 90) DITAMBAHKAN ke grup ini — sebelumnya container-nya sudah
-      // ada di HTML & diisi render()-nya masing-masing, tapi TIDAK PERNAH
-      // didaftarkan ke SECTION_GROUPS manapun sejak split tab ini dibuat
-      // (2026-07-17), jadi ke-6nya selalu tampil di SEMUA tab sekaligus
-      // (bocor keluar dari sistem tab) — itu yang bikin Dashboard Hub masih
-      // terasa panjang walau sub-tab sudah ada. Murni pendaftaran ke array
-      // yang sudah ada, 0 render/logic/markup disentuh.
-      insight: ['lifeOSWrap', 'eieWrap', 'propertyManagementWrap', 'rentalManagementWrap', 'assetPortfolioWrap', 'assetMaintenanceWrap', 'crossDashWrap', 'crossBriefWrap', 'crossInsightWrap', 'personalOverviewWrap', 'crossWidgetsWrap', 'lifePriorityWrap', 'recommendationPanelWrap', 'actionQueueWrap'],
+      // Sesi 158 (bugfix): #recommendationPanelWrap/#actionQueueWrap (Sesi
+      // 90) didaftarkan ke grup ini — sebelumnya bocor tampil di semua
+      // sub-tab. #propertyManagementWrap/#rentalManagementWrap/
+      // #assetPortfolioWrap/#assetMaintenanceWrap (S101-104) yang tadinya
+      // di grup ini SUDAH PINDAH ke tab "Manajemen" #page-aset (lihat
+      // catatan migrasi di render(), atas), jadi dihapus dari daftar —
+      // bukan lagi bagian dari Dashboard Hub sama sekali.
+      insight: ['lifeOSWrap', 'eieWrap', 'crossDashWrap', 'crossBriefWrap', 'crossInsightWrap', 'personalOverviewWrap', 'crossWidgetsWrap', 'lifePriorityWrap', 'recommendationPanelWrap', 'actionQueueWrap'],
     };
     Object.keys(SECTION_GROUPS).forEach((t) => {
       SECTION_GROUPS[t].forEach((id) => {

@@ -235,6 +235,17 @@ Aset._zakatableState=a?!!a.zakatable:false;
 const btn=document.getElementById('assetZakatableBtn');
 btn.textContent=Aset._zakatableState?'✓ Aktif':'Nonaktif';
 btn.className='chip-btn'+(Aset._zakatableState?' active':'');
+// Dana Titipan (permintaan user): satu instrumen investasi bisa campuran dana sendiri
+// & dana titipan investor/keluarga -- toggle + field terpisah, pola sama dgn
+// billShared/txCicilanShared (toggle -> tampilkan wrap). Nominal titipan disimpan apa
+// adanya (bukan %), disinkron ke Buku Utang lewat Aset._syncTitipanDebt() di save().
+const titipanToggle=document.getElementById('assetTitipanToggle');
+const titipanHasAmount=!!(a&&a.titipanAmount>0);
+if(titipanToggle)titipanToggle.checked=titipanHasAmount;
+document.getElementById('assetTitipanOwnerType').value=a&&a.titipanOwnerType?a.titipanOwnerType:'investor';
+document.getElementById('assetTitipanOwnerName').value=a&&a.titipanOwnerName?a.titipanOwnerName:'';
+document.getElementById('assetTitipanAmount').value=titipanHasAmount?a.titipanAmount:'';
+document.getElementById('assetTitipanWrap').classList.toggle('u-dnone',!titipanHasAmount);
 Aset.renderJenisFields(a);
 Aset.updateProfitPreview();
 // Ownership (S231) — reuse OwnershipEngine, sama pola dgn Akun/Kendaraan. Aset lama tanpa
@@ -305,6 +316,38 @@ const btn=document.getElementById('assetZakatableBtn');
 btn.textContent=Aset._zakatableState?'✓ Aktif':'Nonaktif';
 btn.className='chip-btn'+(Aset._zakatableState?' active':'');
 },
+toggleTitipan(){
+const on=document.getElementById('assetTitipanToggle').checked;
+document.getElementById('assetTitipanWrap').classList.toggle('u-dnone',!on);
+},
+// _syncTitipanDebt(a) — jaga entry Buku Utang (D.debts) tetap sinkron dgn porsi
+// titipan aset ini, pola SAMA PERSIS dgn Investment._syncTitipanDebt()
+// (modules/asset/investasi.js) -- 0 rumus baru, cuma dipindah ke domain Aset supaya
+// 1 instrumen investasi bisa campuran dana sendiri & dana titipan investor/keluarga.
+// nilai aset (a.nilai) TETAP dicatat penuh & apa adanya; porsi titipan (a.titipanAmount)
+// otomatis jadi 1 entry utang bernama pemilik dana, sehingga Kekayaan Bersih = Nilai
+// Aset − Utang Titipan (tidak overstated). titipanAmount 0/toggle mati -> entry utang
+// lama (kalau ada) otomatis dihapus, tidak menyisakan sampah.
+_syncTitipanDebt(a){
+if(!a||typeof D==='undefined'||!D.debts)return;
+if(a.titipanAmount>0){
+const typeLabel=a.titipanOwnerType==='keluarga'?'Keluarga':(a.titipanOwnerType==='lainnya'?'Pihak Lain':'Investor');
+const owner=(a.titipanOwnerName&&String(a.titipanOwnerName).trim())?(String(a.titipanOwnerName).trim()+' ('+typeLabel+')'):typeLabel;
+const amount=a.titipanAmount;
+const catatan='Dana titipan aset: '+a.name;
+let debt=a.titipanDebtLinkId?D.debts.find(d=>String(d.id)===String(a.titipanDebtLinkId)):null;
+if(debt){
+Object.assign(debt,{name:owner,nilai:amount,catatan,lunas:amount<=0});
+}else{
+debt={id:uid(),name:owner,nilai:amount,bunga:0,cicilanBulanan:0,tanggal:todayStr(),jatuhTempo:'',catatan,lunas:amount<=0};
+D.debts.push(debt);
+a.titipanDebtLinkId=debt.id;
+}
+}else if(a.titipanDebtLinkId){
+D.debts=D.debts.filter(d=>String(d.id)!==String(a.titipanDebtLinkId));
+a.titipanDebtLinkId=null;
+}
+},
 save(){
 const name=document.getElementById('assetName').value.trim();
 if(!name){toast('⚠️ Nama aset wajib diisi');return;}
@@ -336,6 +379,16 @@ const ownership=(typeof OwnershipEngine!=='undefined'&&OwnershipEngine.isValidTy
 const keuntungan=modalInvestasi?(nilai-modalInvestasi):null;
 const keuntunganPct=modalInvestasi?((nilai-modalInvestasi)/modalInvestasi*100):null;
 const extra={modalInvestasi,hargaBeli,jumlahUnit,keuntungan,keuntunganPct};
+// Dana Titipan (permintaan user): nominal titipan dijepit ke [0, nilai] -- titipan
+// TIDAK BOLEH lebih besar dari Estimasi Nilai instrumen ini sendiri. Toggle mati =
+// titipanAmount 0 (Aset._syncTitipanDebt() di bawah otomatis lepas tautan utang lama).
+const titipanOn=document.getElementById('assetTitipanToggle')?.checked;
+let titipanAmount=titipanOn?parsePzNum(document.getElementById('assetTitipanAmount').value):0;
+if(titipanAmount<0)titipanAmount=0;
+if(titipanAmount>nilai)titipanAmount=nilai;
+extra.titipanAmount=titipanAmount;
+extra.titipanOwnerType=titipanAmount>0?(document.getElementById('assetTitipanOwnerType').value||'investor'):'';
+extra.titipanOwnerName=titipanAmount>0?document.getElementById('assetTitipanOwnerName').value.trim():'';
 // Field kategori-spesifik (lihat Aset.renderJenisFields) -- selalu di-reset dulu
 // ke null lalu diisi ULANG sesuai jenis yg dipilih SEKARANG, supaya kalau user
 // ganti kategori pas Edit Aset (mis. dari Kendaraan ke Tanah), field kategori
@@ -359,13 +412,17 @@ const gk=document.getElementById('assetGoldKadar');
 extra.goldBeratGram=gg&&gg.value!==''?(parseDecStr(gg.value)||null):null;
 extra.goldKadar=gk&&gk.value?(parseInt(gk.value,10)||null):null;
 }
+let savedAsset;
 if(Aset.editId){
 const a=D.assets.find(x=>sameId(x.id,Aset.editId));
 if(!a){toast('⚠️ Aset tidak ditemukan, coba tutup dan buka lagi');return;}
 Object.assign(a,{name,jenis,lokasi,nilai,tanggal,zakatable:Aset._zakatableState,accountId,ownership},extra);
+savedAsset=a;
 } else {
-D.assets.push(Object.assign({id:uid(),name,jenis,lokasi,nilai,tanggal,zakatable:Aset._zakatableState,accountId,ownership},extra));
+savedAsset=Object.assign({id:uid(),name,jenis,lokasi,nilai,tanggal,zakatable:Aset._zakatableState,accountId,ownership},extra);
+D.assets.push(savedAsset);
 }
+Aset._syncTitipanDebt(savedAsset);
 save();
 if(typeof AIBus!=="undefined")AIBus.emit("asset.updated",{jenis,nilai,editId:Aset.editId});
 closeModal('assetModal');
@@ -375,6 +432,10 @@ toast(_createdNewAcc?'✅ Aset tersimpan & akun baru dibuat':'✅ Aset tersimpan
 },
 async delete(id){
 if(!await askConfirm('Hapus aset ini dari Buku Aset?',{okText:'Ya, Hapus'}))return;
+const a=D.assets.find(x=>sameId(x.id,id));
+if(a&&a.titipanDebtLinkId&&D.debts){
+D.debts=D.debts.filter(d=>String(d.id)!==String(a.titipanDebtLinkId));
+}
 D.assets=D.assets.filter(a=>!sameId(a.id,id));
 save();
 if(typeof AIBus!=="undefined")AIBus.emit("asset.updated",{deletedId:id});
@@ -414,7 +475,11 @@ const histBtn=linkedAcc?`<button class="tx-del" style="margin-right:2px" title="
 const ownResolved=(typeof OwnershipEngine!=='undefined')?OwnershipEngine.resolve(a):null;
 const ownMeta=ownResolved?(' <span class="acc-chip">'+escapeHtml(OwnershipEngine.label(ownResolved.type))+'</span>'):'';
 const ownDetail=ownResolved?`<div class="u-fs10 u-t2">Ownership<br>${escapeHtml(ownResolved.type)}</div>`:'';
-return `<div class="tx-item u-pointer" data-action="openAssetModal" data-args="${escapeHtml(JSON.stringify([a.id]))}"><div class="tx-icon u-bgaccsoft">${Aset.ICON[a.jenis]||'📦'}</div><div class="tx-info"><div class="tx-name">${escapeHtml(a.name)}${a.zakatable?' <span class="u-fs10 u-cacc3 u-r6 u-ml4" style="border:1px solid var(--accent3);padding:1px 5px">Zakat</span>':''}</div><div class="tx-meta">${a.jenis}${Aset.extraLabel(a)?' · '+escapeHtml(Aset.extraLabel(a)):''}${a.lokasi?' · '+escapeHtml(a.lokasi):''}${linkMeta}${ownMeta}${pctBadge}</div>${ownDetail}</div><div class="tx-amount">${fmt(a.nilai)}</div>${histBtn}<button class="tx-del" style="margin-right:2px" title="Update cepat via scan" data-stop="1" data-action="quickScanAsset" data-args="${escapeHtml(JSON.stringify([a.id]))}" aria-label="Update cepat via scan">⚡</button><button class="tx-del" data-stop="1" data-action="delAsset" data-args="${escapeHtml(JSON.stringify([a.id]))}" aria-label="Hapus">🗑</button></div>`;
+// Dana Titipan badge -- cuma tampil kalau ada porsi titipan (bukan dropdown
+// Kepemilikan yang all-or-nothing di atas), reuse class "acc-chip" yang sama.
+const titipanLabel=a.titipanOwnerType==='keluarga'?'Keluarga':(a.titipanOwnerType==='lainnya'?'Pihak Lain':'Investor');
+const titipanMeta=a.titipanAmount>0?(' <span class="acc-chip" title="Dana titipan '+escapeHtml(titipanLabel)+': '+fmt(a.titipanAmount)+'">💰 Titipan '+escapeHtml(titipanLabel)+'</span>'):'';
+return `<div class="tx-item u-pointer" data-action="openAssetModal" data-args="${escapeHtml(JSON.stringify([a.id]))}"><div class="tx-icon u-bgaccsoft">${Aset.ICON[a.jenis]||'📦'}</div><div class="tx-info"><div class="tx-name">${escapeHtml(a.name)}${a.zakatable?' <span class="u-fs10 u-cacc3 u-r6 u-ml4" style="border:1px solid var(--accent3);padding:1px 5px">Zakat</span>':''}</div><div class="tx-meta">${a.jenis}${Aset.extraLabel(a)?' · '+escapeHtml(Aset.extraLabel(a)):''}${a.lokasi?' · '+escapeHtml(a.lokasi):''}${linkMeta}${ownMeta}${titipanMeta}${pctBadge}</div>${ownDetail}</div><div class="tx-amount">${fmt(a.nilai)}</div>${histBtn}<button class="tx-del" style="margin-right:2px" title="Update cepat via scan" data-stop="1" data-action="quickScanAsset" data-args="${escapeHtml(JSON.stringify([a.id]))}" aria-label="Update cepat via scan">⚡</button><button class="tx-del" data-stop="1" data-action="delAsset" data-args="${escapeHtml(JSON.stringify([a.id]))}" aria-label="Hapus">🗑</button></div>`;
 }).join('');
 Aset.renderDashboard();
 Aset.renderInvestasi();
@@ -1389,7 +1454,7 @@ applyOneCardCollapsePref('timelineWCard');
 // renderPageContent('aset') di modules-render.js) TERLEPAS dari tab mana yang
 // lagi aktif -- sama seperti pola kartu ber-collapse yg sudah ada di app ini,
 // cuma sekarang levelnya per-tab, bukan per-kartu.
-const ASET_TAB_ORDER=['ringkasan','buku','analisis'];
+const ASET_TAB_ORDER=['ringkasan','buku','analisis','manajemen'];
 function setAsetTab(t,el){
 document.querySelectorAll('#page-aset .cn-tab').forEach(b=>b.classList.remove('active'));
 if(el) el.classList.add('active');
@@ -1397,6 +1462,8 @@ else { const idx=ASET_TAB_ORDER.indexOf(t); const btn=document.querySelectorAll(
 document.getElementById('asetTab-ringkasan').classList.toggle('u-dnone', t!=='ringkasan');
 document.getElementById('asetTab-buku').classList.toggle('u-dnone', t!=='buku');
 document.getElementById('asetTab-analisis').classList.toggle('u-dnone', t!=='analisis');
+// Manajemen (dipindah dari Dashboard Hub) — pola sama 3 tab di atas.
+document.getElementById('asetTab-manajemen').classList.toggle('u-dnone', t!=='manajemen');
 }
 
 // (bukan module). Dispatcher data-action (mis. data-action="Aset.exportXLSX",

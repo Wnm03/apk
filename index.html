@@ -79,8 +79,8 @@
 <link rel="preconnect" href="https://accounts.google.com" crossorigin>
 <link rel="dns-prefetch" href="https://accounts.google.com">
 <title>Keluarga W</title>
-<link rel="stylesheet" href="styles.css?v=744">
-<link rel="stylesheet" href="modern-ui-layer.css?v=744">
+<link rel="stylesheet" href="styles.css?v=750">
+<link rel="stylesheet" href="modern-ui-layer.css?v=750">
 <script>
 /* Debug console (Eruda) — aktifkan sekali lewat ?debug=1 di URL, nempel via localStorage.
    Matikan lagi lewat ?debug=0. Tidak aktif buat user biasa. */
@@ -134,8 +134,25 @@ b.appendChild(closeBtn);
 }catch(_e){ console.error('Gagal tampilkan banner error modul:',_e); }
 };
 </script>
-<script src="app-bundle-a.min.js?v=744" onerror="window.__moduleLoadFail('app-bundle-a.min.js')"></script>
-<script src="modules/shared/smoke-test.js?v=744" defer></script>
+<script>
+/* FIX: tab yang sudah kebuka duluan bisa masih dikontrol SW versi lama
+   (skipWaiting/clients.claim ga instan ganti controller tab yg lagi aktif),
+   jadi HTML lama sempat ke-paint dulu sebelum JS baru koreksi tampilan
+   (nyebabin "flash" onboard->pin atau sebaliknya). Reload sekali otomatis
+   begitu controller SW berganti, guard sessionStorage biar ga infinite loop. */
+(function(){
+try{
+if(!('serviceWorker' in navigator))return;
+navigator.serviceWorker.addEventListener('controllerchange',function(){
+if(sessionStorage.getItem('kw_sw_reloaded')==='1')return;
+sessionStorage.setItem('kw_sw_reloaded','1');
+window.location.reload();
+});
+}catch(e){}
+})();
+</script>
+<script src="app-bundle-a.min.js?v=750" onerror="window.__moduleLoadFail('app-bundle-a.min.js')"></script>
+<script src="modules/shared/smoke-test.js?v=750" defer></script>
 <link rel="manifest" id="pwaManifestLink" href="manifest.json">
 </head>
 <body data-theme="fresh">
@@ -1902,6 +1919,7 @@ b.appendChild(closeBtn);
     <button class="cn-tab active" data-action="setAsetTab" data-args='["ringkasan", "$el"]'>📊 Ringkasan</button>
     <button class="cn-tab" data-action="setAsetTab" data-args='["buku", "$el"]'>📋 Buku Aset</button>
     <button class="cn-tab" data-action="setAsetTab" data-args='["analisis", "$el"]'>🧮 Analisis &amp; Pajak</button>
+    <button class="cn-tab" data-action="setAsetTab" data-args='["manajemen", "$el"]'>🏢 Manajemen</button>
   </div>
 
   <!-- RINGKASAN -->
@@ -2057,6 +2075,55 @@ b.appendChild(closeBtn);
 
   </div>
   <!-- /ANALISIS & PAJAK -->
+
+  <!-- MANAJEMEN (dipindah dari Dashboard Hub — lihat catatan migrasi di
+       lokasi lama). 4 widget domain Aset (Property/Rental/Portfolio/
+       Maintenance, S101-104): 0 rumus diubah, 100% reuse presenter yang
+       sama, cuma pindah lokasi tampil. Diisi oleh renderPageContent('aset')
+       di modules-render.js. -->
+  <div id="asetTab-manajemen" class="u-dnone">
+    <div class="dashhub-wrap card u-mb12" id="propertyManagementWrap">
+      <div class="dashhub-cat-head">
+        <div class="dashhub-cat-icon">🏠</div>
+        <div>
+          <div class="dashhub-cat-label">Property Management</div>
+          <div class="dashhub-cat-desc">Portofolio, estimasi PBB &amp; penyusutan properti — dari data yang sudah ada</div>
+        </div>
+      </div>
+      <div class="findash-grid" id="propertyManagementGrid"></div>
+    </div>
+    <div class="dashhub-wrap card u-mb12" id="rentalManagementWrap">
+      <div class="dashhub-cat-head">
+        <div class="dashhub-cat-icon">🏘️</div>
+        <div>
+          <div class="dashhub-cat-label">Rental Management</div>
+          <div class="dashhub-cat-desc">Pendapatan sewa bersih &amp; status penautan unit sewa — dari data yang sudah ada</div>
+        </div>
+      </div>
+      <div class="findash-grid" id="rentalManagementGrid"></div>
+    </div>
+    <div class="dashhub-wrap card u-mb12" id="assetPortfolioWrap">
+      <div class="dashhub-cat-head">
+        <div class="dashhub-cat-icon">💼</div>
+        <div>
+          <div class="dashhub-cat-label">Asset Portfolio</div>
+          <div class="dashhub-cat-desc">Komposisi &amp; alokasi kekayaan (kas/aset/investasi) — dari data yang sudah ada</div>
+        </div>
+      </div>
+      <div class="findash-grid" id="assetPortfolioGrid"></div>
+    </div>
+    <div class="dashhub-wrap card u-mb12" id="assetMaintenanceWrap">
+      <div class="dashhub-cat-head">
+        <div class="dashhub-cat-icon">🔧</div>
+        <div>
+          <div class="dashhub-cat-label">Asset Maintenance</div>
+          <div class="dashhub-cat-desc">Aset yang perlu ditinjau (umur manfaat habis) — dari data yang sudah ada</div>
+        </div>
+      </div>
+      <div class="findash-grid" id="assetMaintenanceGrid"></div>
+    </div>
+  </div>
+  <!-- /MANAJEMEN -->
 </div>
 
 <!-- AI -->
@@ -2964,26 +3031,14 @@ b.appendChild(closeBtn);
     <div id="eieInsightFeed"></div>
   </div>
   <!-- Finance Dashboard/Forecast/Budget Reco/Cashflow Proj/Financial Goal/Invest Planner/Debt Optimizer/Retirement Planner/Financial Health Score/Financial Risk Dashboard (Sesi 75/91-99, Batch 6/10) — DIPINDAH (Sesi 133) ke #page-keuangan > #keuanganTab-laporan (lihat sana). Container ini SENGAJA dikosongkan, bukan dihapus totalnya, supaya histori git/diff jelas menandai lokasi lama. -->
-  <!-- PROPERTY MANAGEMENT FOUNDATION (S102, Batch 10 — presenter+UI
-       ditambahkan Sesi 132 setelah audit menemukan API-nya belum pernah
-       dipanggil). Section di dalam Dashboard Hub, sama seperti
-       #financialRiskDashboardWrap di atas — diisi oleh
-       PropertyManagementPresenter.render() (dipanggil dari
-       DashboardHub.render() di dashboard-hub.js), 100% reuse
-       PropertyManagementAPI.summary() (S102, sendiri 100% reuse
-       PajakAset/Penyusutan/Aset, modules/asset/aset.js). UI hanya
-       presenter, tidak ada rumus baru di sini. CSS TIDAK baru — reuse
-       penuh class findash-grid/findash-card (grid generik). -->
-  <div class="dashhub-wrap card u-mb12" id="propertyManagementWrap">
-    <div class="dashhub-cat-head">
-      <div class="dashhub-cat-icon">🏠</div>
-      <div>
-        <div class="dashhub-cat-label">Property Management</div>
-        <div class="dashhub-cat-desc">Portofolio, estimasi PBB &amp; penyusutan properti — dari data yang sudah ada</div>
-      </div>
-    </div>
-    <div class="findash-grid" id="propertyManagementGrid"></div>
-  </div>
+  <!-- PROPERTY/RENTAL MANAGEMENT, ASSET PORTFOLIO, ASSET MAINTENANCE
+       (S101-104) — DIPINDAH (permintaan user "cek widget mana yg
+       sebaiknya pindah tab", pola SAMA PERSIS Sesi 133 Finance/Vehicle)
+       ke #page-aset > tab "🏢 Manajemen" (lihat #asetTab-manajemen di
+       index.html). Container HTML & pemanggilan .render() ikut pindah
+       (lihat renderPageContent('aset') di modules-render.js) — TIDAK ada
+       rumus/API yang diubah, murni pindah lokasi tampil karena domainnya
+       Aset (single-feature), bukan lintas-domain. -->
   <!-- MANAGED FUNDS FOUNDATION (S195). Section di dalam Dashboard Hub,
        sama seperti #propertyManagementWrap di atas — diisi oleh
        DanaKelolaanPresenter.render() + DanaKelolaanInsight.render()
@@ -3062,63 +3117,9 @@ b.appendChild(closeBtn);
     <div class="findash-grid" id="businessFlowGrid"></div>
     <div id="businessFlowTransferList" class="u-mt10"></div>
   </div>
-  <!-- RENTAL MANAGEMENT FOUNDATION (S103, Batch 10 — presenter+UI
-       ditambahkan Sesi 132). Section di dalam Dashboard Hub, sama
-       seperti #propertyManagementWrap di atas — diisi oleh
-       RentalManagementPresenter.render() (dipanggil dari
-       DashboardHub.render() di dashboard-hub.js), 100% reuse
-       RentalManagementAPI.summary() (S103, sendiri 100% reuse
-       PropertyManagementAPI/LaporanAset.riwayatTransaksi()). UI hanya
-       presenter, tidak ada rumus baru di sini. CSS TIDAK baru — reuse
-       penuh class findash-grid/findash-card (grid generik). -->
-  <div class="dashhub-wrap card u-mb12" id="rentalManagementWrap">
-    <div class="dashhub-cat-head">
-      <div class="dashhub-cat-icon">🏘️</div>
-      <div>
-        <div class="dashhub-cat-label">Rental Management</div>
-        <div class="dashhub-cat-desc">Pendapatan sewa bersih &amp; status penautan unit sewa — dari data yang sudah ada</div>
-      </div>
-    </div>
-    <div class="findash-grid" id="rentalManagementGrid"></div>
-  </div>
-  <!-- ASSET PORTFOLIO FOUNDATION (S101, Batch 10 — presenter+UI
-       ditambahkan Sesi 132). Section di dalam Dashboard Hub, sama
-       seperti #rentalManagementWrap di atas — diisi oleh
-       AssetPortfolioPresenter.render() (dipanggil dari
-       DashboardHub.render() di dashboard-hub.js), 100% reuse
-       AssetPortfolioAPI.summary() (S101, sendiri 100% reuse
-       Aset/Investment/totalSaldoAkun()/Kekayaan.currentNetWorth()). UI
-       hanya presenter, tidak ada rumus baru di sini. CSS TIDAK baru —
-       reuse penuh class findash-grid/findash-card (grid generik). -->
-  <div class="dashhub-wrap card u-mb12" id="assetPortfolioWrap">
-    <div class="dashhub-cat-head">
-      <div class="dashhub-cat-icon">💼</div>
-      <div>
-        <div class="dashhub-cat-label">Asset Portfolio</div>
-        <div class="dashhub-cat-desc">Komposisi &amp; alokasi kekayaan (kas/aset/investasi) — dari data yang sudah ada</div>
-      </div>
-    </div>
-    <div class="findash-grid" id="assetPortfolioGrid"></div>
-  </div>
-  <!-- ASSET MAINTENANCE FOUNDATION (S104, Batch 10 — presenter+UI
-       ditambahkan Sesi 132). Section di dalam Dashboard Hub, sama
-       seperti #assetPortfolioWrap di atas — diisi oleh
-       AssetMaintenancePresenter.render() (dipanggil dari
-       DashboardHub.render() di dashboard-hub.js), 100% reuse
-       AssetMaintenanceAPI.summary() (S104, sendiri 100% reuse
-       Penyusutan.hitung()/Aset). UI hanya presenter, tidak ada rumus
-       baru di sini. CSS TIDAK baru — reuse penuh class
-       findash-grid/findash-card (grid generik). -->
-  <div class="dashhub-wrap card u-mb12" id="assetMaintenanceWrap">
-    <div class="dashhub-cat-head">
-      <div class="dashhub-cat-icon">🔧</div>
-      <div>
-        <div class="dashhub-cat-label">Asset Maintenance</div>
-        <div class="dashhub-cat-desc">Aset yang perlu ditinjau (umur manfaat habis) — dari data yang sudah ada</div>
-      </div>
-    </div>
-    <div class="findash-grid" id="assetMaintenanceGrid"></div>
-  </div>
+  <!-- Rental Management/Asset Portfolio/Asset Maintenance — lihat catatan
+       migrasi di atas (#propertyManagementWrap), ketiganya ikut pindah
+       bareng ke #asetTab-manajemen. -->
   <!-- Vehicle Dashboard/Insight/Brief/Alert/Insight Feed/Analytics/Decision/Automation (Sesi 77-83, Batch 7) — DIPINDAH (Sesi 133) ke #page-carnotes (lihat sana). Container ini SENGAJA dikosongkan, bukan dihapus totalnya, supaya histori git/diff jelas menandai lokasi lama. -->
   <!-- FINANCE & VEHICLE CROSS INTEGRATION FOUNDATION (Sesi 87, Batch 8).
        2 section di dalam Dashboard Hub, sama seperti #vehAutomationWrap di
@@ -3613,10 +3614,11 @@ b.appendChild(closeBtn);
 <script>document.write(MODAL_HTML[75]);</script><!-- modal:fuelTankProfileModal -->
 <script>document.write(MODAL_HTML[76]);</script><!-- modal:catalogModal -->
 <script>document.write(MODAL_HTML[77]);</script><!-- modal:vehCatalogImportModal -->
-<script>document.write(MODAL_HTML[78]);</script><!-- modal:sparepartOcrDetailModal -->
-<script>document.write(MODAL_HTML[79]);</script><!-- modal:hondaPdfImportModal -->
-<script>document.write(MODAL_HTML[81]);</script><!-- modal:inventoryTransferModal (S244) -->
+<script>document.write(MODAL_HTML[78]);</script><!-- modal:vehCatWebImportModal -->
+<script>document.write(MODAL_HTML[79]);</script><!-- modal:sparepartOcrDetailModal -->
+<script>document.write(MODAL_HTML[80]);</script><!-- modal:hondaPdfImportModal -->
+<script>document.write(MODAL_HTML[82]);</script><!-- modal:inventoryTransferModal (S244) -->
 
-<script src="app-bundle-b.min.js?v=744" onerror="window.__moduleLoadFail('app-bundle-b.min.js')"></script>
+<script src="app-bundle-b.min.js?v=750" onerror="window.__moduleLoadFail('app-bundle-b.min.js')"></script>
 </body>
 </html>
