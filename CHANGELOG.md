@@ -1,3 +1,75 @@
+# Changelog — Sesi 249: Dana Titipan Aset (Buku Aset)
+
+## Konteks
+Permintaan user: satu instrumen investasi di 📋 Buku Aset (mis. reksadana/
+saham/emas) kadang berisi campuran dana milik sendiri & dana titipan
+investor/keluarga sekaligus. Kepemilikan (`OwnershipEngine`) yang sudah ada
+sifatnya all-or-nothing per aset (SELF/INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY
+untuk SELURUH nilai aset), jadi tidak cukup untuk kasus campuran. Reuse pola
+`Investment._syncTitipanDebt()`/`fundSource:'titipan'` yang sudah ada di
+`modules/asset/investasi.js` (Sesi lama) — tapi modul `Investment`/
+`D.investments` itu sendiri ternyata dead code, tidak pernah dipanggil dari
+UI manapun (lihat komentar di `modules/finance/investment-planner-api.js`).
+Pola yang sama diterapkan ke domain Aset (`D.assets`, yang benar-benar
+punya UI di 📋 Buku Aset) sebagai fitur baru.
+
+## Perubahan
+
+- **`modules/shared/modals.js`** (`assetModal`): tambah toggle "💰 Ada Dana
+  Titipan?" + wrap tersembunyi (`assetTitipanWrap`, pola sama dgn
+  `billShared`/`txCicilanShared`) berisi:
+  - Dropdown sumber dana titipan (Investor/Keluarga/Lainnya).
+  - Input nama pemilik dana (opsional).
+  - Input nominal titipan (Rp), pakai pola `amt-wrap`+kalkulator yang sudah
+    ada.
+- **`modules/asset/aset.js`**:
+  - `Aset.openModal()`: populate field titipan dari `a.titipanAmount`/
+    `titipanOwnerType`/`titipanOwnerName`, toggle wrap sesuai ada/tidaknya
+    nominal titipan.
+  - `Aset.toggleTitipan()`: baru, show/hide wrap saat toggle diklik.
+  - `Aset.save()`: baca field titipan, nominal titipan dijepit ke
+    `[0, nilai]` (tidak boleh lebih besar dari Estimasi Nilai instrumen
+    itu sendiri), simpan sbg `titipanAmount`/`titipanOwnerType`/
+    `titipanOwnerName` di object aset, lalu panggil
+    `Aset._syncTitipanDebt()`.
+  - `Aset._syncTitipanDebt(a)`: baru — REUSE PERSIS pola
+    `Investment._syncTitipanDebt()` (0 rumus baru, cuma dipindah domain):
+    porsi titipan (`a.titipanAmount`) otomatis disinkron sbg 1 entry
+    📕 Buku Utang (`D.debts`, nama = pemilik dana, catatan = nama aset),
+    di-link lewat `a.titipanDebtLinkId`. Dipanggil ulang -> UPDATE entry
+    lama (bukan duplikat). `titipanAmount` balik ke 0/toggle mati -> entry
+    utang lama otomatis dihapus. Nilai instrumen (`a.nilai`) TIDAK
+    diubah — tetap dicatat penuh, supaya Kekayaan Bersih = Nilai Aset −
+    Utang Titipan (tidak overstated) lewat mekanisme Buku Utang yang
+    sudah ada, 0 perhitungan baru di Kekayaan Bersih/Zakat Maal/dst.
+  - `Aset.delete()`: hapus entry utang titipan terkait (kalau ada) saat
+    asetnya dihapus, supaya tidak nyisa utang yatim.
+  - `Aset.renderList()`: badge baru "💰 Titipan Investor/Keluarga/Pihak
+    Lain" di daftar Buku Aset kalau `titipanAmount > 0` (reuse class
+    `acc-chip` yang sudah ada, sama seperti badge Ownership).
+- **`tests/asset-titipan.test.js`** (baru, 7 test): `_syncTitipanDebt()` —
+  titipanAmount 0 -> tidak bikin utang; > 0 -> bikin 1 entry baru sesuai
+  nominal & nama pemilik; tanpa nama -> label jenis sumber dana saja;
+  dipanggil ulang dgn nominal berubah -> UPDATE bukan duplikat; balik ke 0
+  -> entry lama dihapus & `titipanDebtLinkId` direset; entry utang manual
+  lain tidak terganggu; guard `a`/`D.debts` kosong -> no-op tanpa error.
+
+TIDAK ada perubahan ke `OwnershipEngine`, `Investment`/`investasi.js`,
+kalkulasi Zakat Maal, atau modul lain manapun — murni fitur baru yang
+reuse mekanisme Buku Utang yang sudah ada.
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 1165 / pass 1165 / fail 0 (naik dari 1158, +7 test baru, 0 regresi)
+
+node scripts/build.js sesi249-dana-titipan-aset-1
+# ✅ Build selesai, ?v=749, index.html & app_production.html identik
+
+node --test tests/*.test.js   # setelah build
+# tests 1165 / pass 1165 / fail 0
+```
+
 # Changelog — Sesi 244: Inventory Transfer UI
 
 ## Konteks
