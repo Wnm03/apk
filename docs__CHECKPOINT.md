@@ -5,6 +5,70 @@ JANGAN audit/implement/test/build ulang bagian yang sudah **Completed**.
 
 ## Current Session
 
+Sesi 203 (Continue, 2026-07-25) — Delivery Plan UI: hubungkan TripEngine
+(S198) ke Order/Kasir. SELESAI PENUH.
+
+**Target eksplisit user**: TripEngine/LogisticsEngine/calculateSmartDelivery/
+calculateVehicleCapacity/weightCalculator/volumeCalculator/packingCalculator
+sudah lengkap tapi belum ada UI ("senyap") — hubungkan ke UI nyata (form
+Order), tambah hook Dashboard & AI Insight, tulis test, build, ZIP.
+
+**Implementasi**:
+- `modules/shared/modals.js` — field baru `pBeratPerUnit`/`pPanjang`/
+  `pLebar`/`pTinggi` di `productModal` (dipakai `weightCalculator()`/
+  `volumeCalculator()`, S4/S198, lewat TripEngine). Tombol baru "🚚 Rencana
+  Pengiriman" di `orderModal`. Modal baru `deliveryPlanModal` (index 80 di
+  `MODAL_HTML`) — form produk/qty/produsen/metode/kendaraan/margin +
+  ringkasan ongkir/harga/profit/berat/volume + tombol rekomendasi AI.
+  `MODAL_VERSION` dibump otomatis oleh build.js.
+- `app_production.html`/`index.html` — `document.write(MODAL_HTML[80])`
+  ditambah setelah `hondaPdfImportModal` (source of truth; build.js sinkron
+  keduanya otomatis).
+- `modules/shop/cobek-etalase.js` — `Etalase.openModal()`/`Etalase.save()`
+  baca/tulis `beratPerUnit`/`panjang`/`lebar`/`tinggi` ke `D.products[]`.
+  0 rumus baru, field APA ADANYA disimpan.
+- **File baru** `modules/shop/delivery-plan-ui.js` — `DeliveryPlanUI`
+  (open/onProductChange/setMetode/calc/askAI), presenter MURNI: 100% reuse
+  `TripEngine.plan()`/`weight()`/`volume()` (S198, sendiri delegasi PERSIS
+  ke `calculateSmartDelivery()`/`weightCalculator()`/`volumeCalculator()`)
+  + `requestAIRecommendation()` (S6). 0 rumus/logic AI baru. Terdaftar di
+  `scripts/build.js` (GROUP_B, setelah `trip-engine.js`).
+- `modules/ai/feature-insights.js` — item baru `ShopInsight` #5
+  `'shop-delivery-plan'`: muncul kalau ada produk dgn
+  `beratPerUnit`/dimensi terisi, arahkan ke fitur Rencana Pengiriman.
+  100% reuse `TripEngine`, guard `typeof`, tidak throw kalau
+  belum dimuat.
+- Dashboard hook: item AI Insight di atas otomatis tampil di kartu AI
+  Insight Dashboard (`FeatureInsightUI`/`renderDashboard()` yang sudah
+  ada) — tidak menambah kartu findash baru ke
+  `ShopBusinessEnginePresenter` (di luar cakupan, risiko ubah struktur
+  grid 3-kartu yang sudah ada test-nya).
+
+## Test
+
+`node --test tests/*.test.js` -> **996/996 pass, 0 fail** (naik dari 987 —
+9 test baru `tests/delivery-plan-ui.test.js`: `DeliveryPlanUI.open()`/
+`calc()`/`setMetode()` tidak throw walau DOM di-stub permisif,
+`TripEngine.plan()`/`weight()`/`volume()` dipakai presenter, & 3 test
+`ShopInsight` item `shop-delivery-plan` muncul/tidak sesuai data produk).
+
+## Build
+
+`node scripts/build.js` -> sukses, `?v=717` (naik dari `?v=716`).
+FILE-MAP.md ditulis ulang otomatis (265 file, 1655 identifier global).
+
+## ZIP
+
+`kw_release_sesi203_delivery-plan-ui_v717.zip` — dibuat & diverifikasi
+`unzip -t`.
+
+## Current Step
+
+Sesi 203 selesai penuh — ZIP rilis dibuat & diverifikasi, ringkasan & link
+ditampilkan ke user. STOP.
+
+---
+
 Sesi 189 (Tahap 7C-4b lanjutan, 2026-07-25) — Hubungkan Detail OCR ke UI.
 SELESAI PENUH.
 

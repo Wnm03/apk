@@ -372,8 +372,8 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1')return true;
 }catch(e){ /* anggap bukan dev mode kalau gagal deteksi */ }
 return false;
 }
-const APP_BUILD_VERSION = 'kw244-inventory-transfer-ui';
-const PRODUCTION_BUILD_SYNCED_VERSION = 'kw244-inventory-transfer-ui';
+const APP_BUILD_VERSION = 'kw243-inventory-transfer';
+const PRODUCTION_BUILD_SYNCED_VERSION = 'kw243-inventory-transfer';
 let D = {
 schemaVersion:SCHEMA_VERSION,
 transactions:[],cobek:[],products:[],produsen:[],cobekKategori:JSON.parse(JSON.stringify(DEFAULT_COBEK_KATEGORI)),targets:[],eduFunds:[],reminders:[],bills:[],billsArchive:[],inventoryTransfers:[],
@@ -39717,17 +39717,9 @@ const BusinessFlowPresenter = {
           ${c.sub ? `<div class="findash-card-sub">${escapeHtml(c.sub)}</div>` : ''}
           ${(i === 0 && candidate) ? `<button class="btn btn-sm u-mt6" data-action="BusinessFlowPresenter.planTripForRestock">🚚 Rencanakan Pengiriman</button>
           <button class="btn btn-sm btn-ghost u-mt6" data-action="BusinessFlowPresenter.completeTrip">📦 Barang Sampai (Trip Selesai)</button>` : ''}
-          ${(i === 8) ? `<button class="btn btn-sm u-mt6" data-action="BusinessFlowPresenter.openTransferModal">🚚 Buat Transfer</button>` : ''}
         </div>
       </div>
     `).join('');
-
-    // S244: list transfer aktif (ON_TRIP/RECEIVED) + tombol Terima —
-    // dipanggil di akhir render() supaya SELALU ikut ke-refresh tiap kali
-    // render() dipanggil (termasuk otomatis dari createInventoryTransfer()/
-    // receiveTransfer() yang SUDAH memanggil this.render()) — 0 wiring
-    // sync tambahan, murni ikut siklus render() yang sudah ada.
-    this.renderTransferList();
   },
 
   // renderTab() — versi ringkas 1 baris per tahap ke #businessFlowBody
@@ -40207,158 +40199,6 @@ const BusinessFlowPresenter = {
       cls: '',
       sub: `Total stok ${summary.totalStockQty} pcs`,
     };
-  },
-
-  // --- Inventory Transfer UI (Sesi 244) ----------------------------------
-  // UI aksi utk createInventoryTransfer()/receiveTransfer()/
-  // transferSummary()/transferStatus()/locationSummary() (S243, di atas)
-  // yang sebelumnya BACKEND ONLY (tidak ada tombol/form pemanggilnya).
-  // TIDAK ADA logic baru di sini — murni kumpulkan input form lalu
-  // delegasi PERSIS ke method yang sudah ada. `_transferCartState` cuma
-  // state form sementara (bukan D, tidak disimpan) — pola sama keranjang
-  // Order (orderItemList, cobek-order.js).
-  _transferCartState: [],
-
-  // openTransferModal() — isi <select> produk dari D.products (pola
-  // PERSIS DeliveryPlanUI.open()), reset keranjang, buka modal. Origin/
-  // Destination sudah punya default di HTML (MAGELANG_STORAGE ->
-  // PEKALONGAN_STORAGE, sama default createInventoryTransfer()).
-  openTransferModal() {
-    if (typeof document === 'undefined') return;
-    const prodSel = document.getElementById('itProduct');
-    if (prodSel && typeof D !== 'undefined') {
-      prodSel.innerHTML = (D.products || [])
-        .map((p) => `<option value="${p.id}">${escapeHtml(p.name)}</option>`)
-        .join('');
-    }
-    const qtyEl = document.getElementById('itQty');
-    if (qtyEl) qtyEl.value = 1;
-    this._transferCartState = [];
-    this._renderTransferCart();
-    if (typeof openModal === 'function') openModal('inventoryTransferModal');
-  },
-
-  // addTransferCartItem() — baca #itProduct/#itQty, tambah ke
-  // _transferCartState (merge qty kalau produk sudah ada di keranjang).
-  // 0 logic baru — cuma kumpulkan input, perhitungan totalnya tetap
-  // 100% lewat transferTotals() (delegasi TripEngine.packing()) di
-  // _renderTransferCart().
-  addTransferCartItem() {
-    if (typeof document === 'undefined') return;
-    const prodSel = document.getElementById('itProduct');
-    const qtyEl = document.getElementById('itQty');
-    const productId = prodSel && prodSel.value;
-    const qty = Math.max(0, parseFloat(qtyEl && qtyEl.value) || 0);
-    if (!productId || qty <= 0) {
-      if (typeof toast === 'function') toast('Pilih produk & isi qty dulu');
-      return;
-    }
-    const existing = this._transferCartState.find((it) => it.productId === productId);
-    if (existing) existing.qty += qty;
-    else this._transferCartState.push({ productId, qty });
-    if (qtyEl) qtyEl.value = 1;
-    this._renderTransferCart();
-  },
-
-  // removeTransferCartItem(idx) — hapus 1 baris dari keranjang sementara.
-  removeTransferCartItem(idx) {
-    this._transferCartState.splice(idx, 1);
-    this._renderTransferCart();
-  },
-
-  // _renderTransferCart() — render daftar keranjang + ringkasan totalnya,
-  // ringkasan 100% REUSE transferTotals() (S243, delegasi PERSIS
-  // TripEngine.packing()) — 0 rumus baru, sama seperti
-  // _transferCard()/locationSummary() di atas.
-  _renderTransferCart() {
-    if (typeof document === 'undefined') return;
-    const listEl = document.getElementById('itCartList');
-    const sumEl = document.getElementById('itCartSummary');
-    if (listEl) {
-      if (!this._transferCartState.length) {
-        listEl.innerHTML = '<div class="u-hint10">Belum ada produk ditambahkan.</div>';
-      } else {
-        const products = (typeof D !== 'undefined' && D.products) || [];
-        listEl.innerHTML = this._transferCartState.map((it, idx) => {
-          const p = products.find((pr) => pr.id === it.productId);
-          const name = p ? p.name : it.productId;
-          return `<div class="u-flex u-gap8" style="align-items:center;margin-bottom:6px">
-            <div class="u-flex1 u-fs12">${escapeHtml(name)} × ${it.qty}</div>
-            <button type="button" class="btn btn-ghost btn-sm" data-action="BusinessFlowPresenter.removeTransferCartItem" data-args="[${idx}]">✕</button>
-          </div>`;
-        }).join('');
-      }
-    }
-    if (sumEl) {
-      if (!this._transferCartState.length) {
-        sumEl.innerHTML = 'Belum ada produk ditambahkan.';
-      } else {
-        const totals = this.transferTotals(this._transferCartState);
-        sumEl.innerHTML = `Total PCS: ${totals.totalPcs || 0} · Total Berat: ${(totals.totalBeratKg || 0).toFixed ? totals.totalBeratKg.toFixed(2) : totals.totalBeratKg} kg · Total Volume: ${(totals.totalVolumeM3 || 0).toFixed ? totals.totalVolumeM3.toFixed(3) : totals.totalVolumeM3} m³`;
-      }
-    }
-  },
-
-  // saveTransferFromModal() — baca Origin/Destination + keranjang, delegasi
-  // PERSIS createInventoryTransfer() (S243, di atas) — 0 logic baru.
-  // createInventoryTransfer() sendiri yang sudah memanggil save()/
-  // this.render()/this.renderTab()/toast(), jadi Dashboard & list transfer
-  // otomatis ke-refresh tanpa kode sync tambahan di sini.
-  saveTransferFromModal() {
-    if (typeof document === 'undefined') return;
-    const from = document.getElementById('itFrom')?.value || 'MAGELANG_STORAGE';
-    const to = document.getElementById('itTo')?.value || 'PEKALONGAN_STORAGE';
-    const result = this.createInventoryTransfer({ items: this._transferCartState, from, to });
-    if (!result.ok) {
-      if (typeof toast === 'function') toast(result.reason || 'Gagal membuat transfer');
-      return;
-    }
-    this._transferCartState = [];
-    if (typeof closeModal === 'function') closeModal('inventoryTransferModal');
-  },
-
-  // renderTransferList() — daftar transfer aktif (ON_TRIP/RECEIVED) ke
-  // #businessFlowTransferList, tiap baris 100% REUSE transferSummary()/
-  // transferStatus() (S243) — 0 rumus baru. Dipanggil di akhir render()
-  // (di atas) supaya otomatis ikut refresh siklus render() yang sama
-  // dgn kartu Purchase/Trip/Stock/Sale/dst — TIDAK ADA wiring sync
-  // terpisah utk Inventory Movement/Business Lifecycle/Trip/Dashboard,
-  // semua kartu itu sudah dibangun ulang dari D FRESH tiap render() apa
-  // adanya (pola yang sama sejak S207-208/S237/S238).
-  renderTransferList() {
-    if (typeof document === 'undefined') return;
-    const el = document.getElementById('businessFlowTransferList');
-    if (!el) return;
-    const transfers = (typeof D !== 'undefined' && D.inventoryTransfers) || [];
-    if (!transfers.length) {
-      el.innerHTML = '';
-      return;
-    }
-    const rows = transfers.slice().reverse().map((t) => {
-      const s = this.transferSummary(t.id);
-      if (!s.ok) return '';
-      const itemsLabel = s.items.map((it) => `${escapeHtml(it.name)} × ${it.qty}`).join(', ');
-      const receiveBtn = (s.status === 'ON_TRIP')
-        ? `<button type="button" class="btn btn-sm u-mt6" data-action="BusinessFlowPresenter.receiveTransferFromUI" data-args='["${s.id}"]'>📥 Terima</button>`
-        : '';
-      return `<div class="findash-card" style="margin-bottom:8px">
-        <div class="findash-card-body">
-          <div class="findash-card-label">${escapeHtml(s.statusLabel)} · ${escapeHtml(s.from)} → ${escapeHtml(s.to)}</div>
-          <div class="u-fs12">${itemsLabel}</div>
-          <div class="findash-card-sub">${s.totalPcs} pcs · ${s.totalBeratKg} kg</div>
-          ${receiveBtn}
-        </div>
-      </div>`;
-    }).join('');
-    el.innerHTML = rows;
-  },
-
-  // receiveTransferFromUI(transferId) — tombol "📥 Terima" di list, 100%
-  // delegasi PERSIS receiveTransfer() (S243) — 0 logic baru. receiveTransfer()
-  // sendiri yang sudah memanggil save()/this.render()/this.renderTab(),
-  // yang otomatis memanggil renderTransferList() lagi di akhirnya.
-  receiveTransferFromUI(transferId) {
-    this.receiveTransfer(transferId);
   },
 
   // --- Trip Management (Sesi 239) ---------------------------------------

@@ -1,3 +1,415 @@
+# Changelog — Sesi 244: Inventory Transfer UI
+
+## Konteks
+Target eksplisit user: "S244. Implement ONLY: Inventory Transfer UI. Reuse
+ONLY: BusinessFlowPresenter, InventoryEngine, TripEngine, TripPresenter,
+DeliveryPlanUI, PurchaseEngine, OwnershipEngine. No new engine, no new
+presenter, no new database, no new business logic, no duplicate logic, no
+redesign UI." Menutup gap BACKEND ONLY dari audit S243:
+`createInventoryTransfer()`/`receiveTransfer()`/`transferSummary()` sudah
+ada & teruji tapi belum ada UI aksi yang memanggilnya.
+
+## Perubahan
+
+- **`modules/shop/business-flow-presenter.js`**: tambah 7 method UI baru di
+  `BusinessFlowPresenter` (extend presenter yang sudah direuse, BUKAN
+  presenter baru) — semua 100% delegasi ke fungsi S243 yang sudah ada, 0
+  rumus baru:
+  - `openTransferModal()` — isi `#itProduct` dari `D.products` (pola
+    PERSIS `DeliveryPlanUI.open()`), reset keranjang sementara, buka
+    modal.
+  - `addTransferCartItem()` / `removeTransferCartItem(idx)` — kumpulkan
+    `{productId,qty}` ke `_transferCartState` (array sementara, BUKAN
+    `D`, pola sama keranjang Order `orderItemList`).
+  - `_renderTransferCart()` — render keranjang + ringkasan, ringkasan
+    100% REUSE `transferTotals()` (S243, delegasi `TripEngine.packing()`)
+    — 0 hitung ulang Weight/Volume/Packing.
+  - `saveTransferFromModal()` — baca Origin/Destination + keranjang,
+    delegasi PERSIS `createInventoryTransfer()` (S243) yang sendiri sudah
+    memanggil `save()`/`this.render()`/`this.renderTab()`/`toast()`.
+  - `renderTransferList()` — daftar transfer aktif (ON_TRIP/RECEIVED) ke
+    `#businessFlowTransferList`, 100% REUSE `transferSummary()`/
+    `transferStatus()` (S243). Dipanggil di baris terakhir `render()`
+    (bukan wiring sync terpisah) — otomatis ikut refresh siklus render()
+    yang sama dengan kartu Purchase/Trip/Stock/Sale/dst, sehingga
+    Inventory Movement/Business Lifecycle/Trip/Dashboard/Transfer Summary
+    selalu konsisten tanpa kode sync tambahan (semua kartu itu sudah baca
+    `D` FRESH tiap `render()` sejak S207-208/S237/S238).
+  - `receiveTransferFromUI(transferId)` — tombol "📥 Terima" di list,
+    100% delegasi PERSIS `receiveTransfer()` (S243).
+  - Kartu Inventory Transfer (`_transferCard`, kartu ke-9) di `render()`
+    tambah tombol "🚚 Buat Transfer" (`i === 8`) — pola sama tombol CTA
+    kartu Purchase (`i === 0`, S206).
+- **`modules/shared/modals.js`**: tambah 1 entri `MODAL_HTML` baru
+  (`inventoryTransferModal`) — modal Origin/Destination (2 `<select>`,
+  default MAGELANG_STORAGE→PEKALONGAN_STORAGE, sesuai default
+  `createInventoryTransfer()`), pilih Produk dari Etalase + Qty + tombol
+  "+ Tambah ke Daftar", daftar keranjang, ringkasan totals, tombol
+  "Simpan Transfer" — pola struktur sama persis `deliveryPlanModal`.
+- **`index.html` / `app_production.html`**: tambah
+  `<div id="businessFlowTransferList">` sebagai sibling
+  `#businessFlowGrid` (container list transfer aktif) + baris
+  `document.write(MODAL_HTML[81])` untuk modal baru. Ditambahkan tepat
+  setelah baris `MODAL_HTML[79]` (`hondaPdfImportModal`) — baris ini
+  sekaligus jadi wiring pertama utk `deliveryPlanModal` yang sebelumnya
+  ada di array tapi belum pernah di-`document.write` (gap lama S203,
+  transparan dicatat, TIDAK diperbaiki sesi ini krn di luar scope S244 —
+  cukup memastikan modal BARU sesi ini benar-benar ke-render).
+- **`package.json`**: version `0.85.6` -> `0.85.7`.
+
+## Yang TIDAK diubah
+- 0 engine baru — `createInventoryTransfer()`/`receiveTransfer()`/
+  `transferSummary()`/`transferStatus()`/`locationSummary()`/
+  `transferTotals()` (S243) TIDAK disentuh sama sekali, 0 baris diubah.
+- 0 presenter baru — semua method baru adalah method TAMBAHAN di
+  `BusinessFlowPresenter` yang sudah ada (S205+), bukan objek presenter
+  terpisah.
+- 0 database baru — `_transferCartState` murni state form sementara
+  (variabel presenter, direset tiap `openTransferModal()`), bukan field
+  `D` baru.
+- 0 business logic baru — Weight/Volume/Packing/Transfer Status semua
+  100% dibaca dari fungsi S243 yang sudah ada, tidak dihitung ulang.
+- 0 redesign — modal baru pakai class `.modal`/`.fg`/`.fs`/`.fi`/
+  `.acc-select-row`/`.btn` yang sudah ada, list transfer pakai class
+  `.findash-card` yang sudah ada.
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 1143 / pass 1143 / fail 0 (0 regresi — S244 murni UI wiring,
+# tidak ada test baru krn tidak ada business logic baru untuk dites)
+
+node scripts/build.js kw244-inventory-transfer-ui
+# Build selesai, ?v=744, index.html & app_production.html identik
+
+node --test tests/*.test.js   # setelah build
+# tests 1143 / pass 1143 / fail 0
+```
+
+---
+
+# Changelog — Sesi 243: Inventory Transfer
+
+## Konteks
+Target eksplisit user: "S243. Implement ONLY: Inventory Transfer (Trip
+Magelang -> Pekalongan, BUKAN penjualan — Trip hanya memindahkan lokasi
+inventory). Reuse: InventoryEngine, TripEngine, BusinessFlowPresenter,
+PurchaseEngine, OwnershipEngine. No new engine, no duplicate stock, no
+duplicate quantity, no business logic changes, no redesign UI." Barang
+yang dibawa Trip diambil dari Purchase/Inventory existing (master produk
+Etalase) — tidak input ulang nama/berat/dimensi/volume.
+
+## Perubahan
+
+- **`modules/shop/business-flow-presenter.js`**: tambah
+  `INVENTORY_TRANSFER_STATUSES` (array statis 2 status, pola sama
+  `REALIZATION_STATUSES`/S242) + method baru di `BusinessFlowPresenter`:
+  - `_transferItems(items)` — resolve `[{productId,qty}]` ke master
+    produk Etalase (D.products: name/beratPerUnit/panjang/lebar/tinggi)
+    yang SUDAH ADA — 0 input ulang, item productId tak dikenal di-skip.
+  - `transferTotals(items)` — Total PCS/Total Berat/Total Volume, 100%
+    REUSE `TripEngine.packing()` (delegasi PERSIS `packingCalculator()`,
+    cobek-etalase.js) — 0 rumus baru. Sesuai contoh spesifikasi: Cobek 20
+    (20pcs@3kg) + Cobek 24 (15pcs@4kg) = 35 pcs / 120 kg.
+  - `createInventoryTransfer({items,from,to})` — buat 1 rit transfer
+    (default MAGELANG_STORAGE -> PEKALONGAN_STORAGE, status awal
+    `ON_TRIP`), disimpan di `D.inventoryTransfers` (koleksi baru, BUKAN
+    duplikat stok — field `qty` di dalamnya murni catatan rit).
+    **TIDAK PERNAH** mengubah `D.products[idx].stock`,
+    `D.transactions`, atau `D.piutang` — sehingga tidak mungkin
+    mengurangi stok total / menghasilkan penjualan / menghasilkan
+    profit.
+  - `receiveTransfer(transferId)` — Saat Receive Goods: status
+    `ON_TRIP` -> `RECEIVED` (+`receivedDate`), idempotent. Stok produk
+    tetap TIDAK berubah (cuma "lokasi" tercatat pindah, dipakai
+    `locationSummary()`).
+  - `transferStatus(status)` / `transferSummary(transferId)` — label &
+    ringkasan 1 transfer, pola sama `tripStatus()`/`realizedSummary()`.
+  - `locationSummary()` — ringkasan Dashboard 3 lokasi (Magelang
+    Storage/On Trip/Pekalongan Storage) dalam PCS: `onTripQty`/
+    `pekalonganQty` dijumlah dari `D.inventoryTransfers`,
+    `totalStockQty` dibaca dari `D.products` (pola sama
+    `Etalase.totalModalStok()`), `magelangQty` = sisa — total SELALU
+    balance ke `totalStockQty` (Tidak boleh mengurangi stok total).
+  - `_transferCard(summary)` — kartu ke-9 (Inventory Transfer) ke
+    `#businessFlowGrid`, wired di `render()`/`renderTab()` (baris
+    tambahan murni, 0 kartu lama diubah).
+- **`modules/shared/features-helpers-global-security.js`**: tambah
+  `inventoryTransfers:[]` ke skema default `D` + migrasi
+  `if(!D.inventoryTransfers) D.inventoryTransfers=[];` di `load()`
+  (pola sama `D.piutang`/`D.assets`) — rollback-safe, tidak mengubah
+  data lama. Bump `APP_BUILD_VERSION`/`PRODUCTION_BUILD_SYNCED_VERSION`
+  ke `kw243-inventory-transfer`.
+- **`tests/inventory-transfer-s243.test.js`** (baru): 14 test — totals
+  sesuai contoh spesifikasi, stok tidak berubah setelah
+  create/receive, balance 3-lokasi, status/summary lookup.
+- **`package.json`**: version `0.85.5` -> `0.85.6`.
+
+## Yang TIDAK diubah
+- 0 engine baru (100% reuse `InventoryEngine`/`TripEngine`/
+  `PurchaseEngine`/`OwnershipEngine` seperti sesi-sesi sebelumnya).
+- 0 stok/qty duplikat — `D.inventoryTransfers[].items[].qty` murni
+  catatan rit, bukan penambahan/pengurangan `D.products[idx].stock`.
+- 0 business logic diubah — Total PCS/Berat/Volume 100% delegasi
+  `TripEngine.packing()` yang SUDAH ADA.
+- 0 redesign UI — kartu Dashboard cuma nambah 1 kartu ke grid yang
+  sudah ada (`#businessFlowGrid`), pola sama kartu ke-5..ke-8.
+
+---
+
+# Changelog — Sesi 241: Payment Flow
+
+## Konteks
+Target eksplisit user: "S241. Implement ONLY: Payment Flow. Reuse:
+BusinessFlowPresenter, FinanceIntelligence, Piutang, PurchaseEngine,
+InventoryEngine, TripEngine, OwnershipEngine. No new engine, no new
+database, no new business logic, no redesign UI." Sinkronkan pembayaran
+ke Business Lifecycle. Payment Status: UNPAID -> PARTIAL -> PAID.
+
+## Perubahan
+
+- **`modules/shop/business-flow-presenter.js`**: tambah `PAYMENT_STATUSES`
+  (array statis 3 status, pola sama `RECEIVE_STATUSES`/S240) + 3 method
+  baru di `BusinessFlowPresenter`:
+  - `paymentStatus(cobekId)` — status Payment Flow murni dari
+    `orderStatus()` (S209-210, delivered/paid dari D.cobek/D.piutang yang
+    SUDAH ADA) + `t.total`/`piutang.nilai` yang SUDAH tersimpan sejak
+    kw-shop-dp (`Order._saveInner()`, cobek-order.js: sisa tagihan =
+    `piutang.nilai`, sudah DP = `piutang.nilai < t.total`) — 0 rumus
+    pembayaran baru: tidak ada piutang aktif -> PAID; piutang aktif
+    dgn sisa < total -> PARTIAL; sisa == total (belum ada DP) -> UNPAID.
+  - `markPaid(cobekId)` — 100% delegasi PERSIS ke
+    `this.markPaymentReceived()` (S209-210, sudah update `Piutang.lunas`
+    + fan-out `syncPiutangFinanceViews()`/toast) — **0 duplikat logic
+    pembayaran**. Tambahan satu-satunya: catat `paymentDate` di record
+    Trip (D.cobek) itu sendiri, field tambahan pada record yang SUDAH
+    ADA (sama prinsip `receiveDate`/S240), untuk field "Payment Date" di
+    UI Payment.
+  - `paymentSummary(cobekId)` — ringkasan Payment (Status, Total
+    Tagihan, Sudah Dibayar, Sisa Tagihan, Payment Date) — murni baca
+    ulang field yang sudah tersimpan, 0 rumus baru selain
+    `paymentStatus()` di atas.
+  - Sync Business Status/Piutang/Finance/Dashboard: TIDAK ADA wiring
+    tambahan diperlukan — `markPaymentReceived()` yang direuse SUDAH
+    memanggil `syncPiutangFinanceViews()` (renderKeuangan/
+    renderDashboard/renderKekayaanBersih/hitungZakatMaal/
+    Piutang.renderList) & `save()` (yang SUDAH memicu
+    `FinanceIntelligence.invalidateCache()` lewat wiring existing di
+    `modules/shared/features-helpers-global-security.js`/
+    `modules-render.js`) — Finance & Dashboard otomatis ikut sinkron
+    tanpa kode tambahan.
+  - `markPaymentReceived()` (S209-210) sendiri **TIDAK diubah sama
+    sekali** — `markPaid()` cuma wrapper tambahan di atasnya. Engine
+    yang direuse (FinanceIntelligence/Piutang/PurchaseEngine/
+    InventoryEngine/TripEngine/OwnershipEngine) TIDAK disentuh — 0
+    baris diubah di file-file tsb.
+- **`tests/payment-flow-s241.test.js`** (baru, 12 test): `paymentStatus()`
+  (guard tidak ditemukan, PAID tanpa piutang, PAID piutang lunas, UNPAID
+  sisa==total, PARTIAL sisa<total), `markPaid()` (guard, delegasi
+  `markPaymentReceived()` + paymentDate, status jadi PAID),
+  `paymentSummary()` (guard, angka PARTIAL, angka PAID, paymentDate
+  setelah `markPaid()`).
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 1118 / pass 1118 / fail 0 (naik dari 1106, +12 test baru, 0 regresi)
+
+node scripts/build.js kw241-payment-flow
+# Build selesai, ?v=740, index.html & app_production.html identik
+
+node --test tests/*.test.js   # setelah build
+# tests 1118 / pass 1118 / fail 0
+```
+
+---
+
+# Changelog — Sesi 240: Receive Goods
+
+## Konteks
+Target eksplisit user: "S240. Implement ONLY: Receive Goods. Reuse:
+BusinessFlowPresenter, TripEngine, InventoryEngine, PurchaseEngine,
+DeliveryPlanUI, OwnershipEngine. No new engine, no new database, no new
+business logic, no redesign UI." Saat Trip (S239) tiba di tujuan, barang
+diterima bertahap (partial) atau sekaligus (full). Receive Status:
+NOT_RECEIVED -> PARTIALLY_RECEIVED -> FULLY_RECEIVED.
+
+## Perubahan
+
+- **`modules/shop/business-flow-presenter.js`**: tambah `RECEIVE_STATUSES`
+  (array statis 3 status, pola sama `TRIP_STATUSES`/S239) + 4 method baru
+  di `BusinessFlowPresenter`:
+  - `_receiveStatusOf(trip)` (internal) — turunkan status Receive Goods
+    murni dari agregasi `items[].qty` vs `items[].receivedQty` milik 1
+    Trip (D.cobek) — 0 rumus stok, cuma perbandingan angka yang sudah ada.
+  - `receiveItem(cobekId, productId, qty)` — terima qty (di-clamp ke sisa
+    yang belum diterima, tidak bisa overreceive/dobel-tambah kalau
+    dipanggil ulang) utk 1 item di 1 Trip. Stok TETAP ditambah lewat
+    `this.receiveGoods()` yang SUDAH ADA (S207-208, delegasi PERSIS
+    formula `StockRekoWidget.applyAll()`) — **0 duplikat logic stok**,
+    cuma dipanggil ulang per-item.
+  - `receiveAll(cobekId)` — terima SISA qty semua item Trip sekaligus,
+    100% reuse `receiveItem()` per item (0 logic baru), pola sama
+    `completeTrip()` yang reuse `receiveGoods()`.
+  - `receiveSummary(cobekId)` — ringkasan 1 Trip (items dgn qty
+    dibawa/diterima, status, receiveDate) — murni baca ulang field yang
+    sudah tersimpan.
+  - State baru yang ditulis: `items[].receivedQty` (progres per item) &
+    `receiveDate` (kapan terakhir diterima) — **field tambahan pada
+    record `D.cobek` yang SUDAH ADA**, BUKAN koleksi/database baru (sama
+    prinsip field `delivered`/`piutangLinkId` yang sudah ada sebelumnya
+    di record yang sama).
+  - Sync Inventory Movement/Business Lifecycle: TIDAK ADA wiring
+    tambahan diperlukan — `currentLocation()`/`stockStatus()` dkk (S198,
+    S238) semua baca `D.products`/`D.cobek` FRESH tiap dipanggil, jadi
+    otomatis merefleksikan stok/receivedQty terbaru begitu
+    `receiveItem()`/`receiveAll()` selesai.
+  - Engine yang direuse (TripEngine/InventoryEngine/PurchaseEngine/
+    DeliveryPlanUI/OwnershipEngine) TIDAK disentuh sama sekali — 0 baris
+    diubah di file-file tsb. Perhitungan stok existing (`receiveGoods()`)
+    TIDAK diubah sama sekali.
+- **`tests/receive-goods-s240.test.js`** (baru, 13 test): guard Trip/item
+  tidak ditemukan, partial receive (stok nambah persis qty diterima),
+  receive bertahap 2x (tidak dobel), clamp qty > sisa (tidak overstock),
+  status PARTIALLY_RECEIVED/FULLY_RECEIVED, `receiveAll()` (sekaligus &
+  setelah sebagian), `receiveSummary()` (status/receiveDate/items
+  terkini).
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 1106 / pass 1106 / fail 0 (naik dari 1093, +13 test baru, 0 regresi)
+
+node scripts/build.js kw240-receive-goods
+# Build selesai, ?v=739, index.html & app_production.html identik
+
+node --test tests/*.test.js   # setelah build
+# tests 1106 / pass 1106 / fail 0
+```
+
+---
+
+# Changelog — Sesi 239: Trip Management
+
+## Konteks
+Target eksplisit user: "S239. Implement ONLY: Trip Management. Reuse:
+TripEngine, BusinessFlowPresenter, InventoryEngine, PurchaseEngine,
+DeliveryPlanUI, OwnershipEngine. No new engine, no new database, no new
+business logic, no redesign UI." Trip = container rit pengiriman barang
+(Trip Number/Tanggal/Kendaraan/Driver/Origin/Destination/Status/Items/
+Total Berat/Total Volume), Trip Status: PLANNED -> LOADING -> READY ->
+ON_TRIP -> ARRIVED -> UNLOADING -> COMPLETED.
+
+## Perubahan
+
+- **`modules/shop/business-flow-presenter.js`**: tambah `TRIP_STATUSES`
+  (array statis 7 status Trip, urutan PERSIS spesifikasi user) + 3 helper
+  baru di `BusinessFlowPresenter` — pola SAMA PERSIS
+  `BUSINESS_LIFECYCLE_STATUSES`/`statusLabel()`/`nextStatus()` (S237) &
+  `INVENTORY_MOVEMENT_LOCATIONS`/`movementLabel()`/`nextLocation()` (S238):
+  - `tripStatus(status)` — label tampilan 1 status Trip (case-insensitive,
+    fallback apa adanya kalau tidak dikenali).
+  - `nextTripStatus(status)` — status berikutnya dalam rantai, `null` di
+    ujung (COMPLETED) atau kalau tidak dikenali. Murni navigasi array, 0
+    logic bisnis.
+  - `tripSummary()` — 100% delegasi PERSIS ke `TripPresenter.summary()`
+    (S204-A, field `D.cobek` yang sudah tersimpan: delivered/ongkir/
+    marginPct) — 0 rumus baru, satu sumber angka yang sama dgn
+    `flow().trip`/`_tripCard()` yang sudah ada.
+  - TIDAK ADA Trip entity/CRUD/field D baru. Field Kendaraan/Driver/
+    Origin/Destination di spesifikasi UI TIDAK punya sumber data
+    tersimpan di D (dicek eksplisit: tidak ada `vehicleId`/`driver`/
+    `origin`/`destination` yang pernah ditulis ke `D.cobek` — cuma
+    parameter sesaat di form `DeliveryPlanUI`/`TripEngine.plan()`) —
+    menambahkannya akan melanggar batasan "no new database", jadi TIDAK
+    diimplementasikan sesi ini (transparan, sama semangat catatan gap di
+    `lifecycleStatus()`/S237 soal status yang belum pernah benar-benar
+    dikembalikan).
+  - Engine yang direuse (TripEngine/InventoryEngine/PurchaseEngine/
+    DeliveryPlanUI/OwnershipEngine) TIDAK disentuh sama sekali — 0 baris
+    diubah di file-file tsb.
+- **`tests/trip-management-s239.test.js`** (baru, 6 test): `tripStatus()`
+  (7 status + fallback), `nextTripStatus()` (urutan penuh + null di ujung
+  + key tidak dikenali), `tripSummary()` (kosong, ada trip delivered, &
+  guard `TripPresenter` belum dimuat) — semua dibandingkan `deepEqual`
+  langsung ke `TripPresenter.summary()` supaya kebuktian 0 rumus baru.
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 1093 / pass 1093 / fail 0 (naik dari 1087, +6 test baru, 0 regresi)
+
+node scripts/build.js kw239-trip-management
+# Build selesai, ?v=738, index.html & app_production.html identik
+
+node --test tests/*.test.js   # setelah build
+# tests 1093 / pass 1093 / fail 0
+```
+
+---
+
+# Changelog — Sesi 235: Ownership Filter UI
+
+## Konteks
+Target eksplisit user: "S235. Implement ONLY: Ownership Filter UI. Reuse:
+OwnershipEngine. No new engine. No redesign. No business logic changes.
+Tambahkan filter Ownership pada halaman yang sudah memiliki daftar data:
+Akun, Asset, Investasi, Kendaraan, Dana Kelolaan (jika modul sudah ada).
+Dropdown: Semua/SELF/INVESTOR/CUSTOMER/FAMILY/THIRD_PARTY. Reuse
+OwnershipEngine.filterByType(). Default = Semua. Jangan mengubah
+perhitungan." Baseline: kw234-ownership-detail-view (S234, badge + detail
+view read-only dari OwnershipEngine.resolve()/label()).
+
+## Perubahan
+
+- **`app_production.html` / `index.html`**: dropdown filter Kepemilikan
+  (`<select>` Semua/SELF/INVESTOR/CUSTOMER/FAMILY/THIRD_PARTY) ditambahkan
+  di atas grid Akun (`#accGrid`, Pengaturan → Keuangan) dan di atas Buku
+  Aset (`#assetList`) — Buku Aset SUDAH mencakup item Investasi (jenis
+  Deposito/Investasi/Saham/Reksadana/Kripto), karena project ini belum
+  punya daftar Investasi terpisah dari Buku Aset (bukan hal baru sesi ini
+  — sudah begitu sejak awal), jadi 1 filter di sini otomatis mencakup
+  "Asset" & "Investasi" sekaligus sesuai spesifikasi.
+- **`modules/shared/modals.js`**: dropdown filter Kepemilikan sama
+  ditambahkan di modal `vehicleModal` ("Kelola Kendaraan"), di atas
+  `#vehicleManageList`.
+- **`modules/shared/modules-render.js`**: `renderAccGrid()` &
+  `renderVehicleManageList()` membaca dropdown filter (fallback "Semua"
+  kalau elemen tidak ada — halaman lain yang juga panggil fungsi ini tanpa
+  filter tetap tampil apa adanya) lalu memfilter list yang DIRENDER lewat
+  `OwnershipEngine.filterByType()` apa adanya (0 filter/logic baru). Index
+  `[i]` yang dipakai tombol edit/hapus dicari ulang via `indexOf()` supaya
+  tetap index ASLI di `D.accounts`/`D.vehicles` walau list sudah difilter
+  (bug index-mismatch kalau tidak — tombol edit/hapus bisa kena item yang
+  salah). Total/saldo (`accGridTotal`/`accGridTotalSub`) TETAP dihitung
+  dari `D.accounts` PENUH (tidak ikut filter) — sesuai "Jangan mengubah
+  perhitungan".
+- **`modules/asset/aset.js`**: `Aset.renderList()` (Buku Aset) filter
+  dengan pola sama; `data-args` di sana sudah pakai `a.id` (bukan index),
+  jadi tidak ada risiko index-mismatch. `totalValue()`/`renderDashboard()`/
+  dst di bawahnya tetap dipanggil terhadap `D.assets` penuh (TIDAK ikut
+  filter render).
+- **Dana Kelolaan**: SENGAJA TIDAK disentuh — modul ini (`dana-kelolaan-
+  presenter.js`) adalah 5 kartu ringkasan (Investor/Titipan/DP
+  Customer/Keluarga/Total) yang SUDAH menampilkan SEMUA tipe kepemilikan
+  sekaligus per kartu, bukan daftar item per-baris yang bisa difilter jadi
+  satu tipe tanpa redesign kartu — di luar cakupan "No redesign" sesi ini.
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 1058 / pass 1058 / fail 0 (naik dari 1052, +6 test baru
+# tests/ownership-filter-ui-s235.test.js, 0 regresi)
+
+node scripts/build.js kw235-ownership-filter-ui
+# ✅ Build selesai, ?v=734, index.html & app_production.html identik
+
+node --test tests/*.test.js   # setelah build
+# tests 1058 / pass 1058 / fail 0
+```
+
+---
+
 # Changelog — Sesi 201: Finalisasi Sinkronisasi Lintas Modul
 
 Target eksplisit user: finalisasi sinkronisasi lintas modul (Finance/Shop/

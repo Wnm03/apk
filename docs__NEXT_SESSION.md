@@ -1,5 +1,19 @@
 # NEXT_SESSION.md — Target sesi berikutnya (update setiap sesi)
 
+> **Catatan Sync (S203, di luar batch tracking — permintaan eksplisit user
+> "hubungkan TripEngine ke UI", build `kw201-finalisasi-sinkronisasi-lintas-
+> modul-717`, `?v=717`):** `TripEngine`/`LogisticsEngine`/
+> `calculateSmartDelivery` (S3-S6/S198) yang sebelumnya "belum digunakan
+> UI" sekarang dihubungkan lewat presenter baru **`DeliveryPlanUI`**
+> (`modules/shop/delivery-plan-ui.js`): tombol "🚚 Rencana Pengiriman" di
+> `orderModal`, modal baru `deliveryPlanModal`, field berat/dimensi baru
+> di `productModal` (`beratPerUnit`/`panjang`/`lebar`/`tinggi`, tersimpan
+> di `D.products[]` lewat `Etalase.save()`), & item AI Insight baru
+> `shop-delivery-plan`. 100% reuse engine yang sudah ada, 0 rumus baru.
+> Baseline regression **996/996 PASS** (naik dari 987 — 9 test baru
+> `tests/delivery-plan-ui.test.js`). ZIP:
+> `kw_release_sesi203_delivery-plan-ui_v717.zip`.
+
 > **Catatan Sync (S201, di luar batch tracking — permintaan eksplisit user
 > "Finalisasi Sinkronisasi Lintas Modul", build
 > `kw201-finalisasi-sinkronisasi-lintas-modul-714`, `?v=714`):** Audit
