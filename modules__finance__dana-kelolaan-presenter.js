@@ -40,20 +40,33 @@ const DanaKelolaanPresenter = {
     }
 
     const s = DanaKelolaan.summary();
+    // Ownership Badge (S233) — reuse OwnershipEngine.TYPES/label() APA ADANYA sbg badge di
+    // tiap kartu (0 rumus baru, 0 mapping baru — cuma label Bahasa Indonesia resmi dari
+    // engine, dipasangkan ke kartu sesuai urutan tipe yg SUDAH DIPAKAI byType() di
+    // dana-kelolaan.js: INVESTOR/THIRD_PARTY/CUSTOMER/FAMILY). Kartu Total tidak diberi
+    // badge (bukan 1 tipe kepemilikan tunggal).
+    const ownBadge = (type) => (typeof OwnershipEngine !== 'undefined')
+      ? `<span class="acc-chip">${escapeHtml(OwnershipEngine.label(type))}</span>` : '';
+    // Ownership Detail View (S234) — reuse `type` yang SAMA dgn ownBadge() di atas (0 logic
+    // resolve/hitung ulang) — cuma tampilkan kode tipe mentahnya (mis. "INVESTOR") di bawah
+    // badge, sesuai spesifikasi sesi ini.
+    const ownDetail = (type) => (typeof OwnershipEngine !== 'undefined')
+      ? `<div class="u-fs10 u-t2">Ownership<br>${escapeHtml(type)}</div>` : '';
     const cards = [
-      { icon: '💼', label: 'Dana Investor', value: this._money(s.investor) },
-      { icon: '🤝', label: 'Dana Titipan', value: this._money(s.titipan) },
-      { icon: '🧾', label: 'DP Customer', value: this._money(s.dpCustomer) },
-      { icon: '👨‍👩‍👧', label: 'Dana Keluarga', value: this._money(s.keluarga) },
-      { icon: '💰', label: 'Total Dana Kelolaan', value: this._money(s.total), cls: 'u-fw700' },
+      { icon: '💼', label: 'Dana Investor', value: this._money(s.investor), badge: ownBadge('INVESTOR'), detail: ownDetail('INVESTOR') },
+      { icon: '🤝', label: 'Dana Titipan', value: this._money(s.titipan), badge: ownBadge('THIRD_PARTY'), detail: ownDetail('THIRD_PARTY') },
+      { icon: '🧾', label: 'DP Customer', value: this._money(s.dpCustomer), badge: ownBadge('CUSTOMER'), detail: ownDetail('CUSTOMER') },
+      { icon: '👨‍👩‍👧', label: 'Dana Keluarga', value: this._money(s.keluarga), badge: ownBadge('FAMILY'), detail: ownDetail('FAMILY') },
+      { icon: '💰', label: 'Total Dana Kelolaan', value: this._money(s.total), cls: 'u-fw700', badge: '', detail: '' },
     ];
 
     el.innerHTML = cards.map((c) => `
       <div class="findash-card">
         <div class="findash-card-icon">${c.icon}</div>
         <div class="findash-card-body">
-          <div class="findash-card-label">${escapeHtml(c.label)}</div>
+          <div class="findash-card-label">${escapeHtml(c.label)}${c.badge ? ' ' + c.badge : ''}</div>
           <div class="findash-card-val${c.cls ? ' ' + c.cls : ''}">${escapeHtml(c.value)}</div>
+          ${c.detail}
         </div>
       </div>
     `).join('');

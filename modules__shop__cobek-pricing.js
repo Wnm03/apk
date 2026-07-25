@@ -498,6 +498,8 @@ D.products[idx].stock=(D.products[idx].stock||0)+restockQty;
 count++;
 });
 save();this.render();renderProductList();
+if(typeof ShopInsight!=='undefined')ShopInsight.render();
+if(typeof BusinessFlowPresenter!=='undefined')BusinessFlowPresenter.renderTab();
 toast(`✅ Stok ${count} produk diperbarui (+${totalQty} unit total)`);
 }
 };

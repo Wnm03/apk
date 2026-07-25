@@ -2,7 +2,7 @@
 // Dipindah ke modules/shared/modules-render.js (Sesi 17-18 restrukturisasi folder — lihat docs/FILE-MAP.md & RENCANA-SESI.md; isi & nama file TIDAK berubah, cuma lokasi folder).
 // Semua fungsi ini murni definisi function global (bukan module), jadi tetap bisa dipanggil dari file manapun
 // yang loadnya belakangan (sama seperti modules-calc.js/features-*.js).
-const MODULE_RENDER_VERSION='kw201-finalisasi-sinkronisasi-lintas-modul-714';
+const MODULE_RENDER_VERSION='kw244-inventory-transfer-ui';
 
 function renderPageContent(name){
 // KW perf fix: jaring pengaman selain hook di save() -- pastikan cache saldo akun juga fresh
@@ -47,7 +47,20 @@ const linked=linkedAssetAccountIds();
 const counted=D.accounts.filter(a=>a.includeInBalance!==false&&!linked.has(String(a.id))).length;
 totalSubEl.textContent=counted+' dari '+D.accounts.length+' akun dihitung';
 }
-el.innerHTML=D.accounts.map((a,i)=>{
+// Ownership Filter UI (S235) — reuse OwnershipEngine.filterByType() apa adanya, TIDAK ada
+// filter/logic baru. HANYA memfilter daftar yang DIRENDER di grid; accGridTotal/
+// accGridTotalSub di atas TETAP dihitung dari D.accounts penuh (Jangan mengubah
+// perhitungan). "Semua"/elemen filter belum ada (halaman lain yg juga panggil
+// renderAccGrid() tanpa elemen ini) -> tampilkan semua apa adanya (fallback aman).
+const accOwnFilterEl=document.getElementById('accOwnFilter');
+const accOwnFilterVal=accOwnFilterEl?accOwnFilterEl.value:'ALL';
+let accGridList=D.accounts;
+if(accOwnFilterVal&&accOwnFilterVal!=='ALL'&&typeof OwnershipEngine!=='undefined'){
+const accOwnFiltered=OwnershipEngine.filterByType(accGridList,accOwnFilterVal);
+if(accOwnFiltered.ok)accGridList=accOwnFiltered.items;
+}
+el.innerHTML=accGridList.map((a)=>{
+const i=D.accounts.indexOf(a);
 const bal=recalcAccBalance(a.id);
 const off=a.includeInBalance===false;
 const linked=!off&&isAccLinkedToAsset(a.id);
@@ -56,10 +69,23 @@ let jenisLabel=a.jenis==='dikunci'?'🔒 Dikunci':(a.jenis==='investasi'?'📈 I
 if(a.jenis==='investasi'&&a.platform)jenisLabel+=' · '+a.platform;
 if(a.jenis==='dikunci'&&a.targetTanggalBuka)jenisLabel+=' · buka '+a.targetTanggalBuka;
 const jenisBadge=jenisLabel?` <span class="u-fs12t2">${escapeHtml(jenisLabel)}</span>`:'';
+// Ownership Badge (S233) — upgrade dari teks sederhana (S232) jadi badge, reuse class
+// "acc-chip" yang SUDAH ADA di project ini (styles.css) — TIDAK ada style baru, TIDAK
+// ada layout baru. Data diambil HANYA dari OwnershipEngine.resolve()/label() (0 rumus baru).
+// Data lama tanpa field ownership: resolve() fallback ke SELF/DEFAULT.
+// Ownership Badge (S233) + Ownership Detail View (S234) — SATU pemanggilan
+// OwnershipEngine.resolve(a) dipakai bareng utk badge (label Bahasa Indonesia) DAN detail
+// view di bawahnya (kode tipe mentah/TYPE, mis. "SELF") — supaya TIDAK ada logic
+// resolve/hitung ulang yang duplikat. Data lama tanpa field ownership: resolve() fallback
+// ke SELF/DEFAULT (backward compatible, sama seperti S232/S233).
+const ownResolved=(typeof OwnershipEngine!=='undefined')?OwnershipEngine.resolve(a):null;
+const ownText=ownResolved?` <span class="acc-chip">${escapeHtml(OwnershipEngine.label(ownResolved.type))}</span>`:'';
+const ownDetail=ownResolved?`<div class="u-fs10 u-t2">Ownership<br>${escapeHtml(ownResolved.type)}</div>`:'';
 return`<div class="acc-card" style="${off||linked?'opacity:.55':''}" data-action="openAccModal" data-args="${escapeHtml(JSON.stringify([i]))}">
       <button class="acc-card-del" data-stop="1" data-action="delAcc" data-args="${escapeHtml(JSON.stringify([i]))}" aria-label="Hapus">🗑</button>
       <div class="acc-card-icon">${a.emoji}</div>
-      <div class="acc-card-name">${escapeHtml(a.name)}${badge}${jenisBadge}</div>
+      <div class="acc-card-name">${escapeHtml(a.name)}${badge}${jenisBadge}${ownText}</div>
+      ${ownDetail}
       <div class="acc-card-bal ${bal<0?'red':'green'}">${bal<0?'-':''}${fmt(Math.abs(bal))}</div>
     </div>`;
 }).join('');
@@ -791,6 +817,7 @@ try{fn();}catch(e){console.warn('renderDashboard: presenter "'+name+'" gagal dir
 _safeRender('DashboardHubHero',function(){if(typeof DashboardHubHero!=='undefined')DashboardHubHero.render();});
 _safeRender('DashboardHubSummary',function(){if(typeof DashboardHubSummary!=='undefined')DashboardHubSummary.render();});
 _safeRender('DashboardHubAnalytics',function(){if(typeof DashboardHubAnalytics!=='undefined')DashboardHubAnalytics.render();});
+_safeRender('DashboardHubOwnershipSummary',function(){if(typeof DashboardHubOwnershipSummary!=='undefined')DashboardHubOwnershipSummary.render();});
 // Finance Dashboard/Forecast/Budget Reko/Cashflow Proj/Financial Goal/Invest Planner/Debt
 // Optimizer/Retirement Planner/Health Score/Risk Dashboard (10 presenter) — DIHAPUS dari live-
 // wiring ini di Sesi 134 (gap fix pasca-Sesi 133). Alasan asli blok ini ("supaya card Dashboard
@@ -809,6 +836,8 @@ _safeRender('AssetMaintenancePresenter',function(){if(typeof AssetMaintenancePre
 // tambahan murni, pola sama _safeRender di atas. 100% reuse
 // InventoryEngine/PurchaseEngine/ProfitEngine (S198), UI hanya presenter.
 _safeRender('ShopBusinessEnginePresenter',function(){if(typeof ShopBusinessEnginePresenter!=='undefined')ShopBusinessEnginePresenter.render();});
+_safeRender('TripPresenter',function(){if(typeof TripPresenter!=='undefined')TripPresenter.render();});
+_safeRender('BusinessFlowPresenter',function(){if(typeof BusinessFlowPresenter!=='undefined')BusinessFlowPresenter.render();});
 // VehicleDashboard/VehicleInsightPresenter/VehicleDailyBrief/VehicleAlertPanel/
 // VehicleInsightFeed/VehicleAnalyticsPresenter/VehicleDecisionPresenter/
 // VehicleAutomationPresenter (8 presenter) — DIHAPUS dari live-wiring ini di Sesi 134
@@ -1160,7 +1189,21 @@ else if(D.vehicles.find(v=>v.id===curVehicleId)) el.value=curVehicleId;
 
 function renderVehicleManageList(){
 const el=document.getElementById('vehicleManageList');
-el.innerHTML=D.vehicles.map((v,i)=>`<div class="tx-item"><div class="tx-icon u-bgaccsoft">${v.emoji}</div><div class="tx-info"><div class="tx-name">${escapeHtml(v.name)}</div><div class="tx-meta">${vehMetaText(v)}</div></div><button class="tx-del u-bgaccsoft u-cacc" style="margin-right:6px" data-action="editVehicle" data-args="${escapeHtml(JSON.stringify([i]))}" aria-label="Edit">✏️</button><button class="tx-del" data-action="delVehicle" data-args="${escapeHtml(JSON.stringify([i]))}" aria-label="Hapus">🗑</button></div>`).join('');
+if(!el)return;
+// Ownership Filter UI (S235) — reuse OwnershipEngine.filterByType() apa adanya, TIDAK ada
+// filter/logic baru. Index [i] dipakai editVehicle/delVehicle harus tetap index ASLI di
+// D.vehicles (bukan index di list terfilter), makanya dicari ulang via indexOf().
+const vehOwnFilterEl=document.getElementById('vehOwnFilter');
+const vehOwnFilterVal=vehOwnFilterEl?vehOwnFilterEl.value:'ALL';
+let vehList=D.vehicles;
+if(vehOwnFilterVal&&vehOwnFilterVal!=='ALL'&&typeof OwnershipEngine!=='undefined'){
+const vehOwnFiltered=OwnershipEngine.filterByType(vehList,vehOwnFilterVal);
+if(vehOwnFiltered.ok)vehList=vehOwnFiltered.items;
+}
+el.innerHTML=vehList.map((v)=>{
+const i=D.vehicles.indexOf(v);
+return `<div class="tx-item"><div class="tx-icon u-bgaccsoft">${v.emoji}</div><div class="tx-info"><div class="tx-name">${escapeHtml(v.name)}</div><div class="tx-meta">${vehMetaText(v)}</div></div><button class="tx-del u-bgaccsoft u-cacc" style="margin-right:6px" data-action="editVehicle" data-args="${escapeHtml(JSON.stringify([i]))}" aria-label="Edit">✏️</button><button class="tx-del" data-action="delVehicle" data-args="${escapeHtml(JSON.stringify([i]))}" aria-label="Hapus">🗑</button></div>`;
+}).join('');
 }
 
 function renderSptLinkStatus(){
@@ -1489,6 +1532,12 @@ renderDashCardPrefsUI();
 // sudut pandang renderSettings() (tidak boleh menjatuhkan sisa fungsi kalau
 // entah kenapa belum sempat dimuat).
 if(typeof DashboardSettings!=='undefined')DashboardSettings.renderSettingsUI();
+// S229-230 (Settings -> Ownership, read-only): sinkronkan tab Kepemilikan
+// tiap kali halaman Pengaturan dirender ulang — pola sama DashboardSettings
+// di atas. Guard typeof: modul ini opsional dari sudut pandang
+// renderSettings() (tidak boleh menjatuhkan sisa fungsi kalau entah kenapa
+// belum sempat dimuat).
+if(typeof OwnershipSettingsPresenter!=='undefined')OwnershipSettingsPresenter.render();
 // Data Management Core: Backup Health/Backup History (lihat
 // modules/shared/backup-health-presenter.js/backup-history-presenter.js)
 // — guard typeof, pola sama dgn DashboardSettings di atas.

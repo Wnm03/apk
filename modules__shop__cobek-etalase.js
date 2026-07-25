@@ -228,11 +228,29 @@ document.getElementById('pBeli').value=p?p.hargaBeli:'';
 document.getElementById('pJual').value=p?p.hargaJual:'';
 document.getElementById('pReseller').value=p&&p.hargaReseller?p.hargaReseller:'';
 document.getElementById('pDiskon').value=p&&p.diskonPersen?p.diskonPersen:'';
+const pBeratEl=document.getElementById('pBeratPerUnit');
+if(pBeratEl)pBeratEl.value=p&&p.beratPerUnit?p.beratPerUnit:'';
+const pPanjangEl=document.getElementById('pPanjang');
+if(pPanjangEl)pPanjangEl.value=p&&p.panjang?p.panjang:'';
+const pLebarEl=document.getElementById('pLebar');
+if(pLebarEl)pLebarEl.value=p&&p.lebar?p.lebar:'';
+const pTinggiEl=document.getElementById('pTinggi');
+if(pTinggiEl)pTinggiEl.value=p&&p.tinggi?p.tinggi:'';
 const pAccEl=document.getElementById('pAcc');
 if(pAccEl) pAccEl.innerHTML=D.accounts.map(a=>`<option value="${a.id}">${a.emoji} ${escapeHtml(a.name)}</option>`).join('');
 const hint=document.getElementById('pAccHint');
 if(hint) hint.textContent=isEdit?'Hanya dipakai kalau angka Stok di atas kamu naikkan (tambah stok) — selisihnya tercatat otomatis sebagai pengeluaran modal.':'Stok awal akan tercatat otomatis sebagai pengeluaran modal dari akun ini.';
 PriceReko.reset();
+// S238 (Inventory Movement): render rantai lokasi barang ke
+// #productMovementList, reuse BusinessFlowPresenter.renderMovement()
+// (S237 lifecycle + D.cobek/D.products yg SUDAH ADA) — kosong/diam2 kalau
+// produk baru (belum punya id, belum ada di D.products).
+if (typeof BusinessFlowPresenter !== 'undefined' && p) {
+BusinessFlowPresenter.renderMovement(p.id);
+} else {
+const elMv = document.getElementById('productMovementList');
+if (elMv) elMv.innerHTML = '';
+}
 openModal('productModal');
 },
 async onProdusenChange(){
@@ -276,6 +294,14 @@ const hargaBeli=parseFloat(document.getElementById('pBeli').value)||0;
 const hargaJual=parseFloat(document.getElementById('pJual').value)||0;
 const hargaReseller=parseFloat(document.getElementById('pReseller').value)||null;
 const diskonPersen=parseFloat(document.getElementById('pDiskon').value)||0;
+const beratPerUnitEl=document.getElementById('pBeratPerUnit');
+const beratPerUnit=beratPerUnitEl?(parseFloat(beratPerUnitEl.value)||0):0;
+const panjangEl=document.getElementById('pPanjang');
+const panjang=panjangEl?(parseFloat(panjangEl.value)||0):0;
+const lebarEl=document.getElementById('pLebar');
+const lebar=lebarEl?(parseFloat(lebarEl.value)||0):0;
+const tinggiEl=document.getElementById('pTinggi');
+const tinggi=tinggiEl?(parseFloat(tinggiEl.value)||0):0;
 if(!name||!hargaJual){toast('⚠️ Lengkapi nama & harga jual');return;}
 const accId=document.getElementById('pAcc')?document.getElementById('pAcc').value:D.accounts[0]?.id;
 const prevStock=this.editIdx!==null?(D.products[this.editIdx].stock||0):0;
@@ -284,9 +310,9 @@ const kategoriId=resolveShopKategori(kategoriName);
 let product;
 if(this.editIdx!==null){
 product=D.products[this.editIdx];
-Object.assign(product,{name,stock,hargaBeli,hargaJual,hargaReseller,diskonPersen,kategoriId});
+Object.assign(product,{name,stock,hargaBeli,hargaJual,hargaReseller,diskonPersen,kategoriId,beratPerUnit,panjang,lebar,tinggi});
 } else {
-product={id:'prod_'+Date.now(),name,stock,hargaBeli,hargaJual,hargaReseller,diskonPersen,kategoriId,produsenId:'',hargaByProdusen:{}};
+product={id:'prod_'+Date.now(),name,stock,hargaBeli,hargaJual,hargaReseller,diskonPersen,kategoriId,beratPerUnit,panjang,lebar,tinggi,produsenId:'',hargaByProdusen:{}};
 D.products.push(product);
 }
 if(!product.hargaByProdusen)product.hargaByProdusen={};
