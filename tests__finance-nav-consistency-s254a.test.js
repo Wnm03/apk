@@ -68,8 +68,9 @@ test('FinancialRiskDashboardPresenter._levelCard()/_topFactorCard()/_breakdownCa
     ctx.FinancialRiskDashboardPresenter._breakdownCard(rf),
   ].forEach((c) => {
     assert.equal(c.onClick.action, 'dashHubNavigateToFeature');
-    assert.equal(c.onClick.args[0].page, 'dashboard-hub');
+    assert.equal(c.onClick.args[0].page, 'keuangan');
     assert.equal(c.onClick.args[0].goTo, 'financialRiskDashboardWrap');
+    assert.equal(c.onClick.args[0].tab, 'laporan');
   });
 });
 
@@ -97,8 +98,9 @@ test('FinancialGoalPresenter._progressCard()/_projectionCard()/_recommendationCa
     ctx.FinancialGoalPresenter._recommendationCard(r),
   ].forEach((c) => {
     assert.equal(c.onClick.action, 'dashHubNavigateToFeature');
-    assert.equal(c.onClick.args[0].page, 'dashboard-hub');
+    assert.equal(c.onClick.args[0].page, 'keuangan');
     assert.equal(c.onClick.args[0].goTo, 'financialGoalWrap');
+    assert.equal(c.onClick.args[0].tab, 'laporan');
   });
 });
 
@@ -148,8 +150,9 @@ test('FinancialHealthScorePresenter._scoreCard()/_breakdownCard()/_recommendatio
     ctx.FinancialHealthScorePresenter._recommendationCard(r),
   ].forEach((c) => {
     assert.equal(c.onClick.action, 'dashHubNavigateToFeature');
-    assert.equal(c.onClick.args[0].page, 'dashboard-hub');
+    assert.equal(c.onClick.args[0].page, 'keuangan');
     assert.equal(c.onClick.args[0].goTo, 'financialHealthScoreWrap');
+    assert.equal(c.onClick.args[0].tab, 'laporan');
   });
 });
 
@@ -182,8 +185,9 @@ test('RetirementPlannerPresenter._overviewCard()/_gapCard()/_recommendationCard(
     ctx.RetirementPlannerPresenter._recommendationCard(r),
   ].forEach((c) => {
     assert.equal(c.onClick.action, 'dashHubNavigateToFeature');
-    assert.equal(c.onClick.args[0].page, 'dashboard-hub');
+    assert.equal(c.onClick.args[0].page, 'keuangan');
     assert.equal(c.onClick.args[0].goTo, 'retirementPlannerWrap');
+    assert.equal(c.onClick.args[0].tab, 'laporan');
   });
 });
 

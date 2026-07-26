@@ -163,6 +163,7 @@ const GROUP_B = [
   'modules/finance/cicilan.js',
   'modules/finance/tx-bbm.js',
   'modules/finance/tx-stok-sparepart.js',
+  'modules/finance/tx-renov.js',
   'modules/finance/tx-transfer.js',
   'modules/finance/tx-cobek.js',
   'modules/finance/tx-target.js',

@@ -628,7 +628,7 @@ function startEditCurKm(){
 const el=document.getElementById('cnCurKm');
 if(!el||document.getElementById('cnCurKmInput'))return;
 const curKm=getVehicleKm(curVehicleId);
-el.innerHTML='<input class="u-fw800 u-ctext u-r8" type="number" inputmode="numeric" id="cnCurKmInput" value="'+curKm+'" style="width:120px;font-size:20px;background:var(--surface3);border:1px solid var(--accent);padding:2px 8px" data-stop="1" data-action="vehCnCurKmInputStop" onkeydown="if(event.key===\'Enter\'){this.blur();}else if(event.key===\'Escape\'){this.dataset.cancel=\'1\';this.blur();}">';
+el.innerHTML='<input class="u-fw800 u-ctext u-r8" type="number" inputmode="numeric" id="cnCurKmInput" value="'+curKm+'" aria-label="Edit KM saat ini" style="width:120px;font-size:20px;background:var(--surface3);border:1px solid var(--accent);padding:2px 8px" data-stop="1" data-action="vehCnCurKmInputStop" onkeydown="if(event.key===\'Enter\'){this.blur();}else if(event.key===\'Escape\'){this.dataset.cancel=\'1\';this.blur();}">';
 const inp=document.getElementById('cnCurKmInput');
 inp.focus();inp.select();
 inp.onblur=()=>commitCurKmEdit(inp);

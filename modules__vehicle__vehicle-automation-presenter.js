@@ -40,7 +40,15 @@ const VEHICLE_AUTOMATION_NAV_TARGETS = Object.freeze({
   total: { page: 'carnotes', tab: 'insight', subtab: 'rekomendasi', goTo: 'vehAutomationWrap' },
   today: { page: 'carnotes', tab: 'insight', subtab: 'rekomendasi', goTo: 'vehAutomationWrap' },
   maintenance: { page: 'carnotes', tab: 'servis', goTo: 'servisList' },
-  tax: { page: 'carnotes', goTo: 'vehTaxList' },
+  // BUGFIX (Sesi 264, audit navigasi Dashboard/Car Notes): SEBELUMNYA
+  // target 'tax' tidak py `tab` sama sekali, padahal #vehTaxList hidup di
+  // dalam #cnTab-pajak (grep manual index.html). Tanpa `tab`,
+  // dashHubNavigateToFeature() cuma pindah ke halaman Car Notes tanpa
+  // ganti sub-tab -- kalau user sedang di sub-tab lain (mis. Insight/
+  // BBM/Servis), scrollIntoView ke #vehTaxList (di dalam sub-tab yang
+  // disembunyikan 'u-dnone') tidak melakukan apa-apa, terlihat seperti
+  // "kartu Pajak/SIM tidak mengarah ke mana-mana".
+  tax: { page: 'carnotes', tab: 'pajak', goTo: 'vehTaxList' },
 });
 
 const VehicleAutomationPresenter = {

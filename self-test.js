@@ -1726,6 +1726,10 @@ call:()=>{ SparepartOcrCatalogDetail.open({found:true,item:{partName:'(tes sweep
 close:()=>closeModal('sparepartOcrDetailModal')},
 {label:'HondaPdfImportUI.open()',id:'hondaPdfImportModal',
 call:()=>HondaPdfImportUI.open(),close:()=>closeModal('hondaPdfImportModal')},
+{label:'VehicleCatalogWebImportUI.open()',id:'vehCatWebImportModal',
+call:()=>VehicleCatalogWebImportUI.open(),close:()=>closeModal('vehCatWebImportModal')},
+{label:'BusinessFlowPresenter.openTransferModal()',id:'inventoryTransferModal',
+call:()=>BusinessFlowPresenter.openTransferModal(),close:()=>closeModal('inventoryTransferModal')},
 ];
 const RISKY_OPENER_SPECS=[
 {label:'LinkTx.open(renov)',id:'linkTxModal',

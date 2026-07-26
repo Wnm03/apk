@@ -525,6 +525,7 @@ textarea.fi { resize: vertical; min-height: 80px; }
 .acc-card-name { font-size:var(--fs-label); font-weight:700; }
 .acc-card-bal { font-family:'Space Grotesk',sans-serif; font-size:var(--fs-title-sm); font-weight:700; color: var(--accent3); margin-top:var(--sp-1); }
 .acc-card-del { position:absolute; top:8px; right:8px; background:none; border:none; color:var(--text3); cursor:pointer; font-size:var(--fs-label); }
+.acc-card-edit { position:absolute; top:8px; right:34px; background:none; border:none; color:var(--text3); cursor:pointer; font-size:var(--fs-label); }
 .acc-select-row { display:flex; align-items:center; gap:var(--sp-4); }
 .acc-arrow { font-size: 20px; color: var(--text2); }
 .bill-item { display:flex; align-items:center; gap:var(--sp-4); padding:var(--sp-4) 0; border-bottom:1px solid var(--border); }

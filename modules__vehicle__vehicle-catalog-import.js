@@ -123,6 +123,41 @@ function _vehicleImportParsePrice(line) {
   return isNaN(num) ? null : num;
 }
 
+// FALLBACK harga angka POLOS tanpa penanda "Rp"/"rb" (laporan user: banyak
+// PDF katalog dealer nyata nampilkan kolom harga sbg angka biasa saja,
+// mis. tabel "Kode Part | Nama Part | Harga" -> "12310-KZR-600 KNALPOT
+// ASSY 185.000", TANPA "Rp" sama sekali). HANYA dipakai kalau
+// VEHICLE_IMPORT_PRICE_RE di atas TIDAK ketemu apa pun (lihat pemanggil di
+// parseCatalogRow()), supaya tidak menimpa harga yang sudah eksplisit &
+// akurat. Beda dgn fallback lama yang DIBUANG (komentar di atas
+// VEHICLE_IMPORT_PRICE_RE) krn pakai \b (batas kata) yang salah tangkap
+// fragmen kode part spt "12310" dari "12310-KZR-600" (krn "-" dianggap
+// batas kata oleh \b) -- regex ini pakai batas SPASI eksplisit (bukan \b),
+// jadi angka yang menempel ke tanda "-" (bagian dari kode part) TIDAK
+// ketangkap sama sekali (harus benar-benar token angka berdiri sendiri,
+// dipisah spasi/tab/awal-akhir baris). Kandidat: token angka 4-9 digit
+// polos, ATAU angka berformat ribuan (mis. "45.000"/"45,000"). Kalau ada
+// beberapa kandidat dalam 1 baris (mis. kolom qty+harga), ambil yang
+// PALING KANAN -- pola tabel katalog nyata biasanya menaruh harga di
+// kolom paling akhir.
+const VEHICLE_IMPORT_PRICE_PLAIN_RE = /(?:^|\s)(\d{1,3}(?:[.,]\d{3})+|\d{4,9})(?=\s|$)/g;
+
+function _vehicleImportParsePricePlain(line, excludeTokens) {
+  const raw = (line || '').toString();
+  const exclude = new Set((excludeTokens || []).filter(Boolean).map((s) => String(s)));
+  let best = null;
+  let m;
+  VEHICLE_IMPORT_PRICE_PLAIN_RE.lastIndex = 0;
+  while ((m = VEHICLE_IMPORT_PRICE_PLAIN_RE.exec(raw))) {
+    const token = m[1];
+    if (exclude.has(token)) continue; // sama persis dgn oemCode/barcode terdeteksi -> bukan harga
+    const num = parseInt(token.replace(/[.,]/g, ''), 10);
+    if (isNaN(num) || num < 500) continue; // di bawah 500 dianggap bukan harga wajar (kemungkinan qty/nomor lain)
+    best = num; // simpan kandidat PALING KANAN (loop maju, selalu ditimpa yg lebih akhir)
+  }
+  return best;
+}
+
 /** parseCatalogRow(line) — 1 baris teks -> 1 kandidat part { partName,
  * oemCode, barcode, price, raw }. Reuse VehicleCatalog.parseLabelText()
  * (guard typeof) utk OEM/barcode, regex baru di atas khusus harga. Nama
@@ -141,7 +176,27 @@ function vehicleImportParseCatalogRow(line) {
   if (result.oemCode) name = name.replace(result.oemCode, '');
   if (result.barcode && result.barcode !== result.oemCode) name = name.replace(result.barcode, '');
   const priceMatch = raw.match(VEHICLE_IMPORT_PRICE_RE);
-  if (priceMatch) name = name.replace(priceMatch[0], '');
+  if (priceMatch) {
+    name = name.replace(priceMatch[0], '');
+  } else {
+    // Tidak ada "Rp"/"rb" eksplisit -> coba fallback angka polos (lihat
+    // catatan VEHICLE_IMPORT_PRICE_PLAIN_RE di atas), dicoba SETELAH
+    // oemCode/barcode dibuang dari `name` supaya token yang tersisa tidak
+    // kebetulan bagian dari oemCode/barcode itu sendiri.
+    const plainPrice = _vehicleImportParsePricePlain(name, [result.oemCode, result.barcode]);
+    if (plainPrice != null) {
+      result.price = plainPrice;
+      // Cari & buang token PALING KANAN yg cocok dgn plainPrice (loop
+      // ulang match krn regex global bisa punya >1 kandidat per baris).
+      VEHICLE_IMPORT_PRICE_PLAIN_RE.lastIndex = 0;
+      let m; let lastFull = '';
+      while ((m = VEHICLE_IMPORT_PRICE_PLAIN_RE.exec(name))) {
+        const num = parseInt(m[1].replace(/[.,]/g, ''), 10);
+        if (num === plainPrice) lastFull = m[0];
+      }
+      if (lastFull) name = name.replace(lastFull, ' ');
+    }
+  }
   result.partName = name.replace(/[\t|;,-]+$/g, '').replace(/\s{2,}/g, ' ').trim();
   return result;
 }
@@ -336,6 +391,7 @@ const VehicleCatalogImport = {
   parseCatalogRows: vehicleImportParseCatalogRows,
   filterCompleteRows: vehicleImportFilterCompleteRows,
   commitRows: vehicleImportCommitRows,
+  parsePricePlain: _vehicleImportParsePricePlain,
 };
 
 if (typeof window !== 'undefined') {

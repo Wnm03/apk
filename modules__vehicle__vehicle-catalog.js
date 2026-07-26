@@ -265,6 +265,31 @@ async function vehicleCatalogRemove(id) {
   return { success: removed };
 }
 
+// Hapus BANYAK part sekaligus (dipakai fitur "Pilih & Hapus" di
+// VehicleCatalogUI, sesi ini) — reuse sameId() apa adanya, 1x save() saja
+// di akhir (bukan per-id) supaya tidak boros I/O kalau id banyak. `ids`
+// kosong/bukan array -> tidak melakukan apa pun, return removed:0.
+async function vehicleCatalogRemoveMany(ids) {
+  await vehicleCatalogEnsureLoaded();
+  const list = Array.isArray(ids) ? ids : [];
+  if (!list.length) return { success: true, removed: 0 };
+  const idSet = new Set(list.map((id) => String(id)));
+  const before = VehicleCatalogStore.items.length;
+  VehicleCatalogStore.items = VehicleCatalogStore.items.filter((it) => !idSet.has(String(it.id)));
+  const removed = before - VehicleCatalogStore.items.length;
+  if (removed > 0) await vehicleCatalogSave();
+  return { success: true, removed };
+}
+
+// Hapus SEMUA part di katalog (dipakai tombol "Hapus Semua" di
+// VehicleCatalogUI) — cukup panggil removeMany() dgn semua id yang ada
+// sekarang, 0 duplikasi logic hapus.
+async function vehicleCatalogRemoveAll() {
+  await vehicleCatalogEnsureLoaded();
+  const ids = VehicleCatalogStore.items.map((it) => it.id);
+  return vehicleCatalogRemoveMany(ids);
+}
+
 async function vehicleCatalogGetAll() {
   await vehicleCatalogEnsureLoaded();
   return VehicleCatalogStore.items.slice();
@@ -474,6 +499,8 @@ const VehicleCatalog = {
   create: vehicleCatalogCreate,
   update: vehicleCatalogUpdate,
   remove: vehicleCatalogRemove,
+  removeMany: vehicleCatalogRemoveMany,
+  removeAll: vehicleCatalogRemoveAll,
   getAll: vehicleCatalogGetAll,
   getById: vehicleCatalogGetById,
   search: vehicleCatalogSearch,
