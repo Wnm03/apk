@@ -5,10 +5,11 @@
 // halaman/modal/engine baru dibuat:
 //   - openTripPage() (S249): tombol "🚚 Trip" 100% REUSE
 //     dashHubNavigateToFeature() (dashboard-hub.js, mekanisme SAMA PERSIS
-//     dipakai FEATURE_REGISTRY) ke tab Shop > Riwayat + landing
+//     dipakai FEATURE_REGISTRY) ke tab Shop > Laporan + landing
 //     #tripPresenterBody (TripPresenter, S204-A), fallback ke
 //     DeliveryPlanUI.open() (S203) kalau dashHubNavigateToFeature belum
-//     dimuat.
+//     dimuat. (Sesi 264: tab dikoreksi dari 'riwayat' ke 'laporan' — lihat
+//     CHANGELOG.md, container aslinya memang di #shopTab-laporan.)
 //   - onClick:{action,args} per-kartu (S251, standarisasi ulang dari
 //     openCard(index)+CARD_NAV_TARGETS S250) — 9 kartu Business Flow lain
 //     (Purchase/Stock/Sale/KPI/Cost-Pricing/Load-Transport/Decision/
@@ -73,7 +74,7 @@ test('openTripPage() — panggil dashHubNavigateToFeature() ke Shop>Riwayat + la
   // gagal reference-equal-check utk cross-realm object walau isinya sama
   // persis. Bandingkan field-nya satu-satu saja.
   assert.equal(calls[0].page, 'shop');
-  assert.equal(calls[0].tab, 'riwayat');
+  assert.equal(calls[0].tab, 'laporan');
   assert.equal(calls[0].goTo, 'tripPresenterBody');
 });
 
@@ -141,11 +142,12 @@ test('_financeCard() — onClick navigasi ke halaman Keuangan', () => {
   assert.equal(c.onClick.args[0].page, 'keuangan');
 });
 
-test('_transferCard() — onClick navigasi ke Dashboard Hub > businessFlowTransferList', () => {
+test('_transferCard() — onClick navigasi ke Shop > Business Intelligence > businessFlowTransferList', () => {
   const ctx = makeCtx(baseD());
   const c = ctx.BusinessFlowPresenter._transferCard({ ok: false });
   assert.equal(c.onClick.action, 'dashHubNavigateToFeature');
-  assert.equal(c.onClick.args[0].page, 'dashboard-hub');
+  assert.equal(c.onClick.args[0].page, 'shop');
+  assert.equal(c.onClick.args[0].tab, 'bi');
   assert.equal(c.onClick.args[0].goTo, 'businessFlowTransferList');
 });
 
@@ -159,6 +161,7 @@ test('_kpiCard()/_costPricingCard()/_loadCostCard()/_decisionCard() — onClick 
   ];
   cards.forEach((c) => {
     assert.equal(c.onClick.action, 'dashHubNavigateToFeature');
+    assert.equal(c.onClick.args[0].tab, 'laporan');
     assert.equal(c.onClick.args[0].goTo, 'businessFlowBody');
   });
 });

@@ -278,6 +278,58 @@ test('remove() — id tidak ada -> success:false, tidak memanggil IDBStore.set t
 });
 
 // ------------------------------------------------------------------------
+// removeMany / removeAll (fitur "Pilih & Hapus" / "Hapus Semua")
+// ------------------------------------------------------------------------
+test('removeMany() — hapus beberapa id sekaligus, sisanya tetap ada', async () => {
+  const { ctx } = makeCtx();
+  const a = await ctx.VehicleCatalog.create({ partName: 'A', category: 'X' });
+  const b = await ctx.VehicleCatalog.create({ partName: 'B', category: 'X' });
+  const c = await ctx.VehicleCatalog.create({ partName: 'C', category: 'X' });
+  const res = await ctx.VehicleCatalog.removeMany([a.item.id, c.item.id]);
+  assert.equal(res.success, true);
+  assert.equal(res.removed, 2);
+  const all = await ctx.VehicleCatalog.getAll();
+  assert.equal(all.length, 1);
+  assert.equal(all[0].partName, 'B');
+});
+
+test('removeMany() — array kosong/tidak valid -> tidak menghapus apa pun, removed:0', async () => {
+  const { ctx, idb } = makeCtx();
+  await ctx.VehicleCatalog.create({ partName: 'A', category: 'X' });
+  const setsBefore = idb.calls.set;
+  const res = await ctx.VehicleCatalog.removeMany([]);
+  assert.equal(res.removed, 0);
+  assert.equal(idb.calls.set, setsBefore);
+  const all = await ctx.VehicleCatalog.getAll();
+  assert.equal(all.length, 1);
+});
+
+test('removeMany() — id yang tidak ada di antara id yang ada tetap aman (dilewati)', async () => {
+  const { ctx } = makeCtx();
+  const a = await ctx.VehicleCatalog.create({ partName: 'A', category: 'X' });
+  const res = await ctx.VehicleCatalog.removeMany([a.item.id, 'tidak-ada']);
+  assert.equal(res.removed, 1);
+  const all = await ctx.VehicleCatalog.getAll();
+  assert.equal(all.length, 0);
+});
+
+test('removeAll() — menghapus seluruh part di katalog', async () => {
+  const { ctx } = makeCtx();
+  await ctx.VehicleCatalog.create({ partName: 'A', category: 'X' });
+  await ctx.VehicleCatalog.create({ partName: 'B', category: 'X' });
+  const res = await ctx.VehicleCatalog.removeAll();
+  assert.equal(res.removed, 2);
+  const all = await ctx.VehicleCatalog.getAll();
+  assert.equal(all.length, 0);
+});
+
+test('removeAll() — katalog sudah kosong -> tidak error, removed:0', async () => {
+  const { ctx } = makeCtx();
+  const res = await ctx.VehicleCatalog.removeAll();
+  assert.equal(res.removed, 0);
+});
+
+// ------------------------------------------------------------------------
 // getAll / getById
 // ------------------------------------------------------------------------
 test('getAll() — array kosong di awal (belum ada data)', async () => {

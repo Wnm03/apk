@@ -177,6 +177,7 @@ test('VehicleAutomationPresenter._totalCard()/_todayCard()/_maintenanceCard()/_t
   assert.equal(today.onClick.args[0].goTo, 'vehAutomationWrap');
   assert.equal(maint.onClick.args[0].tab, 'servis');
   assert.equal(maint.onClick.args[0].goTo, 'servisList');
+  assert.equal(tax.onClick.args[0].tab, 'pajak');
   assert.equal(tax.onClick.args[0].goTo, 'vehTaxList');
   [total, today, maint, tax].forEach((c) => assert.equal(c.onClick.action, 'dashHubNavigateToFeature'));
 });
