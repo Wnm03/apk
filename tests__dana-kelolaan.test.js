@@ -100,7 +100,26 @@ test('DanaKelolaan.summary() — gabungan lintas 4 sumber per tipe + total, SELF
   assert.equal(s.titipan, 300000, 'Kas Titipan (THIRD_PARTY)');
   assert.equal(s.dpCustomer, 2000000 + 400000, 'Aset Customer + transaksi Shop Customer');
   assert.equal(s.keluarga, 750000, 'Aset Keluarga (FAMILY)');
-  assert.equal(s.total, s.investor + s.titipan + s.dpCustomer + s.keluarga);
+  assert.equal(s.total, s.investor + s.titipan + s.dpCustomer + s.keluarga + s.titipanAset);
+});
+
+test('DanaKelolaan.summary() — titipanAset: jumlah titipanAmount aset SELF, TERPISAH dari titipan (THIRD_PARTY whole-asset), tetap masuk total', () => {
+  const D = makeD();
+  D.assets.push({ id: 's4', nilai: 5000000, titipanAmount: 1700000 }); // SELF (default) + titipan sebagian
+  const ctx = makeCtx(D);
+  const s = ctx.DanaKelolaan.summary();
+  assert.equal(s.titipanAset, 1700000);
+  assert.equal(s.titipan, 300000, 'titipan (THIRD_PARTY whole-asset) tidak berubah, tidak tercampur dgn titipanAset');
+  assert.equal(s.total, s.investor + s.titipan + s.dpCustomer + s.keluarga + s.titipanAset);
+});
+
+test('DanaKelolaan.summary() — titipanAmount di aset NON-SELF tidak dijumlah dobel (sudah kehitung penuh via sumAssets)', () => {
+  const D = makeD();
+  D.assets.push({ id: 's5', nilai: 900000, ownership: 'THIRD_PARTY', titipanAmount: 900000 });
+  const ctx = makeCtx(D);
+  const s = ctx.DanaKelolaan.summary();
+  assert.equal(s.titipanAset, 0, 'aset non-SELF dikecualikan dari sumTitipanAset(), sudah tercatat via titipan (THIRD_PARTY)');
+  assert.equal(s.titipan, 300000 + 900000);
 });
 
 test('DanaKelolaan.summary() — data SELF/default TIDAK ikut dijumlahkan sama sekali', () => {

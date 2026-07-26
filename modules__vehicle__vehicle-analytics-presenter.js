@@ -19,6 +19,27 @@
 //
 // CSS: TIDAK ada class baru — reuse penuh .findash-grid/.findash-card*
 // (styles.css, Sesi 75) apa adanya.
+//
+// VEHICLE_ANALYTICS_NAV_TARGETS (Sesi 253 — Batch Vehicle Navigation
+// Consistency) — tujuan navigasi tiap kartu #vehanalyticsGrid. MURNI DATA
+// (0 logic navigasi baru), format {page,tab,subtab,goTo} SAMA PERSIS
+// format target dashHubNavigateToFeature() yang SUDAH ADA (dashboard-
+// hub.js). Nama disendirikan per-file supaya tidak bentrok dgn const
+// global lain (lihat kasus S251). Target TERVERIFIKASI ADA di index.html/
+// app_production.html (grep manual, 0 halaman/tab/container baru dibuat):
+//   total/trend -> gabungan BBM+servis, tidak ada 1 daftar spesifik ->
+//     container kartu ini sendiri (vehAnalyticsWrap)
+//   fuel -> Kendaraan > tab BBM > bbmList (SAMA PERSIS target 'cn-bbm' di
+//     dashboard-hub-registry.js)
+//   service -> Kendaraan > tab Servis > servisList (SAMA PERSIS target
+//     'cn-servis' di dashboard-hub-registry.js)
+const VEHICLE_ANALYTICS_NAV_TARGETS = Object.freeze({
+  total: { page: 'carnotes', tab: 'insight', subtab: 'rekomendasi', goTo: 'vehAnalyticsWrap' },
+  fuel: { page: 'carnotes', tab: 'bbm', subtab: 'ringkasan', goTo: 'bbmList' },
+  service: { page: 'carnotes', tab: 'servis', goTo: 'servisList' },
+  trend: { page: 'carnotes', tab: 'insight', subtab: 'rekomendasi', goTo: 'vehAnalyticsWrap' },
+});
+
 const VehicleAnalyticsPresenter = {
 
   render() {
@@ -48,8 +69,14 @@ const VehicleAnalyticsPresenter = {
       this._trendCard(summary),
     ];
 
+    // S253 (Batch Vehicle Navigation Consistency): SELURUH kartu clickable
+    // lewat mekanisme SAMA PERSIS FinanceDashboard.render()/
+    // VehicleDashboard.render() — tiap kartu carry field onClick:{action,
+    // args} sendiri (ditempel di masing2 _xxxCard() di bawah), template di
+    // sini CUMA mengecek `c.onClick` (0 logic navigasi baru, 0 percabangan
+    // per-index, JANGAN openCard(index)).
     el.innerHTML = cards.map((c) => `
-      <div class="findash-card">
+      <div class="findash-card${c.onClick ? ' u-pointer' : ''}"${c.onClick ? ` data-action="${escapeHtml(c.onClick.action)}" data-args="${escapeHtml(JSON.stringify(c.onClick.args))}"` : ''}>
         <div class="findash-card-icon">${c.icon}</div>
         <div class="findash-card-body">
           <div class="findash-card-label">${escapeHtml(c.label)}</div>
@@ -77,6 +104,7 @@ const VehicleAnalyticsPresenter = {
       value: this._money(s.total),
       cls: '',
       sub: `Rata-rata ${this._money(s.avgPerMonth)}/bulan`,
+      onClick: { action: 'dashHubNavigateToFeature', args: [VEHICLE_ANALYTICS_NAV_TARGETS.total] },
     };
   },
 
@@ -89,6 +117,7 @@ const VehicleAnalyticsPresenter = {
       label: 'Total Biaya BBM',
       value: this._money(s.totalFuel),
       cls: '',
+      onClick: { action: 'dashHubNavigateToFeature', args: [VEHICLE_ANALYTICS_NAV_TARGETS.fuel] },
     };
   },
 
@@ -101,6 +130,7 @@ const VehicleAnalyticsPresenter = {
       label: 'Total Biaya Servis',
       value: this._money(s.totalService),
       cls: '',
+      onClick: { action: 'dashHubNavigateToFeature', args: [VEHICLE_ANALYTICS_NAV_TARGETS.service] },
     };
   },
 
@@ -120,6 +150,7 @@ const VehicleAnalyticsPresenter = {
       value: label,
       cls,
       sub,
+      onClick: { action: 'dashHubNavigateToFeature', args: [VEHICLE_ANALYTICS_NAV_TARGETS.trend] },
     };
   },
 

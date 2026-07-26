@@ -16,6 +16,24 @@
 //
 // CSS: TIDAK ada class baru — reuse penuh .findash-grid/.findash-card*
 // (styles.css, Sesi 75) apa adanya.
+//
+// VEHICLE_INSIGHT_NAV_TARGETS (Sesi 253 — Batch Vehicle Navigation
+// Consistency) — tujuan navigasi tiap kartu #vehinsightGrid. MURNI DATA (0
+// logic navigasi baru), format {page,tab,subtab,goTo} SAMA PERSIS format
+// target dashHubNavigateToFeature() yang SUDAH ADA (dashboard-hub.js). Nama
+// disendirikan per-file supaya tidak bentrok dgn const global lain (lihat
+// kasus S251). Ketiga kartu di sini adalah gabungan reminder servis+pajak+
+// BBM (VehicleReminder.summary(), lintas 3 sumber sekaligus) — TIDAK ada
+// satu daftar/halaman spesifik yang mewakili gabungan itu, jadi ketiganya
+// menunjuk container kartu ini sendiri (vehinsightWrap, TERVERIFIKASI ADA
+// di index.html/app_production.html), pola sama persis rentalManagement
+// (3 kartu, 1 target sama) di S252.
+const VEHICLE_INSIGHT_NAV_TARGETS = Object.freeze({
+  reminder: { page: 'carnotes', tab: 'insight', subtab: 'ringkasan', goTo: 'vehinsightWrap' },
+  overdue: { page: 'carnotes', tab: 'insight', subtab: 'ringkasan', goTo: 'vehinsightWrap' },
+  dueSoon: { page: 'carnotes', tab: 'insight', subtab: 'ringkasan', goTo: 'vehinsightWrap' },
+});
+
 const VehicleInsightPresenter = {
 
   render() {
@@ -42,8 +60,14 @@ const VehicleInsightPresenter = {
       this._dueSoonCard(hook.reminder),
     ];
 
+    // S253 (Batch Vehicle Navigation Consistency): SELURUH kartu clickable
+    // lewat mekanisme SAMA PERSIS FinanceDashboard.render()/
+    // VehicleDashboard.render() — tiap kartu carry field onClick:{action,
+    // args} sendiri (ditempel di masing2 _xxxCard() di bawah), template di
+    // sini CUMA mengecek `c.onClick` (0 logic navigasi baru, 0 percabangan
+    // per-index, JANGAN openCard(index)).
     el.innerHTML = cards.map((c) => `
-      <div class="findash-card">
+      <div class="findash-card${c.onClick ? ' u-pointer' : ''}"${c.onClick ? ` data-action="${escapeHtml(c.onClick.action)}" data-args="${escapeHtml(JSON.stringify(c.onClick.args))}"` : ''}>
         <div class="findash-card-icon">${c.icon}</div>
         <div class="findash-card-body">
           <div class="findash-card-label">${escapeHtml(c.label)}</div>
@@ -64,6 +88,7 @@ const VehicleInsightPresenter = {
       label: 'Reminder Aktif',
       value: String(total),
       cls: total > 0 ? 'orange' : 'green',
+      onClick: { action: 'dashHubNavigateToFeature', args: [VEHICLE_INSIGHT_NAV_TARGETS.reminder] },
     };
   },
 
@@ -77,6 +102,7 @@ const VehicleInsightPresenter = {
       label: 'Reminder Lewat Jatuh Tempo',
       value: String(count),
       cls: count > 0 ? 'red' : 'green',
+      onClick: { action: 'dashHubNavigateToFeature', args: [VEHICLE_INSIGHT_NAV_TARGETS.overdue] },
     };
   },
 
@@ -90,6 +116,7 @@ const VehicleInsightPresenter = {
       label: 'Reminder Segera Jatuh Tempo',
       value: String(count),
       cls: count > 0 ? 'orange' : 'green',
+      onClick: { action: 'dashHubNavigateToFeature', args: [VEHICLE_INSIGHT_NAV_TARGETS.dueSoon] },
     };
   },
 

@@ -139,6 +139,11 @@ const GROUP_B = [
   // typeof, pola sama persis DashboardSettings.renderSettingsUI() (S129).
   'modules/shared/ownership-settings-presenter.js',
   'modules/shared/features-helpers-global-security.js',
+  // S264: Security Hardening — wrapper functions utk eks data-onclick,
+  // dipanggil lewat data-action. Ditaruh langsung setelah dispatcher
+  // (features-helpers-global-security.js) krn cuma re-wrap handler yg
+  // sebelumnya inline; tidak ada dependency baru ke modul lain.
+  'modules/shared/action-wrappers.js',
   'diagnostik-versi.js',
   'modules/shared/format-tema.js',
   'modules/shared/error-handler.js',
@@ -805,6 +810,16 @@ const GROUP_B = [
   // Ditaruh langsung setelah TripPresenter (0 forward-reference: kedua
   // presenter sumber sudah dimuat baris-baris sebelumnya).
   'modules/shop/business-flow-presenter.js',
+
+  // S251 (Business Intelligence tab, lanjutan S250): BusinessIntelligencePresenter
+  // — Health Score/Decision Panel/Trend Analytics/Executive Summary/AI Insight,
+  // 100% REPACKAGING dari ShopBusinessEnginePresenter/TripPresenter/
+  // BusinessFlowPresenter (baris2 di atas)/InventoryEngine/PurchaseEngine/
+  // ProfitEngine/ShopInsight — SEMUA sudah dimuat lebih dulu (GROUP_A lewat
+  // feature-insights.js/ownership-engine.js + baris2 GROUP_B di atas), 0
+  // forward-reference. Ditaruh langsung setelah BusinessFlowPresenter, pola
+  // sama persis presenter-di-atas-presenter lain di blok ini.
+  'modules/shop/business-intelligence-presenter.js',
 
   // S195 (Managed Funds / Dana Kelolaan): reuse OwnershipEngine (S191) +
   // nilai per-entity yang sudah ada di akun.js/aset.js/investasi.js/

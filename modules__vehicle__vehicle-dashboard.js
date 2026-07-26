@@ -24,6 +24,29 @@
 // CSS: TIDAK ada class baru — reuse penuh .findash-grid/.findash-card*
 // (styles.css, Sesi 75) apa adanya, krn strukturnya generik (grid kartu
 // icon+label+value+sub) & sudah cocok tanpa modifikasi.
+//
+// VEHICLE_DASHBOARD_NAV_TARGETS (Sesi 253 — Batch Vehicle Navigation
+// Consistency) — tujuan navigasi tiap kartu #vehdashGrid. MURNI DATA (0
+// logic navigasi baru), format {page,tab,subtab,goTo} SAMA PERSIS format
+// target FEATURE_REGISTRY/CARD_NAV_TARGETS, dieksekusi lewat
+// dashHubNavigateToFeature() yang SUDAH ADA (dashboard-hub.js). Nama
+// disendirikan per-file (bukan CARD_NAV_TARGETS) supaya tidak bentrok
+// dengan const global lain (lihat kasus S251). Ketiga target menunjuk
+// container yang TERVERIFIKASI ADA di index.html/app_production.html (grep
+// manual, 0 halaman/tab/container baru dibuat):
+//   fleet -> halaman Kendaraan (Car Notes) apa adanya, belum ada container
+//     daftar kendaraan spesifik yang lebih relevan dari halaman itu sendiri
+//   service -> Kendaraan > tab Servis > servisList (SAMA PERSIS target
+//     'cn-servis' di dashboard-hub-registry.js)
+//   health -> Kendaraan > tab Insight AI > sub-tab Ringkasan > vehdashWrap
+//     (container kartu ini sendiri — skor kesehatan armada = ringkasan,
+//     tidak ada daftar/halaman lain yang lebih spesifik)
+const VEHICLE_DASHBOARD_NAV_TARGETS = Object.freeze({
+  fleet: { page: 'carnotes' },
+  service: { page: 'carnotes', tab: 'servis', goTo: 'servisList' },
+  health: { page: 'carnotes', tab: 'insight', subtab: 'ringkasan', goTo: 'vehdashWrap' },
+});
+
 const VehicleDashboard = {
 
   // getAIHook() — reuse 100% VehicleIntelligence.summary() (fleet-level,
@@ -57,8 +80,14 @@ const VehicleDashboard = {
       this._healthCard(hook.fleet),
     ];
 
+    // S253 (Batch Vehicle Navigation Consistency): SELURUH kartu clickable
+    // lewat mekanisme SAMA PERSIS FinanceDashboard.render()/
+    // AssetPortfolioPresenter.render() (S251-252) — tiap kartu carry field
+    // onClick:{action,args} sendiri (ditempel di masing2 _xxxCard() di
+    // bawah), template di sini CUMA mengecek `c.onClick` (0 logic navigasi
+    // baru, 0 percabangan per-index, JANGAN openCard(index)).
     el.innerHTML = cards.map((c) => `
-      <div class="findash-card">
+      <div class="findash-card${c.onClick ? ' u-pointer' : ''}"${c.onClick ? ` data-action="${escapeHtml(c.onClick.action)}" data-args="${escapeHtml(JSON.stringify(c.onClick.args))}"` : ''}>
         <div class="findash-card-icon">${c.icon}</div>
         <div class="findash-card-body">
           <div class="findash-card-label">${escapeHtml(c.label)}</div>
@@ -77,6 +106,7 @@ const VehicleDashboard = {
       label: 'Total Kendaraan',
       value: String(fleet.totalVehicles),
       cls: '',
+      onClick: { action: 'dashHubNavigateToFeature', args: [VEHICLE_DASHBOARD_NAV_TARGETS.fleet] },
     };
   },
 
@@ -90,6 +120,7 @@ const VehicleDashboard = {
       label: 'Servis Lewat Jatuh Tempo',
       value: String(fleet.totalOverdue),
       cls: fleet.totalOverdue > 0 ? 'red' : 'green',
+      onClick: { action: 'dashHubNavigateToFeature', args: [VEHICLE_DASHBOARD_NAV_TARGETS.service] },
     };
   },
 
@@ -103,6 +134,7 @@ const VehicleDashboard = {
       label: 'Skor Kesehatan Armada',
       value: `${score}/100`,
       cls,
+      onClick: { action: 'dashHubNavigateToFeature', args: [VEHICLE_DASHBOARD_NAV_TARGETS.health] },
     };
   },
 

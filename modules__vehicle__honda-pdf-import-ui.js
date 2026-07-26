@@ -107,19 +107,22 @@ async function hondaPdfImportUiOpenPreview(id) {
   if (!record) return;
   _hondaImportCurrentId = id;
   const rows = Array.isArray(record.parsedRows) ? record.parsedRows : [];
-  // Hanya tampilkan baris yang sudah punya kode part DAN harga lengkap —
-  // reuse VehicleCatalogImport.filterCompleteRows() (vehicle-catalog-import.js),
+  // Hanya tampilkan baris yang sudah punya kode part — harga TIDAK wajib
+  // (banyak PDF katalog dealer Honda nyata cuma nampilkan harga sbg angka
+  // polos tanpa "Rp", jadi tidak selalu kedeteksi parser; harga masih
+  // bisa diisi/dikoreksi manual di preview). Reuse
+  // VehicleCatalogImport.filterCompleteRows() (vehicle-catalog-import.js),
   // pola sama vehicle-catalog-import-ui.js, TIDAK ada logic filter baru di sini.
   const completeRows = (typeof VehicleCatalogImport !== 'undefined' && VehicleCatalogImport && typeof VehicleCatalogImport.filterCompleteRows === 'function')
-    ? VehicleCatalogImport.filterCompleteRows(rows)
-    : rows.filter((r) => r && r.oemCode && typeof r.price === 'number' && !isNaN(r.price));
+    ? VehicleCatalogImport.filterCompleteRows(rows, { requirePrice: false })
+    : rows.filter((r) => r && (r.oemCode || r.barcode));
   const skippedIncomplete = rows.length - completeRows.length;
   _hondaImportRows = completeRows.map((r) => Object.assign({}, r, { included: true }));
   const wrap = document.getElementById('hondaPdfImportPreviewWrap');
   if (wrap) wrap.style.display = '';
   _hondaImportSetStatus(_hondaImportRows.length
-    ? ('✅ ' + _hondaImportRows.length + ' part dgn kode+harga lengkap' + (skippedIncomplete ? ', ' + skippedIncomplete + ' dilewati (kode/harga tidak lengkap)' : ''))
-    : '⚠️ Tidak ada part dgn kode part + harga lengkap dari file ini.');
+    ? ('✅ ' + _hondaImportRows.length + ' part dgn kode part' + (skippedIncomplete ? ', ' + skippedIncomplete + ' dilewati (tidak ada kode part)' : '') + ' — isi harga manual kalau belum ada.')
+    : '⚠️ Tidak ada part dgn kode part dari file ini.');
   hondaPdfImportUiRenderPreview();
 }
 

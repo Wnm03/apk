@@ -672,6 +672,20 @@ test('decisionDashboard() — repackaging 6 ringkasan yang sudah ada (trip/cost/
   assert.equal(dd.financeSummary.ok, false); // FinanceIntelligence tidak dimuat di makeCtx
 });
 
+test('_financeCard() — fallback aman kalau financeSummary belum ada healthScore, tampil normal kalau ada', () => {
+  const ctx = makeCtx(baseD());
+  const empty = ctx.BusinessFlowPresenter._financeCard({ ok: false });
+  assert.equal(empty.value, 'Belum ada data');
+
+  const filled = ctx.BusinessFlowPresenter._financeCard({ ok: true, healthScore: { score: 72, label: 'Cukup Sehat' } });
+  assert.equal(filled.value, 'Skor Kesehatan 72/100');
+  assert.equal(filled.sub, 'Cukup Sehat');
+  assert.equal(filled.cls, '');
+
+  const low = ctx.BusinessFlowPresenter._financeCard({ ok: true, healthScore: { score: 40, label: 'Waspada' } });
+  assert.equal(low.cls, 'red');
+});
+
 test('aiDecisionSummary() — ok:false kalau belum ada trip, tetap kasih actionRecommendation; kalau ada trip, biggestCost/highestProfit/lowestMargin benar', () => {
   const ctxEmpty = makeCtx(baseD());
   const emptyResult = ctxEmpty.BusinessFlowPresenter.aiDecisionSummary();
