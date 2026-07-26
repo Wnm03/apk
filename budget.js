@@ -141,7 +141,7 @@ return `<div class="budget-item clickable" data-action="Budget.showDrillDown" da
           <span>${fmtFull(b._used)} <span class="u-t2">/ ${limitLabel}</span></span>
           <span class="${isOver?'over-label':''}">${isOver?'Lewat '+fmtFull(Math.abs(b._sisa)):fmtFull(b._sisa)+' sisa'}</span>
         </div>
-        <div class="budget-actions u-mt10" data-onclick="event.stopPropagation()">
+        <div class="budget-actions u-mt10" data-stop="1" data-action="stopPropOnly">
           <button class="budget-edit-btn" data-action="openBudgetModal" data-args="${escapeHtml(JSON.stringify([b.id]))}" aria-label="Edit/Buka">✏️ Edit</button>
           <button class="budget-del-btn" data-action="deleteBudget" data-args="${escapeHtml(JSON.stringify([b.id]))}" aria-label="Hapus">🗑</button>
           <button class="budget-edit-btn" data-action="showBudgetDrillDown" data-args="${escapeHtml(JSON.stringify([b.id]))}" style="margin-left:auto">📋 Lihat Transaksi</button>

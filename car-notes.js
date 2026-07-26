@@ -727,7 +727,7 @@ openModal('torsiModal');
 },
 chips(){
 const cats=['Semua',...this.cats.map(d=>d.cat)];
-document.getElementById('trsChipRow').innerHTML=cats.map(c=>`<div class="trs-chip ${c===Torsi.activeCat?'active':''}" data-onclick="Torsi.setCat('${c.replace(/'/g,"\\'")}')">${c==='Semua'?'🔍 Semua':escapeHtml(c)}</div>`).join('');
+document.getElementById('trsChipRow').innerHTML=cats.map(c=>`<div class="trs-chip ${c===Torsi.activeCat?'active':''}" data-action="Torsi.setCat" data-args="${escapeHtml(JSON.stringify([c]))}">${c==='Semua'?'🔍 Semua':escapeHtml(c)}</div>`).join('');
 },
 setCat(c){this.activeCat=c;this.chips();this.renderList();},
 setCalcMode(m){
@@ -959,7 +959,7 @@ const items=cat.items.filter(it=>!q||it.name.toLowerCase().includes(q));
 if(items.length===0)return;
 totalShown+=items.length;
 html+=`<div class="card" style="padding:8px 12px">
-        <div class="trs-part-cat-head" data-onclick="Torsi.toggleCatCard(this)">
+        <div class="trs-part-cat-head" data-action="Torsi.toggleCatCard" data-args='["$el"]'>
           <div class="trs-part-cat-head-left">
             <div class="trs-part-cat-icon">${cat.icon}</div>
             <div><div class="trs-part-cat-title">${escapeHtml(cat.cat)}</div><div class="trs-part-cat-count">${items.length} item</div></div>
@@ -991,13 +991,13 @@ const torsiHtml=it.noTorque
 let extras='';
 if(it.interval)extras+=`<div class="trs-tag-btn trs-tag-interval">🔁 ${escapeHtml(it.interval)}</div>`;
 if(stockItem)extras+=`<div class="trs-tag-btn ${stockItem.qty>0?'stok-ok':'stok-low'}">📦 ${stockItem.qty>0?('Stok '+stockItem.qty+(stockItem.unit?' '+stockItem.unit:'')):'Stok habis'}</div>`;
-extras+=`<div class="trs-tag-btn" data-onclick="event.stopPropagation();Torsi.catatServis('${it.name.replace(/'/g,"\\'")}')">🔧 Catat Servis</div>`;
-const checkHtml=`<div class="trs-part-check ${this.pageMode==='checklist'?'show':''} ${checked?'checked':''}" data-onclick="event.stopPropagation();Torsi.toggleCheck('${key.replace(/'/g,"\\'")}')">${checked?'✓':''}</div>`;
+extras+=`<div class="trs-tag-btn" data-stop="1" data-action="Torsi.catatServis" data-args="${escapeHtml(JSON.stringify([it.name]))}">🔧 Catat Servis</div>`;
+const checkHtml=`<div class="trs-part-check ${this.pageMode==='checklist'?'show':''} ${checked?'checked':''}" data-stop="1" data-action="Torsi.toggleCheck" data-args="${escapeHtml(JSON.stringify([key]))}">${checked?'✓':''}</div>`;
 let biayaHtml='';
 if(it.consumable){
-biayaHtml=`<div class="trs-biaya-wrap" data-onclick="event.stopPropagation()"><span>💰 Rp</span><input type="number" inputmode="numeric" placeholder="estimasi" value="${biayaVal}" oninput="Torsi.updateBiaya('${key.replace(/'/g,"\\'")}', this.value)"></div>`;
+biayaHtml=`<div class="trs-biaya-wrap" data-stop="1" data-action="stopPropOnly"><span>💰 Rp</span><input type="number" inputmode="numeric" placeholder="estimasi" value="${biayaVal}" oninput="Torsi.updateBiaya('${key.replace(/'/g,"\\'")}', this.value)"></div>`;
 }
-return `<div class="trs-part-row" data-onclick='${it.noTorque?'':"Torsi.selectPart("+JSON.stringify(catName)+","+JSON.stringify(it.name)+")"}'>
+return `<div class="trs-part-row" data-action="torsiSelectPartIfAllowed" data-args="${escapeHtml(JSON.stringify([!!it.noTorque,catName,it.name]))}">
       ${checkHtml}
       <div class="trs-part-info">
         <div class="trs-part-name">${escapeHtml(it.name)}</div>

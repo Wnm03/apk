@@ -249,8 +249,14 @@ const stockSparepartAll=wantSparepartDetail?stockSparepartAllFull:(D.partsStock.
 const wantShopDetail=mentionsAny('shop','produk','stok','etalase','produsen','supplier','batu','harga jual','hpp');
 const shopProdukStokFull=D.products.length?D.products.map(p=>`${escapeHtml(p.name)} — stok ${p.stock}, harga jual ${fmtFull(p.hargaJual)}, HPP ${fmtFull(p.hargaBeli)}${shopKategoriName(p.kategoriId)?', kategori '+shopKategoriName(p.kategoriId):''}${p.produsenId?', produsen '+((D.produsen.find(pr=>pr.id===p.produsenId)||{}).name||''):''}`).join('; '):'Belum ada produk di etalase';
 const shopProdukStok=wantShopDetail?shopProdukStokFull:(D.products.length?`${D.products.length} produk terdaftar (ringkasan — tanya lebih spesifik utk detail per produk)`:'Belum ada produk di etalase');
-const shopLowStok=D.products.filter(p=>p.stock<=2).map(p=>p.name).join(', ')||'Aman';
-const shopModalStok=(typeof Etalase!=='undefined')?Etalase.totalModalStok():D.products.reduce((s,p)=>s+((p.stock||0)*(p.hargaBeli||0)),0);
+// S260 (Business AI Ownership Sync): shopLowStok/shopModalStok fallback HANYA hitung produk
+// ownership SELF — reuse isProductOwnershipSelf() (SSOT, cobek-etalase.js), guard typeof (fallback
+// anggap semua SELF kalau file itu belum dimuat). shopModalStok jalur normal SUDAH ownership-aware
+// lewat Etalase.totalModalStok() (S259); jalur fallback (Etalase belum dimuat) dulu TIDAK filter —
+// disamakan di sini supaya kedua jalur selalu konsisten.
+const prodSelfFilterChat=(typeof isProductOwnershipSelf==='function')?isProductOwnershipSelf:(()=>true);
+const shopLowStok=D.products.filter(prodSelfFilterChat).filter(p=>p.stock<=2).map(p=>p.name).join(', ')||'Aman';
+const shopModalStok=(typeof Etalase!=='undefined')?Etalase.totalModalStok():D.products.filter(prodSelfFilterChat).reduce((s,p)=>s+((p.stock||0)*(p.hargaBeli||0)),0);
 const shopProdusenInfo=wantShopDetail?(D.produsen.length?D.produsen.map(pr=>pr.name+(pr.contact?' ('+pr.contact+')':'')).join(', '):'Belum ada produsen tercatat'):`${D.produsen.length} produsen tercatat`;
 const shopOmzet=D.cobek.reduce((s,t)=>s+(t.total||0),0);
 const shopThisMonth=D.cobek.filter(t=>{const d=new Date(t.date);return d.getMonth()===m&&d.getFullYear()===y;});
@@ -932,7 +938,11 @@ let netWorth=0;
 try{ netWorth=totalSaldoAkun()+totalAssetValue()-((D.pajakZakat&&D.pajakZakat.utangJT)||0)-totalDebtValue()-totalCicilanOutstanding(); }catch(e){}
 const shopOmzet=D.cobek.reduce((s,t)=>s+(t.total||0),0);
 const shopProfit=D.cobek.reduce((s,t)=>s+(t.profit||0),0);
-const shopModalStok=(typeof Etalase!=='undefined')?Etalase.totalModalStok():D.products.reduce((s,p)=>s+((p.stock||0)*(p.hargaBeli||0)),0);
+// S260 (Business AI Ownership Sync): fallback jalur (Etalase belum dimuat) disamakan dgn
+// jalur normal (Etalase.totalModalStok(), sudah SELF-only sejak S259) — reuse
+// isProductOwnershipSelf() (SSOT, guard typeof).
+const prodSelfFilterWidget=(typeof isProductOwnershipSelf==='function')?isProductOwnershipSelf:(()=>true);
+const shopModalStok=(typeof Etalase!=='undefined')?Etalase.totalModalStok():D.products.filter(prodSelfFilterWidget).reduce((s,p)=>s+((p.stock||0)*(p.hargaBeli||0)),0);
 const shopThisMonth=D.cobek.filter(t=>{const d=new Date(t.date);return d.getMonth()===m&&d.getFullYear()===y;});
 const shopOmzetBulan=shopThisMonth.reduce((s,t)=>s+(t.total||0),0);
 const shopProfitBulan=shopThisMonth.reduce((s,t)=>s+(t.profit||0),0);

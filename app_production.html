@@ -11,10 +11,11 @@
 
   PENTING -- kejujuran soal batas proteksi CSP ini (bukan CSP "ideal"):
   App ini masih banyak pakai inline event-handler attribute (onclick=,
-  onchange=, oninput=, dst -- 100+ titik di index.html) dan satu jalur
-  `new Function(...)` di features-helpers-global-security.js (fallback
-  data-onclick lama). Supaya CSP ini TIDAK langsung mematikan seluruh UI,
-  script-src di bawah terpaksa masih pakai 'unsafe-inline' & 'unsafe-eval'.
+  onchange=, oninput=, dst -- 100+ titik di index.html). Jalur
+  `new Function(...)` (fallback data-onclick lama) sudah dihapus di S264
+  -- semua aksi klik sekarang lewat data-action. Supaya CSP ini TIDAK
+  langsung mematikan seluruh UI, script-src di bawah terpaksa masih
+  pakai 'unsafe-inline' & 'unsafe-eval'.
   Konsekuensinya: CSP ini TIDAK memblokir payload injeksi gaya
   `<img onerror="...">` atau `<svg onload="...">` yang nempel lewat celah
   innerHTML/outerHTML yang lolos dari lint escapeHtml -- kode di payload
@@ -79,8 +80,8 @@
 <link rel="preconnect" href="https://accounts.google.com" crossorigin>
 <link rel="dns-prefetch" href="https://accounts.google.com">
 <title>Keluarga W</title>
-<link rel="stylesheet" href="styles.css?v=750">
-<link rel="stylesheet" href="modern-ui-layer.css?v=750">
+<link rel="stylesheet" href="styles.css?v=771">
+<link rel="stylesheet" href="modern-ui-layer.css?v=771">
 <script>
 /* Debug console (Eruda) — aktifkan sekali lewat ?debug=1 di URL, nempel via localStorage.
    Matikan lagi lewat ?debug=0. Tidak aktif buat user biasa. */
@@ -151,8 +152,8 @@ window.location.reload();
 }catch(e){}
 })();
 </script>
-<script src="app-bundle-a.min.js?v=750" onerror="window.__moduleLoadFail('app-bundle-a.min.js')"></script>
-<script src="modules/shared/smoke-test.js?v=750" defer></script>
+<script src="app-bundle-a.min.js?v=771" onerror="window.__moduleLoadFail('app-bundle-a.min.js')"></script>
+<script src="modules/shared/smoke-test.js?v=771" defer></script>
 <link rel="manifest" id="pwaManifestLink" href="manifest.json">
 </head>
 <body data-theme="fresh">
@@ -229,16 +230,16 @@ window.location.reload();
 
   <!-- Finance 2.0 Sprint 2 Tahap 1: FAB tambah transaksi cepat.
        Aditif murni — reuse openTxModal() yang sudah ada (business logic
-       tidak disentuh), toggle buka/tutup lewat data-onclick generik yang
+       tidak disentuh), toggle buka/tutup lewat data-action generik yang
        sudah dipakai di seluruh app (features-helpers-global-security.js).
        Ditaruh di luar #keuanganTab-kelola/#keuanganTab-laporan supaya FAB
        tetap tampil di kedua tab Keuangan (Kelola & Laporan). -->
   <div class="keu-fab" id="keuFab">
     <div class="keu-fab-actions">
-      <button type="button" class="keu-fab-action" data-onclick="document.getElementById('keuFab').classList.remove('open');document.getElementById('keuFabMain').setAttribute('aria-expanded','false');openTxModal('income')" aria-label="Tambah Pemasukan"><span class="keu-fab-action-icon">💚</span><span class="keu-fab-action-label">Pemasukan</span></button>
-      <button type="button" class="keu-fab-action" data-onclick="document.getElementById('keuFab').classList.remove('open');document.getElementById('keuFabMain').setAttribute('aria-expanded','false');openTxModal('expense')" aria-label="Tambah Pengeluaran"><span class="keu-fab-action-icon">🔴</span><span class="keu-fab-action-label">Pengeluaran</span></button>
+      <button type="button" class="keu-fab-action" data-action="keuFabOpenIncome" aria-label="Tambah Pemasukan"><span class="keu-fab-action-icon">💚</span><span class="keu-fab-action-label">Pemasukan</span></button>
+      <button type="button" class="keu-fab-action" data-action="keuFabOpenExpense" aria-label="Tambah Pengeluaran"><span class="keu-fab-action-icon">🔴</span><span class="keu-fab-action-label">Pengeluaran</span></button>
     </div>
-    <button type="button" class="keu-fab-main" id="keuFabMain" data-onclick="const _o=document.getElementById('keuFab').classList.toggle('open');this.setAttribute('aria-expanded', _o?'true':'false')" aria-label="Tambah transaksi cepat" aria-expanded="false"><span class="keu-fab-main-icon">＋</span></button>
+    <button type="button" class="keu-fab-main" id="keuFabMain" data-action="keuFabToggleMain" data-args='["$el"]' aria-label="Tambah transaksi cepat" aria-expanded="false"><span class="keu-fab-main-icon">＋</span></button>
   </div>
 
   <!-- KELOLA -->
@@ -379,7 +380,7 @@ window.location.reload();
       </div>
       <div id="catList"></div>
       <div class="div"></div>
-      <button class="btn btn-primary btn-full btn-sm" data-onclick="openCatModal(undefined, curCatFilter==='income'?'income':'expense')">+ Tambah Kategori</button>
+      <button class="btn btn-primary btn-full btn-sm" data-action="openCatModalQuick">+ Tambah Kategori</button>
     </div>
   </details>
 
@@ -591,7 +592,7 @@ window.location.reload();
     <div class="u-flex u-gap6 u-fwrap u-mb12">
       <button class="card-setting-btn" data-action="Tukang.openModal">👷 Absensi Tukang</button>
       <button class="card-setting-btn" data-action="Tukang.openModal">🧮 Kalkulator Upah</button>
-      <button class="card-setting-btn" data-onclick="RenovCalc.open(null)">📦 Kalkulator Material</button>
+      <button class="card-setting-btn" data-action="renovCalcOpenNull">📦 Kalkulator Material</button>
     </div>
     <div id="renovList"><div class="empty"><div class="empty-icon">🛠️</div><div class="empty-text">Belum ada proyek renovasi</div></div></div>
     </div>
@@ -815,10 +816,10 @@ window.location.reload();
        aktif. -->
   <div class="keu-fab" id="laporanFab">
     <div class="keu-fab-actions">
-      <button type="button" class="keu-fab-action" data-onclick="document.getElementById('laporanFab').classList.remove('open');document.getElementById('laporanFabMain').setAttribute('aria-expanded','false');exportLaporanPDF()" aria-label="Export Laporan PDF"><span class="keu-fab-action-icon">🧾</span><span class="keu-fab-action-label">Export PDF</span></button>
-      <button type="button" class="keu-fab-action" data-onclick="document.getElementById('laporanFab').classList.remove('open');document.getElementById('laporanFabMain').setAttribute('aria-expanded','false');exportCSV()" aria-label="Export Laporan CSV"><span class="keu-fab-action-icon">📄</span><span class="keu-fab-action-label">Export CSV</span></button>
+      <button type="button" class="keu-fab-action" data-action="laporanFabExportPDF" aria-label="Export Laporan PDF"><span class="keu-fab-action-icon">🧾</span><span class="keu-fab-action-label">Export PDF</span></button>
+      <button type="button" class="keu-fab-action" data-action="laporanFabExportCSV" aria-label="Export Laporan CSV"><span class="keu-fab-action-icon">📄</span><span class="keu-fab-action-label">Export CSV</span></button>
     </div>
-    <button type="button" class="keu-fab-main" id="laporanFabMain" data-onclick="const _o=document.getElementById('laporanFab').classList.toggle('open');this.setAttribute('aria-expanded', _o?'true':'false')" aria-label="Aksi cepat Laporan" aria-expanded="false"><span class="keu-fab-main-icon">＋</span></button>
+    <button type="button" class="keu-fab-main" id="laporanFabMain" data-action="laporanFabToggleMain" data-args='["$el"]' aria-label="Aksi cepat Laporan" aria-expanded="false"><span class="keu-fab-main-icon">＋</span></button>
   </div>
   <div class="page-settings-btn">
     <div class="page-title">📊 Laporan</div>
@@ -1029,10 +1030,10 @@ window.location.reload();
        sama dgn #keuFab di #page-keuangan, tidak menyentuh setShopTab()). -->
   <div class="keu-fab" id="shopFab">
     <div class="keu-fab-actions">
-      <button type="button" class="keu-fab-action" data-onclick="document.getElementById('shopFab').classList.remove('open');document.getElementById('shopFabMain').setAttribute('aria-expanded','false');openOrderModal()" aria-label="Transaksi Baru"><span class="keu-fab-action-icon">🛒</span><span class="keu-fab-action-label">Transaksi Baru</span></button>
-      <button type="button" class="keu-fab-action" data-onclick="document.getElementById('shopFab').classList.remove('open');document.getElementById('shopFabMain').setAttribute('aria-expanded','false');openProductModal()" aria-label="Tambah Produk"><span class="keu-fab-action-icon">📦</span><span class="keu-fab-action-label">Tambah Produk</span></button>
+      <button type="button" class="keu-fab-action" data-action="shopFabOpenOrder" aria-label="Transaksi Baru"><span class="keu-fab-action-icon">🛒</span><span class="keu-fab-action-label">Transaksi Baru</span></button>
+      <button type="button" class="keu-fab-action" data-action="shopFabOpenProduct" aria-label="Tambah Produk"><span class="keu-fab-action-icon">📦</span><span class="keu-fab-action-label">Tambah Produk</span></button>
     </div>
-    <button type="button" class="keu-fab-main" id="shopFabMain" data-onclick="const _o=document.getElementById('shopFab').classList.toggle('open');this.setAttribute('aria-expanded', _o?'true':'false')" aria-label="Aksi cepat Shop" aria-expanded="false"><span class="keu-fab-main-icon">＋</span></button>
+    <button type="button" class="keu-fab-main" id="shopFabMain" data-action="shopFabToggleMain" data-args='["$el"]' aria-label="Aksi cepat Shop" aria-expanded="false"><span class="keu-fab-main-icon">＋</span></button>
   </div>
 
   <!-- KASIR AI (baru, v127; redesign tampilan profesional di v196, kw196-kasir-pro-redesign) -->
@@ -1220,10 +1221,10 @@ window.location.reload();
          exportShopSemuaXLSX(), cobek-io.js, tidak diubah). -->
     <div class="keu-fab" id="shopLaporanFab">
       <div class="keu-fab-actions">
-        <button type="button" class="keu-fab-action" data-onclick="document.getElementById('shopLaporanFab').classList.remove('open');document.getElementById('shopLaporanFabMain').setAttribute('aria-expanded','false');exportLaporanShopXLSX()" aria-label="Export Laporan Excel"><span class="keu-fab-action-icon">📤</span><span class="keu-fab-action-label">Export Laporan</span></button>
-        <button type="button" class="keu-fab-action" data-onclick="document.getElementById('shopLaporanFab').classList.remove('open');document.getElementById('shopLaporanFabMain').setAttribute('aria-expanded','false');exportShopSemuaXLSX()" aria-label="Export Semua Data Shop"><span class="keu-fab-action-icon">📊</span><span class="keu-fab-action-label">Export Semua Data</span></button>
+        <button type="button" class="keu-fab-action" data-action="shopLaporanFabExportXLSX" aria-label="Export Laporan Excel"><span class="keu-fab-action-icon">📤</span><span class="keu-fab-action-label">Export Laporan</span></button>
+        <button type="button" class="keu-fab-action" data-action="shopLaporanFabExportSemua" aria-label="Export Semua Data Shop"><span class="keu-fab-action-icon">📊</span><span class="keu-fab-action-label">Export Semua Data</span></button>
       </div>
-      <button type="button" class="keu-fab-main" id="shopLaporanFabMain" data-onclick="const _o=document.getElementById('shopLaporanFab').classList.toggle('open');this.setAttribute('aria-expanded', _o?'true':'false')" aria-label="Aksi cepat Laporan Shop" aria-expanded="false"><span class="keu-fab-main-icon">＋</span></button>
+      <button type="button" class="keu-fab-main" id="shopLaporanFabMain" data-action="shopLaporanFabToggleMain" data-args='["$el"]' aria-label="Aksi cepat Laporan Shop" aria-expanded="false"><span class="keu-fab-main-icon">＋</span></button>
     </div>
 
     <div class="filter-scroll u-mt12" id="lapPeriodeChips">
@@ -1577,10 +1578,10 @@ window.location.reload();
        menyentuh setCnTab()). -->
   <div class="keu-fab" id="carNotesFab">
     <div class="keu-fab-actions">
-      <button type="button" class="keu-fab-action" data-onclick="document.getElementById('carNotesFab').classList.remove('open');document.getElementById('carNotesFabMain').setAttribute('aria-expanded','false');openBbmModal()" aria-label="Catat Isi BBM"><span class="keu-fab-action-icon">⛽</span><span class="keu-fab-action-label">Isi BBM</span></button>
-      <button type="button" class="keu-fab-action" data-onclick="document.getElementById('carNotesFab').classList.remove('open');document.getElementById('carNotesFabMain').setAttribute('aria-expanded','false');openServisModal()" aria-label="Catat Servis/Sparepart"><span class="keu-fab-action-icon">🔧</span><span class="keu-fab-action-label">Servis</span></button>
+      <button type="button" class="keu-fab-action" data-action="carNotesFabOpenBbm" aria-label="Catat Isi BBM"><span class="keu-fab-action-icon">⛽</span><span class="keu-fab-action-label">Isi BBM</span></button>
+      <button type="button" class="keu-fab-action" data-action="carNotesFabOpenServis" aria-label="Catat Servis/Sparepart"><span class="keu-fab-action-icon">🔧</span><span class="keu-fab-action-label">Servis</span></button>
     </div>
-    <button type="button" class="keu-fab-main" id="carNotesFabMain" data-onclick="const _o=document.getElementById('carNotesFab').classList.toggle('open');this.setAttribute('aria-expanded', _o?'true':'false')" aria-label="Aksi cepat Car Notes" aria-expanded="false"><span class="keu-fab-main-icon">＋</span></button>
+    <button type="button" class="keu-fab-main" id="carNotesFabMain" data-action="carNotesFabToggleMain" data-args='["$el"]' aria-label="Aksi cepat Car Notes" aria-expanded="false"><span class="keu-fab-main-icon">＋</span></button>
   </div>
 
   <!-- BBM TAB -->
@@ -1991,7 +1992,7 @@ window.location.reload();
       <div id="assetList"><div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Belum ada aset tercatat</div></div></div>
       <div class="u-grid2 u-mb10">
         <button class="btn btn-ghost btn-sm" data-action="Aset.exportXLSX">⬇️ Export Aset (Excel)</button>
-        <button class="btn btn-ghost btn-sm" data-onclick="document.getElementById('assetImportFile').click()">⬆️ Import Aset</button>
+        <button class="btn btn-ghost btn-sm" data-action="clickAssetImportFile">⬆️ Import Aset</button>
       </div>
       <input type="file" id="assetImportFile" accept=".xlsx,.xls" style="display:none" onchange="Aset.importXLSX(event)">
       <button class="btn btn-ghost btn-full btn-sm u-mb10" data-action="GoldImport.open">📋 Impor Nota Emas (Massal)</button>
@@ -2036,7 +2037,7 @@ window.location.reload();
 
     
     <div class="card u-mb12 u-dnone" id="laporanAsetCard">
-      <div class="card-title">📑 Laporan Aset <span class="u-flexc8"><span class="card-setting-btn u-pointer" data-onclick="window.print()">🖨️ Cetak</span><span class="card-collapse-toggle" id="laporanAsetCard-chev" data-action="toggleCardCollapse" data-args='["laporanAsetCard","$event"]' aria-label="Buka/tutup bagian">▾</span></span></div>
+      <div class="card-title">📑 Laporan Aset <span class="u-flexc8"><span class="card-setting-btn u-pointer" data-action="printWindow">🖨️ Cetak</span><span class="card-collapse-toggle" id="laporanAsetCard-chev" data-action="toggleCardCollapse" data-args='["laporanAsetCard","$event"]' aria-label="Buka/tutup bagian">▾</span></span></div>
       <div class="card-collapse-body" id="laporanAsetCard-cbody">
       <div class="u-hint10">Rekap 1 halaman dari sisi Aset saja: Daftar Aset, Riwayat Transaksi (akun tertaut), Nilai Aset, Penyusutan, &amp; Ringkasan Kekayaan. Untuk Kekayaan Bersih gabungan akun+utang, lihat kartu 🏦 Kekayaan Bersih di Dashboard.</div>
       <div class="u-fs12 u-fw700 u-mb6 u-mt10" style="letter-spacing:0.5px;text-transform:uppercase">📋 Daftar Aset</div>
@@ -2559,7 +2560,7 @@ window.location.reload();
   <div class="card">
     <div class="card-title">🧭 Dashboard Hub</div>
     <div class="u-hint10">Dashboard Hub sekarang sudah jadi halaman Beranda default (tombol Beranda di navigasi bawah menunjuk ke sini). Tombol di bawah ini akses cadangan/pintasan langsung ke halaman yang sama, dipertahankan dari versi awal fitur ini.</div>
-    <button class="btn btn-full" data-onclick="showPage('dashboard-hub');DashboardHub.render()">🧭 Buka Dashboard Hub</button>
+    <button class="btn btn-full" data-action="goToDashboardHub">🧭 Buka Dashboard Hub</button>
   </div>
 
 
@@ -2644,30 +2645,30 @@ window.location.reload();
     <div class="qs-section">
       <div class="qs-section-title">🏦 Akun & Metode</div>
       <div class="qs-grid2">
-        <div class="qs-action" data-onclick="closeQS('qsKeuangan');openAccModal()"><div class="qs-action-icon">➕</div><div class="qs-action-label">Tambah Akun</div></div>
-        <div class="qs-action" data-onclick="closeQS('qsKeuangan');openTransferModal()"><div class="qs-action-icon">⇄</div><div class="qs-action-label">Transfer Akun</div></div>
+        <div class="qs-action" data-action="qsKeuTambahAkun"><div class="qs-action-icon">➕</div><div class="qs-action-label">Tambah Akun</div></div>
+        <div class="qs-action" data-action="qsKeuTransferAkun"><div class="qs-action-icon">⇄</div><div class="qs-action-label">Transfer Akun</div></div>
       </div>
     </div>
     <div class="qs-section">
       <div class="qs-section-title">🏷️ Kategori</div>
       <div class="qs-grid2">
-        <div class="qs-action" data-onclick="closeQS('qsKeuangan');openCatModal(undefined,'income')"><div class="qs-action-icon">💚</div><div class="qs-action-label">+ Kategori Masuk</div></div>
-        <div class="qs-action" data-onclick="closeQS('qsKeuangan');openCatModal(undefined,'expense')"><div class="qs-action-icon">🔴</div><div class="qs-action-label">+ Kategori Keluar</div></div>
+        <div class="qs-action" data-action="qsKeuKategoriMasuk"><div class="qs-action-icon">💚</div><div class="qs-action-label">+ Kategori Masuk</div></div>
+        <div class="qs-action" data-action="qsKeuKategoriKeluar"><div class="qs-action-icon">🔴</div><div class="qs-action-label">+ Kategori Keluar</div></div>
       </div>
     </div>
     <div class="qs-section">
       <div class="qs-section-title">🔔 Tagihan & Cicilan</div>
       <div class="qs-grid2">
-        <div class="qs-action" data-onclick="closeQS('qsKeuangan');openBillModal()"><div class="qs-action-icon">➕</div><div class="qs-action-label">Tambah Tagihan</div></div>
-        <div class="qs-action" data-onclick="closeQS('qsKeuangan');showPage('settings')"><div class="qs-action-icon">📋</div><div class="qs-action-label">Lihat Semua</div></div>
+        <div class="qs-action" data-action="qsKeuTambahTagihan"><div class="qs-action-icon">➕</div><div class="qs-action-label">Tambah Tagihan</div></div>
+        <div class="qs-action" data-action="qsKeuLihatSemua"><div class="qs-action-icon">📋</div><div class="qs-action-label">Lihat Semua</div></div>
       </div>
     </div>
     <div class="qs-section">
       <div class="qs-section-title">🎯 Target</div>
       <div class="qs-grid2">
-        <div class="qs-action" data-onclick="closeQS('qsKeuangan');openTargetModal()"><div class="qs-action-icon">🎯</div><div class="qs-action-label">Tambah Target</div></div>
-        <div class="qs-action" data-onclick="closeQS('qsKeuangan');EduFund.openModal()"><div class="qs-action-icon">🎓</div><div class="qs-action-label">Dana Pendidikan</div></div>
-        <div class="qs-action" data-onclick="closeQS('qsKeuangan');exportCSV()"><div class="qs-action-icon">📄</div><div class="qs-action-label">Export CSV</div></div>
+        <div class="qs-action" data-action="qsKeuTambahTarget"><div class="qs-action-icon">🎯</div><div class="qs-action-label">Tambah Target</div></div>
+        <div class="qs-action" data-action="qsKeuDanaPendidikan"><div class="qs-action-icon">🎓</div><div class="qs-action-label">Dana Pendidikan</div></div>
+        <div class="qs-action" data-action="qsKeuExportCSV"><div class="qs-action-icon">📄</div><div class="qs-action-label">Export CSV</div></div>
       </div>
     </div>
   </div>
@@ -2690,22 +2691,22 @@ window.location.reload();
     <div class="qs-section">
       <div class="qs-section-title">📦 Produk & Etalase</div>
       <div class="qs-grid2">
-        <div class="qs-action" data-onclick="closeQS('qsShop');openProductModal()"><div class="qs-action-icon">➕</div><div class="qs-action-label">Tambah Produk</div></div>
-        <div class="qs-action" data-onclick="closeQS('qsShop');setShopTab('etalase',document.querySelectorAll('#page-shop .cn-tab')[1])"><div class="qs-action-icon">📦</div><div class="qs-action-label">Lihat Etalase</div></div>
+        <div class="qs-action" data-action="qsShopTambahProduk"><div class="qs-action-icon">➕</div><div class="qs-action-label">Tambah Produk</div></div>
+        <div class="qs-action" data-action="qsShopLihatEtalase"><div class="qs-action-icon">📦</div><div class="qs-action-label">Lihat Etalase</div></div>
       </div>
     </div>
     <div class="qs-section">
       <div class="qs-section-title">🛒 Transaksi</div>
       <div class="qs-grid2">
-        <div class="qs-action" data-onclick="closeQS('qsShop');openOrderModal()"><div class="qs-action-icon">🛒</div><div class="qs-action-label">Transaksi Baru</div></div>
-        <div class="qs-action" data-onclick="closeQS('qsShop');setShopTab('riwayat',document.querySelectorAll('#page-shop .cn-tab')[3])"><div class="qs-action-icon">📋</div><div class="qs-action-label">Riwayat</div></div>
+        <div class="qs-action" data-action="qsShopTransaksiBaru"><div class="qs-action-icon">🛒</div><div class="qs-action-label">Transaksi Baru</div></div>
+        <div class="qs-action" data-action="qsShopRiwayat"><div class="qs-action-icon">📋</div><div class="qs-action-label">Riwayat</div></div>
       </div>
     </div>
     <div class="qs-section">
       <div class="qs-section-title">💾 Data</div>
       <div class="qs-grid2">
-        <div class="qs-action" data-onclick="closeQS('qsShop');openBackupModal()"><div class="qs-action-icon">📤</div><div class="qs-action-label">Backup Shop</div></div>
-        <div class="qs-action" data-onclick="closeQS('qsShop');showPage('settings')"><div class="qs-action-icon">⚙️</div><div class="qs-action-label">Setelan Lanjutan</div></div>
+        <div class="qs-action" data-action="qsShopBackup"><div class="qs-action-icon">📤</div><div class="qs-action-label">Backup Shop</div></div>
+        <div class="qs-action" data-action="qsShopSetelanLanjutan"><div class="qs-action-icon">⚙️</div><div class="qs-action-label">Setelan Lanjutan</div></div>
       </div>
     </div>
   </div>
@@ -2719,22 +2720,22 @@ window.location.reload();
     <div class="qs-section">
       <div class="qs-section-title">🏍️ Kendaraan</div>
       <div class="qs-grid2">
-        <div class="qs-action" data-onclick="closeQS('qsCarnotes');openVehicleModal()"><div class="qs-action-icon">🏍️</div><div class="qs-action-label">Kelola Kendaraan</div></div>
-        <div class="qs-action" data-onclick="closeQS('qsCarnotes');VehicleCatalogUI.open()"><div class="qs-action-icon">📦</div><div class="qs-action-label">Katalog Suku Cadang</div></div>
-        <div class="qs-action" data-onclick="closeQS('qsCarnotes');openKmModal()"><div class="qs-action-icon">📏</div><div class="qs-action-label">Update KM</div></div>
+        <div class="qs-action" data-action="qsCarnotesKelolaKendaraan"><div class="qs-action-icon">🏍️</div><div class="qs-action-label">Kelola Kendaraan</div></div>
+        <div class="qs-action" data-action="qsCarnotesKatalog"><div class="qs-action-icon">📦</div><div class="qs-action-label">Katalog Suku Cadang</div></div>
+        <div class="qs-action" data-action="qsCarnotesUpdateKm"><div class="qs-action-icon">📏</div><div class="qs-action-label">Update KM</div></div>
       </div>
     </div>
     <div class="qs-section">
       <div class="qs-section-title">🔩 Sparepart & Servis</div>
       <div class="qs-grid2">
-        <div class="qs-action" data-onclick="closeQS('qsCarnotes');openSparepartModal()"><div class="qs-action-icon">🔩</div><div class="qs-action-label">+ Kategori Part</div></div>
-        <div class="qs-action" data-onclick="closeQS('qsCarnotes');openServisModal()"><div class="qs-action-icon">🔧</div><div class="qs-action-label">Catat Servis</div></div>
+        <div class="qs-action" data-action="qsCarnotesKategoriPart"><div class="qs-action-icon">🔩</div><div class="qs-action-label">+ Kategori Part</div></div>
+        <div class="qs-action" data-action="qsCarnotesCatatServis"><div class="qs-action-icon">🔧</div><div class="qs-action-label">Catat Servis</div></div>
       </div>
     </div>
     <div class="qs-section">
       <div class="qs-section-title">⛽ BBM</div>
       <div class="qs-grid2">
-        <div class="qs-action" data-onclick="closeQS('qsCarnotes');openBbmModal()"><div class="qs-action-icon">⛽</div><div class="qs-action-label">Isi BBM</div></div>
+        <div class="qs-action" data-action="qsCarnotesIsiBbm"><div class="qs-action-icon">⛽</div><div class="qs-action-label">Isi BBM</div></div>
       </div>
     </div>
   </div>
@@ -2748,19 +2749,19 @@ window.location.reload();
     <div class="qs-section">
       <div class="qs-section-title">📊 Filter Cepat</div>
       <div class="qs-grid2">
-        <div class="qs-action" data-onclick="closeQS('qsLaporan');setPeriode('bulan',document.querySelectorAll('#periodeChips .chip-btn')[2])"><div class="qs-action-icon">📅</div><div class="qs-action-label">Bulan Ini</div></div>
-        <div class="qs-action" data-onclick="closeQS('qsLaporan');setPeriode('tahun',document.querySelectorAll('#periodeChips .chip-btn')[3])"><div class="qs-action-icon">🗓️</div><div class="qs-action-label">Tahun Ini</div></div>
-        <div class="qs-action" data-onclick="closeQS('qsLaporan');document.getElementById('fTipe').value='income';renderLaporan()"><div class="qs-action-icon">💚</div><div class="qs-action-label">Pemasukan Saja</div></div>
-        <div class="qs-action" data-onclick="closeQS('qsLaporan');document.getElementById('fTipe').value='expense';renderLaporan()"><div class="qs-action-icon">🔴</div><div class="qs-action-label">Pengeluaran Saja</div></div>
+        <div class="qs-action" data-action="qsLaporanBulanIni"><div class="qs-action-icon">📅</div><div class="qs-action-label">Bulan Ini</div></div>
+        <div class="qs-action" data-action="qsLaporanTahunIni"><div class="qs-action-icon">🗓️</div><div class="qs-action-label">Tahun Ini</div></div>
+        <div class="qs-action" data-action="qsLaporanPemasukanSaja"><div class="qs-action-icon">💚</div><div class="qs-action-label">Pemasukan Saja</div></div>
+        <div class="qs-action" data-action="qsLaporanPengeluaranSaja"><div class="qs-action-icon">🔴</div><div class="qs-action-label">Pengeluaran Saja</div></div>
       </div>
     </div>
     <div class="qs-section">
       <div class="qs-section-title">💾 Export Data</div>
       <div class="qs-grid2">
-        <div class="qs-action" data-onclick="closeQS('qsLaporan');exportCSV()"><div class="qs-action-icon">📄</div><div class="qs-action-label">Export CSV</div></div>
-        <div class="qs-action" data-onclick="closeQS('qsLaporan');exportJSON()"><div class="qs-action-icon">📦</div><div class="qs-action-label">Export JSON</div></div>
-        <div class="qs-action" data-onclick="closeQS('qsLaporan');openBackupModal()"><div class="qs-action-icon">📤</div><div class="qs-action-label">Backup Lanjutan</div></div>
-        <div class="qs-action" data-onclick="closeQS('qsLaporan');showPage('settings')"><div class="qs-action-icon">⚙️</div><div class="qs-action-label">Setelan Akun</div></div>
+        <div class="qs-action" data-action="qsLaporanExportCSV"><div class="qs-action-icon">📄</div><div class="qs-action-label">Export CSV</div></div>
+        <div class="qs-action" data-action="qsLaporanExportJSON"><div class="qs-action-icon">📦</div><div class="qs-action-label">Export JSON</div></div>
+        <div class="qs-action" data-action="qsLaporanBackupLanjutan"><div class="qs-action-icon">📤</div><div class="qs-action-label">Backup Lanjutan</div></div>
+        <div class="qs-action" data-action="qsLaporanSetelanAkun"><div class="qs-action-icon">⚙️</div><div class="qs-action-label">Setelan Akun</div></div>
       </div>
     </div>
   </div>
@@ -2774,18 +2775,18 @@ window.location.reload();
     <div class="qs-section">
       <div class="qs-section-title">💬 Pertanyaan Cepat</div>
       <div class="qs-grid2">
-        <div class="qs-action" data-onclick="closeQS('qsAI');aiQ('Analisa keuangan bulan ini, boros di mana?')"><div class="qs-action-icon">📊</div><div class="qs-action-label">Analisa Bulan Ini</div></div>
-        <div class="qs-action" data-onclick="closeQS('qsAI');aiQ('Kondisi kendaraan saya bagaimana, ada servis yang mendesak?')"><div class="qs-action-icon">🏍️</div><div class="qs-action-label">Cek Kendaraan</div></div>
-        <div class="qs-action" data-onclick="closeQS('qsAI');aiQ('Tagihan dan cicilan yang akan jatuh tempo?')"><div class="qs-action-icon">🔔</div><div class="qs-action-label">Tagihan Mendesak</div></div>
-        <div class="qs-action" data-onclick="closeQS('qsAI');aiQ('Gimana performa bisnis shop bulan ini, stok mana yang mau habis?')"><div class="qs-action-icon">🪨</div><div class="qs-action-label">Cek Bisnis Shop</div></div>
-        <div class="qs-action" data-onclick="closeQS('qsAI');aiQ('Absensi & estimasi gaji bulan ini sudah berapa?')"><div class="qs-action-icon">🧾</div><div class="qs-action-label">Gaji & Absensi</div></div>
+        <div class="qs-action" data-action="qsAiAnalisaBulanIni"><div class="qs-action-icon">📊</div><div class="qs-action-label">Analisa Bulan Ini</div></div>
+        <div class="qs-action" data-action="qsAiCekKendaraan"><div class="qs-action-icon">🏍️</div><div class="qs-action-label">Cek Kendaraan</div></div>
+        <div class="qs-action" data-action="qsAiTagihanMendesak"><div class="qs-action-icon">🔔</div><div class="qs-action-label">Tagihan Mendesak</div></div>
+        <div class="qs-action" data-action="qsAiCekBisnisShop"><div class="qs-action-icon">🪨</div><div class="qs-action-label">Cek Bisnis Shop</div></div>
+        <div class="qs-action" data-action="qsAiGajiAbsensi"><div class="qs-action-icon">🧾</div><div class="qs-action-label">Gaji & Absensi</div></div>
       </div>
     </div>
     <div class="qs-section">
       <div class="qs-section-title">🔧 Kelola Chat</div>
       <div class="qs-grid2">
-        <div class="qs-action" data-onclick="closeQS('qsAI');clearChat()"><div class="qs-action-icon">🗑️</div><div class="qs-action-label">Reset Chat</div></div>
-        <div class="qs-action" data-onclick="closeQS('qsAI');showPage('settings')"><div class="qs-action-icon">👤</div><div class="qs-action-label">Edit Profil</div></div>
+        <div class="qs-action" data-action="qsAiResetChat"><div class="qs-action-icon">🗑️</div><div class="qs-action-label">Reset Chat</div></div>
+        <div class="qs-action" data-action="qsAiEditProfil"><div class="qs-action-icon">👤</div><div class="qs-action-label">Edit Profil</div></div>
       </div>
     </div>
   </div>
@@ -2802,7 +2803,7 @@ window.location.reload();
 <div class="page active" id="page-dashboard-hub">
   <div class="page-settings-btn">
     <div class="page-title">🧭 Dashboard Hub</div>
-    <button class="qs-btn" data-onclick="showPage('settings')" aria-label="Kembali ke Pengaturan">←</button>
+    <button class="qs-btn" data-action="backToSettingsPage" aria-label="Kembali ke Pengaturan">←</button>
   </div>
   <!-- HERO CARD (Sprint 1 Tahap 2 — Dashboard 2.0, lihat HERO-CARD.md &
        DASHBOARD-2.0-PLAN.md §11 "Mockup ASCII"). Murni tampilan ringkasan
@@ -2838,16 +2839,16 @@ window.location.reload();
        menyentuh FEATURE_REGISTRY/ADR-001. Tambahan murni, tidak mengubah baris
        lain di atas/bawahnya. -->
   <div class="dashhub-qa-row" id="dashHubQuickActions">
-    <button type="button" class="dashhub-qa-btn" data-onclick="openTxModal('expense')" aria-label="Tambah Transaksi">
+    <button type="button" class="dashhub-qa-btn" data-action="dashHubQaTambahTransaksi" aria-label="Tambah Transaksi">
       <span class="dashhub-qa-icon">💰</span><span class="dashhub-qa-label">Transaksi</span>
     </button>
-    <button type="button" class="dashhub-qa-btn" data-onclick="openBackupModal()" aria-label="Backup">
+    <button type="button" class="dashhub-qa-btn" data-action="dashHubQaBackup" aria-label="Backup">
       <span class="dashhub-qa-icon">💾</span><span class="dashhub-qa-label">Backup</span>
     </button>
-    <button type="button" class="dashhub-qa-btn" data-onclick="document.getElementById('dashHubSearchInput').focus()" aria-label="Cari">
+    <button type="button" class="dashhub-qa-btn" data-action="dashHubQaFocusSearch" aria-label="Cari">
       <span class="dashhub-qa-icon">🔍</span><span class="dashhub-qa-label">Cari</span>
     </button>
-    <button type="button" class="dashhub-qa-btn" data-onclick="showPage('ai')" aria-label="Buka AI">
+    <button type="button" class="dashhub-qa-btn" data-action="dashHubQaOpenAI" aria-label="Buka AI">
       <span class="dashhub-qa-icon">🤖</span><span class="dashhub-qa-label">AI</span>
     </button>
   </div>
@@ -3619,6 +3620,6 @@ window.location.reload();
 <script>document.write(MODAL_HTML[80]);</script><!-- modal:hondaPdfImportModal -->
 <script>document.write(MODAL_HTML[82]);</script><!-- modal:inventoryTransferModal (S244) -->
 
-<script src="app-bundle-b.min.js?v=750" onerror="window.__moduleLoadFail('app-bundle-b.min.js')"></script>
+<script src="app-bundle-b.min.js?v=771" onerror="window.__moduleLoadFail('app-bundle-b.min.js')"></script>
 </body>
 </html>

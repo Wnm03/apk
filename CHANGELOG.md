@@ -1,3 +1,94 @@
+# Changelog — Sesi 261: Investment Ownership Sync
+
+## Konteks
+Target eksplisit user: "S261 – Investment Ownership Sync. Audit dan
+sinkronkan seluruh modul Investasi agar ownership diterapkan secara
+konsisten. Pastikan seluruh perhitungan portofolio, ROI, dividen,
+profit/loss, ringkasan investasi, dan AI Insight hanya menghitung aset
+sesuai OwnershipEngine.resolve() serta menggunakan SSOT tanpa duplikasi
+logika. Scope: hanya modul Investasi." Baseline: `Investment.portfolioSummary()`/
+`Investment.assetAllocation()` (modules/asset/investasi.js) SUDAH SELF-only
+sejak Sesi 193 (lihat `tests/ownership-sync-investasi.test.js`) — audit
+sesi ini menelusuri SEMUA jalur data investasi lain (Investment Planner,
+AI Insight investasi) untuk memastikan tidak ada yang lolos dari filter.
+
+## Audit — 2 gap ditemukan (kedua-duanya di luar `investasi.js`, TIDAK
+tersentuh oleh fix S193)
+
+1. **`Aset.investmentPerformance()` (modules/asset/aset.js)** — sumber
+   data TUNGGAL `InvestmentPlannerAPI` (modules/finance/
+   investment-planner-api.js, Sesi 161) sejak Investment Planner direwire
+   dari `Investment`/`D.investments` ke Buku Aset (karena `D.investments`
+   tidak pernah punya UI penulis data). Fungsi ini membaca `D.assets`
+   MENTAH tanpa filter ownership — beda dari `Aset.totalValue()`/
+   `AssetInsight.compute()` di file yang sama, yang sudah SELF-only sejak
+   S193. Akibatnya aset ber-ownership INVESTOR/CUSTOMER/THIRD_PARTY/
+   FAMILY ikut nyasar ke `totalModal`/`totalNilai`/`gain`/`roiPct`/
+   `best`/`worst`, dan CASCADE ke `InvestmentPlannerAPI.portfolioOverview()`/
+   `assetAllocation()`/`investmentRecommendation()`/`summary()` (kartu
+   "Investment Planner" di Dashboard Hub).
+2. **`InvestAI` (modules/asset/invest-ai-widget.js, widget "🤖 Rekomendasi
+   AI" di kartu Alokasi Aset)** — `_investmentAssets()` membaca
+   `D.assets.filter(zakatable)` tanpa filter ownership (dipakai
+   `_checkDiversifikasi()`/`_checkVsPreset()` — bisa memicu rekomendasi
+   diversifikasi yang salah kalau dominasi datang dari aset titipan/milik
+   investor). `_checkPortofolio()` memakai `Investment.getHoldings().length`
+   MENTAH sbg gate keberadaan holding (bukan `holdingsCount` yang sudah
+   difilter `Investment.portfolioSummary()` sejak S193) — secara praktik
+   tidak menghasilkan angka salah (ROI/alokasi yang ditampilkan tetap dari
+   `summary()`/`assetAllocation()` yang sudah SELF-only), tapi gate-nya
+   sendiri tidak konsisten, jadi tetap diperbaiki untuk audit yang benar2
+   tuntas.
+
+`InvestmentPlannerAPI`/`AssetPortfolioAPI`/`Investment.portfolioSummary()`/
+`Investment.assetAllocation()`/`DanaKelolaan.sumInvestasi()` sendiri
+TIDAK diubah — masing2 sudah PURE pass-through/reuse yang benar (
+`AssetPortfolioAPI` bahkan sudah difilter `isAssetOwnershipSelf` di
+`assetCount` sejak S193/S201; `DanaKelolaan.sumInvestasi(type)` memang
+sengaja menjumlah PER TYPE termasuk non-SELF — itu tujuan modul Dana
+Kelolaan, bukan bug).
+
+## Perubahan
+
+- **`modules/asset/aset.js`** (`Aset.investmentPerformance()`): TAMBAH 1
+  filter `isAssetOwnershipSelf` di awal (`(D.assets||[]).filter(isAssetOwnershipSelf)`)
+  — 0 rumus baru, pola SAMA PERSIS `totalValue()`/`AssetInsight.compute()`
+  di file yang sama. `renderInvestasi()` (kartu "Performa Investasi" di
+  Buku Aset) & `InvestmentPlannerAPI` otomatis ikut terfilter tanpa
+  perubahan tambahan (murni reuse fungsi ini).
+- **`modules/asset/invest-ai-widget.js`**:
+  - `_investmentAssets()`: TAMBAH filter `isAssetOwnershipSelf` (guard
+    `typeof`, pola sama `AssetPortfolioAPI.portfolioComposition()`) SEBELUM
+    filter `zakatable` yang sudah ada.
+  - `_checkPortofolio()`: gate keberadaan holding diganti dari
+    `Investment.getHoldings().length` (mentah) jadi
+    `Investment.portfolioSummary().holdingsCount` (sudah difilter ownership
+    sejak S193) — 0 rumus baru.
+
+## Test baru
+`tests/investment-ownership-sync-s261.test.js` (10 test): `Aset.
+investmentPerformance()` (holdingsCount/totalModal/totalNilai/gain/
+tracked/best/worst SELF-only, fallback tanpa OwnershipEngine), cascade
+`InvestmentPlannerAPI.portfolioOverview()`/`assetAllocation()`, `InvestAI.
+_investmentAssets()`, `InvestAI.generateRecommendations()` (diversifikasi
+tidak terpengaruh dominasi aset non-SELF; gate ROI holding non-SELF tidak
+memicu rekomendasi palsu; holding SELF rugi tetap memicu rekomendasi
+seperti sebelumnya — regresi tidak rusak).
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 1280 / pass 1280 / fail 0 (naik dari 1270, +10 test baru, 0 regresi)
+
+node scripts/build.js sesi261-investment-ownership-sync
+# ✅ Build selesai, ?v=765, index.html & app_production.html identik
+
+node --test tests/*.test.js   # setelah build
+# tests 1280 / pass 1280 / fail 0
+```
+
+---
+
 # Changelog — Sesi 249: Dana Titipan Aset (Buku Aset)
 
 ## Konteks

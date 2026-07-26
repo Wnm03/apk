@@ -1,5 +1,65 @@
 # NEXT_SESSION.md — Target sesi berikutnya (update setiap sesi)
 
+> **Catatan Sync (S203, di luar batch tracking — permintaan eksplisit user
+> "hubungkan TripEngine ke UI", build `kw201-finalisasi-sinkronisasi-lintas-
+> modul-717`, `?v=717`):** `TripEngine`/`LogisticsEngine`/
+> `calculateSmartDelivery` (S3-S6/S198) yang sebelumnya "belum digunakan
+> UI" sekarang dihubungkan lewat presenter baru **`DeliveryPlanUI`**
+> (`modules/shop/delivery-plan-ui.js`): tombol "🚚 Rencana Pengiriman" di
+> `orderModal`, modal baru `deliveryPlanModal`, field berat/dimensi baru
+> di `productModal` (`beratPerUnit`/`panjang`/`lebar`/`tinggi`, tersimpan
+> di `D.products[]` lewat `Etalase.save()`), & item AI Insight baru
+> `shop-delivery-plan`. 100% reuse engine yang sudah ada, 0 rumus baru.
+> Baseline regression **996/996 PASS** (naik dari 987 — 9 test baru
+> `tests/delivery-plan-ui.test.js`). ZIP:
+> `kw_release_sesi203_delivery-plan-ui_v717.zip`.
+
+> **Catatan Sync (S201, di luar batch tracking — permintaan eksplisit user
+> "Finalisasi Sinkronisasi Lintas Modul", build
+> `kw201-finalisasi-sinkronisasi-lintas-modul-714`, `?v=714`):** Audit
+> lintas Finance/Shop/Asset/Investment/Vehicle/Inventory/Dashboard/Report/
+> AI Insight/Ownership. **1 bug ditemukan & diperbaiki**:
+> `LaporanAset.nilaiAset()`/`ringkasanKekayaan()` (modules/asset/aset.js)
+> tidak memfilter `isAssetOwnershipSelf()` (padahal Dashboard Aset sudah
+> sejak Sesi 193) -> Dashboard Aset vs Laporan Aset bisa beda angka kalau
+> ada aset non-SELF. Fix minimal: tambah filter yang sudah ada (0 rumus
+> baru). Domain lain (Finance/Shop/Vehicle/Investment) dikonfirmasi SUDAH
+> konsisten, 0 gap baru. Baseline regression **985/985 PASS** (naik dari
+> 978 — 7 test baru `tests/cross-module-sync-finalisasi-s201.test.js`).
+> Detail lengkap di `CHANGELOG.md` § Sesi 201.
+
+> **Catatan Sync (S200, di luar batch tracking — permintaan eksplisit user
+> "Finalisasi Dashboard & AI Insight", build
+> `kw200-finalisasi-dashboard-ai-insight-713`, `?v=713`):** Audit
+> verifikasi (bukan implementasi baru) — Dashboard (`#shopBusinessEngineGrid`),
+> Laporan/Statistik (`#shopBizEngineBody`), Grafik, AI Insight (`ShopInsight`),
+> & Ownership Engine yang disinkronkan S191-S199 dikonfirmasi KONSISTEN:
+> satu sumber angka (`ShopBusinessEnginePresenter.summary()`, 0 recompute
+> terpisah di AI Insight), AI Insight baca transaksi ownership SELF saja
+> (`isCobekOwnershipSelf`), 0 double count, rollback aman (fallback SELF
+> kalau OwnershipEngine belum dimuat). 0 bug ditemukan -> 0 business logic
+> diubah. Baseline regression **978/978 PASS** (naik dari 972 — 6 test baru
+> `tests/dashboard-ai-insight-finalisasi-s200.test.js`). Detail lengkap di
+> `CHANGELOG.md` § Sesi 200.
+
+> **Catatan Sync (S199, di luar batch tracking — permintaan eksplisit user
+> "Finalisasi integrasi Shop", build `kw199-finalisasi-integrasi-shop`,
+> `?v=712`):** PurchaseEngine/TripEngine/InventoryEngine/ProfitEngine
+> (S198) — yang sebelumnya "belum digunakan UI, belum dihubungkan ke
+> Shop" — sekarang disinkronkan lewat `ShopBusinessEnginePresenter`
+> (**baru**, `modules/shop/shop-business-engine-presenter.js`): Dashboard
+> Hub (`#shopBusinessEngineGrid`, 3 kartu), Laporan/Statistik Shop
+> (`#shopBizEngineBody`), & AI Insight (`ShopInsight`, item baru
+> `shop-restock-modal` dgn navigasi silang ke Shop). Ownership Engine
+> (S191/S194) tidak diubah — presenter baru 100% reuse
+> `isCobekOwnershipSelf()` yang sudah ada. Detail lengkap di
+> `CHANGELOG.md` § Sesi 199. Baseline regression **972/972 PASS** (naik
+> dari 962 — 10 test baru `tests/shop-business-engine-integration.test.js`).
+> TripEngine (S198) TIDAK dipakai di presenter ini (murni kalkulator
+> per-transaksi Order/Kasir, tidak ada ringkasan agregat yang relevan
+> ditampilkan di Dashboard/Laporan) — kalau suatu saat dibutuhkan,
+> jadi target sesi lain yang eksplisit memintanya.
+
 > **Catatan Sync (S165b, di luar batch tracking — lanjutan sisa Sesi 165,
 > build `kw165-worthit-kategori-fields`, `?v=617`):** Butir #5 "Worth It?"
 > dari cek "kategori masih generik" SUDAH DIKERJAKAN — dropdown
