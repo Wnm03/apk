@@ -38,6 +38,13 @@ D.profile={nama,gajiPokok:gaji,kiriman:kirim,theme:tema,tanggalLahir:null,status
 safeSetItem('kw_pin',await hashPin(pin));
 _sessionRawPin=pin;
 safeSetItem('kw_setup','1');
+// FIX (2026-07-25): SW controllerchange auto-reload (lihat script inline di head index.html/
+// app_production.html) kadang kepicu TEPAT setelah onboarding selesai -- reload itu bikin init()
+// jalan ulang, lihat kw_pin baru saja tersimpan, lalu showPinScreen() lagi sebelum user sempat
+// lihat halaman utama sama sekali (terasa spt PIN diminta 2x). Set guard sessionStorage di sini
+// supaya reload SW yg nyangkut di momen ini di-skip SEKALI utk transisi onboarding->main; reload
+// normal utk update SW berikutnya tetap jalan seperti biasa.
+try{sessionStorage.setItem('kw_sw_reloaded','1');}catch(e){}
 save(); document.getElementById('onboard').style.display='none'; showMain();
 }catch(e){
 console.error('finishOnboard gagal:',e);

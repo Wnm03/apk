@@ -31,17 +31,34 @@ const InventoryEngine = {
   // PERSIS ke Etalase.totalModalStok()/Etalase.totalNilaiJualStok(), dibuat
   // menerima `products` sbg parameter opsional supaya bisa dites tanpa objek
   // D global (fallback ke D.products lewat Etalase kalau tidak dikasih).
+  //
+  // S259 (Inventory Ownership Sync): jalur eksplisit (`products` dikasih)
+  // dulu TIDAK melewati filter ownership (isProductOwnershipSelf), padahal
+  // jalur fallback (tanpa parameter -> Etalase.totalModalStok()/
+  // totalNilaiJualStok()) SELALU filter SELF-only sejak Product Ownership
+  // Foundation. Akibatnya ShopBusinessEnginePresenter.summary() (yang
+  // manggil dgn D.products penuh sbg parameter) menghasilkan angka beda
+  // dgn kartu Etalase (cModalStok/cNilaiJualStok) untuk data yang punya
+  // produk non-SELF (INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY). Diperbaiki
+  // dengan reuse isProductOwnershipSelf() (SSOT, didefinisikan di
+  // cobek-etalase.js, dimuat sebelum file ini di build.js) di KEDUA
+  // jalur, supaya SEMUA caller (dgn atau tanpa parameter) konsisten
+  // dengan Etalase. Guard typeof isProductOwnershipSelf: kalau fungsi itu
+  // belum dimuat, fallback anggap semua SELF (tidak exclude apa pun) —
+  // pola guard yang sama dipakai fungsi lain di file ini.
   totalModalStok(products) {
+    const selfFilter = (typeof isProductOwnershipSelf === 'function') ? isProductOwnershipSelf : (() => true);
     if (products) {
-      return (products || []).reduce((s, p) => s + ((p.stock || 0) * (p.hargaBeli || 0)), 0);
+      return (products || []).filter(selfFilter).reduce((s, p) => s + ((p.stock || 0) * (p.hargaBeli || 0)), 0);
     }
     if (typeof Etalase === 'undefined') return 0;
     return Etalase.totalModalStok();
   },
 
   totalNilaiJualStok(products) {
+    const selfFilter = (typeof isProductOwnershipSelf === 'function') ? isProductOwnershipSelf : (() => true);
     if (products) {
-      return (products || []).reduce((s, p) => s + ((p.stock || 0) * (p.hargaJual || 0)), 0);
+      return (products || []).filter(selfFilter).reduce((s, p) => s + ((p.stock || 0) * (p.hargaJual || 0)), 0);
     }
     if (typeof Etalase === 'undefined') return 0;
     return Etalase.totalNilaiJualStok();

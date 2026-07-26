@@ -23,6 +23,15 @@
 //   - ShopInsight.compute() (modules/ai/feature-insights.js) -> AI hook
 //     baru 'shop-trip-thin-margin', 100% reuse summary() (satu sumber
 //     angka, bukan dihitung ulang di 2 tempat).
+// CARD_NAV_TARGET (Sesi 251, Business Flow Navigation Consistency) —
+// tujuan navigasi kartu #tripPresenterGrid. MURNI DATA (0 logic navigasi
+// baru), format {page,tab,goTo} SAMA PERSIS target yang dipakai
+// BusinessFlowPresenter.openTripPage() (business-flow-presenter.js, S249)
+// ke container yang SAMA (#tripPresenterBody, TIDAK ADA container baru),
+// dieksekusi lewat dashHubNavigateToFeature() yang SUDAH ADA
+// (dashboard-hub.js).
+const CARD_NAV_TARGET = Object.freeze({ page: 'shop', tab: 'riwayat', goTo: 'tripPresenterBody' });
+
 const TripPresenter = {
 
   _money(n) {
@@ -94,8 +103,11 @@ const TripPresenter = {
 
     const s = this.summary();
     const card = this._tripCard(s);
+    // S251 (Business Flow Navigation Consistency): reuse `onClick:
+    // {action,args}` per-kartu, SAMA PERSIS FinanceDashboard.render()/
+    // BusinessFlowPresenter.render()/ShopBusinessEnginePresenter.render().
     el.innerHTML = `
-      <div class="findash-card">
+      <div class="findash-card${card.onClick ? ' u-pointer' : ''}"${card.onClick ? ` data-action="${escapeHtml(card.onClick.action)}" data-args="${escapeHtml(JSON.stringify(card.onClick.args))}"` : ''}>
         <div class="findash-card-icon">${card.icon}</div>
         <div class="findash-card-body">
           <div class="findash-card-label">${escapeHtml(card.label)}</div>
@@ -126,9 +138,12 @@ const TripPresenter = {
   },
 
   // _tripCard(s) — s = summary(), dipakai APA ADANYA (0 recompute).
+  // onClick (S251) reuse CARD_NAV_TARGET (SAMA container dipakai
+  // BusinessFlowPresenter.openTripPage()).
   _tripCard(s) {
+    const onClick = { action: 'dashHubNavigateToFeature', args: [CARD_NAV_TARGET] };
     if (!s.ok || s.trips === 0) {
-      return { icon: '🚚', label: 'Pengiriman Bulan Ini', value: 'Belum ada pengiriman', cls: '', sub: '' };
+      return { icon: '🚚', label: 'Pengiriman Bulan Ini', value: 'Belum ada pengiriman', cls: '', sub: '', onClick };
     }
     return {
       icon: '🚚',
@@ -137,6 +152,7 @@ const TripPresenter = {
       cls: s.thinMarginCount > 0 ? 'red' : '',
       sub: `Total ongkir ${this._money(s.totalOngkir)}`
         + (s.avgMarginPct !== null ? ` · rata-rata margin ${Math.round(s.avgMarginPct)}%` : ''),
+      onClick,
     };
   },
 

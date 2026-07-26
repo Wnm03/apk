@@ -116,17 +116,26 @@ const FinanceDashboard = {
     ];
   },
 
-  // _netWorthCard() — reuse totalSaldoAkun()/totalDebtValue() apa adanya
-  // (SUDAH dipakai FinanceIntelligence.healthScore() dgn guard typeof yang
-  // sama persis) — 0 rumus baru, murni saldo - utang.
+  // _netWorthCard() — BUG FIX (S268, SSOT Dashboard/Net Worth audit): card
+  // ini sebelumnya menghitung "Kekayaan Bersih" sendiri lewat totalSaldoAkun()
+  // - totalDebtValue() SAJA (tanpa aset/inventori bisnis/piutang, & tanpa
+  // utangJT/cicilan) — beda dari SATU-SATUNYA rumus resmi Net Worth project
+  // ini, `Kekayaan.currentNetWorth()` (modules/shared/modules-calc.js), yang
+  // juga dipakai panel "Kekayaan Bersih" lain (renderBersih()), wealth
+  // snapshot, actualCAGR, & AssetPortfolioAPI. Akibatnya kartu berlabel
+  // "Kekayaan Bersih" di Finance Dashboard bisa tampilkan ANGKA BERBEDA dari
+  // panel Kekayaan Bersih lain utk data yang sama. Sekarang reuse
+  // `Kekayaan.currentNetWorth()` apa adanya (0 rumus baru) supaya
+  // Dashboard/Report/Home konsisten (SSOT).
   _netWorthCard() {
     const money = (n) => (typeof fmt === 'function') ? fmt(n) : ('Rp ' + Math.round(n || 0));
-    if (typeof totalSaldoAkun !== 'function' || typeof totalDebtValue !== 'function') {
+    if (typeof Kekayaan === 'undefined' || typeof Kekayaan.currentNetWorth !== 'function'
+      || typeof totalSaldoAkun !== 'function' || typeof totalDebtValue !== 'function') {
       return { icon: '💰', label: 'Kekayaan Bersih', value: '—', cls: '' };
     }
     const saldo = totalSaldoAkun();
     const debt = totalDebtValue();
-    const net = saldo - debt;
+    const net = Kekayaan.currentNetWorth();
     return {
       icon: '💰',
       label: 'Kekayaan Bersih',

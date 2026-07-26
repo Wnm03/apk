@@ -1,6 +1,6 @@
 
 // Dipindah ke modules/shared/modules-calc.js (Sesi 17-18 restrukturisasi folder — lihat docs/FILE-MAP.md & RENCANA-SESI.md; isi & nama file TIDAK berubah, cuma lokasi folder).
-const MODULE_CALC_VERSION='sesi249-dana-titipan-aset-2';
+const MODULE_CALC_VERSION='kw269-finance-engine-validation-6';
 const FI={
 assetScopeState:'zakatable',
 investmentAssetValue(){
@@ -773,8 +773,22 @@ showAlertModal(insights.map(x=>x.icon+' '+x.text).join('\n\n'),{title:'🩺 Semu
 }
 };
 const Kekayaan={
+// currentNetWorth() — SSOT Net Worth (dipakai AssetPortfolioAPI/Dashboard/
+// wealth snapshot/actualCAGR/dst). Utang dihitung lewat FI.totalDebt()
+// (SUDAH SSOT "total utang" project ini — utangJT+sisaCicilan+bukuUtang,
+// lihat komentar totalCicilanOutstanding() di pajak-aset-ui-wrappers.js:
+// "Dipakai bareng totalDebtValue() di semua tempat yg hitung 'total utang'
+// (Kekayaan Bersih, Zakat Maal, AI widget, FI.totalDebt()) supaya
+// konsisten"). BUG FIX (S268): baris ini sebelumnya menghitung ulang utang
+// sendiri (utangJT + totalDebtValue() saja, TANPA sisaCicilan /
+// totalCicilanOutstanding()) — beda dari renderBersih() (Dashboard,
+// modules-render.js) yang SUDAH menyertakan totalCicilanOutstanding(),
+// sehingga Net Worth Dashboard bisa beda angka dari Net Worth di
+// AssetPortfolioAPI/snapshot/CAGR/Financial Freedom. Sekarang reuse
+// FI.totalDebt() (0 rumus baru) supaya SEMUA konsumen Net Worth
+// (Dashboard/Report/Home) pakai 1 sumber utang yang sama (SSOT).
 currentNetWorth(){
-return totalSaldoAkun()+totalAssetValue()+totalInventoriBisnisValue()+totalPiutangValue()-((D.pajakZakat&&D.pajakZakat.utangJT)||0)-totalDebtValue();
+return totalSaldoAkun()+totalAssetValue()+totalInventoriBisnisValue()+totalPiutangValue()-FI.totalDebt();
 },
 saveSnapshot(manual){
 const today=todayStr();

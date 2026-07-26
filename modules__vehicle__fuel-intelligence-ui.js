@@ -173,7 +173,7 @@ _segmentHtml(bar, selectedBar) {
   if (filled) cls += isReserve ? ' fbc-seg-reserve' : ' fbc-seg-fill';
   else cls += ' fbc-seg-empty';
   if (bar === selectedBar) cls += ' fbc-seg-active';
-  return `<button type="button" class="${cls}" data-onclick="FuelBarCorrection.selectBar(${bar})" data-bar="${bar}" aria-label="${bar} Bar" aria-pressed="${bar === selectedBar ? 'true' : 'false'}"><span class="fbc-seg-label">${bar}</span></button>`;
+  return `<button type="button" class="${cls}" data-action="FuelBarCorrection.selectBar" data-args="[${bar}]" data-bar="${bar}" aria-label="${bar} Bar" aria-pressed="${bar === selectedBar ? 'true' : 'false'}"><span class="fbc-seg-label">${bar}</span></button>`;
 },
 
 // selectBar(bar) — dipanggil tiap tap segmen bar picker. Live preview:

@@ -18,6 +18,22 @@
 // sudah dobel dgn renderKeuangan(), lihat CHANGELOG.md Sesi 134), TIDAK ada mekanisme render baru.
 // CSS TIDAK baru — reuse penuh class findash-grid/findash-card (grid
 // generik, sudah dipakai FinanceDashboard/.../FinancialHealthScorePresenter/dst).
+//
+// FINRISK_NAV_TARGETS (S254A — Batch Finance Navigation Consistency) —
+// tujuan navigasi tiap kartu #financialRiskDashboardGrid. MURNI DATA (0
+// logic navigasi baru), format {page,goTo} SAMA PERSIS format target
+// dashHubNavigateToFeature() yang SUDAH ADA (dashboard-hub.js). Nama
+// disendirikan per-file supaya tidak bentrok dgn const global lain (lihat
+// kasus S251/S253). Ketiga kartu murni komposit lintas-domain (debt/
+// health/cashflow/emergency fund) — TIDAK ada 1 halaman/daftar spesifik
+// per faktor, jadi target = container section-nya sendiri
+// (financialRiskDashboardWrap, dashboard-hub, TERVERIFIKASI ADA di
+// index.html/app_production.html), pola sama persis
+// VEHICLE_ANALYTICS_NAV_TARGETS.total/trend (self-scroll utk kartu
+// komposit).
+const FINRISK_NAV_TARGETS = Object.freeze({
+  self: { page: 'dashboard-hub', goTo: 'financialRiskDashboardWrap' },
+});
 const FinancialRiskDashboardPresenter = {
 
   // DOMAIN_LABELS — pemetaan label tampilan (Bahasa Indonesia) per
@@ -51,8 +67,14 @@ const FinancialRiskDashboardPresenter = {
       this._breakdownCard(s.riskFactors),
     ];
 
+    // S254A (Batch Finance Navigation Consistency): SELURUH kartu
+    // clickable lewat mekanisme SAMA PERSIS FinanceDashboard.render()/
+    // VehicleAnalyticsPresenter.render() — tiap kartu carry field
+    // onClick:{action,args} sendiri (ditempel di masing2 _xxxCard() di
+    // bawah), template di sini CUMA mengecek `c.onClick` (0 logic
+    // navigasi baru, 0 percabangan per-index, JANGAN openCard(index)).
     el.innerHTML = cards.map((c) => `
-      <div class="findash-card">
+      <div class="findash-card${c.onClick ? ' u-pointer' : ''}"${c.onClick ? ` data-action="${escapeHtml(c.onClick.action)}" data-args="${escapeHtml(JSON.stringify(c.onClick.args))}"` : ''}>
         <div class="findash-card-icon">${c.icon}</div>
         <div class="findash-card-body">
           <div class="findash-card-label">${escapeHtml(c.label)}</div>
@@ -66,8 +88,9 @@ const FinancialRiskDashboardPresenter = {
   // _levelCard(rl) — rl = FinancialRiskDashboardAPI.summary().riskLevel,
   // dipakai APA ADANYA (count/level/label — 0 recompute).
   _levelCard(rl) {
+    const onClick = { action: 'dashHubNavigateToFeature', args: [FINRISK_NAV_TARGETS.self] };
     if (!rl) {
-      return { icon: '🛡️', label: 'Tingkat Risiko Finansial', value: '—', cls: '' };
+      return { icon: '🛡️', label: 'Tingkat Risiko Finansial', value: '—', cls: '', onClick };
     }
     const cls = rl.level === 'low' ? 'green' : rl.level === 'medium' ? 'orange' : 'red';
     return {
@@ -76,6 +99,7 @@ const FinancialRiskDashboardPresenter = {
       value: rl.label,
       cls,
       sub: `${rl.count} faktor risiko terdeteksi`,
+      onClick,
     };
   },
 
@@ -84,8 +108,9 @@ const FinancialRiskDashboardPresenter = {
   // pertama sbg highlight (pola sama RetirementPlannerPresenter/
   // FinancialHealthScorePresenter), sisanya dihitung sbg `sub`.
   _topFactorCard(rf) {
+    const onClick = { action: 'dashHubNavigateToFeature', args: [FINRISK_NAV_TARGETS.self] };
     if (!Array.isArray(rf) || !rf.length) {
-      return { icon: '⚠️', label: 'Faktor Risiko Utama', value: 'Tidak ada faktor risiko terdeteksi', cls: 'green', sub: '' };
+      return { icon: '⚠️', label: 'Faktor Risiko Utama', value: 'Tidak ada faktor risiko terdeteksi', cls: 'green', sub: '', onClick };
     }
     const main = rf[0];
     return {
@@ -94,6 +119,7 @@ const FinancialRiskDashboardPresenter = {
       value: main.message,
       cls: 'red',
       sub: rf.length > 1 ? `+${rf.length - 1} faktor lain` : '',
+      onClick,
     };
   },
 
@@ -102,8 +128,9 @@ const FinancialRiskDashboardPresenter = {
   // per `domain` murni presentasional (count sederhana, bukan rumus
   // baru), pola sama RetirementPlannerPresenter menampilkan sub-count.
   _breakdownCard(rf) {
+    const onClick = { action: 'dashHubNavigateToFeature', args: [FINRISK_NAV_TARGETS.self] };
     if (!Array.isArray(rf) || !rf.length) {
-      return { icon: '🗂️', label: 'Sebaran Risiko', value: 'Belum ada data', cls: '', sub: '' };
+      return { icon: '🗂️', label: 'Sebaran Risiko', value: 'Belum ada data', cls: '', sub: '', onClick };
     }
     const counts = {};
     rf.forEach((f) => {
@@ -116,6 +143,7 @@ const FinancialRiskDashboardPresenter = {
       value: parts.join(' · '),
       cls: '',
       sub: `${rf.length} total faktor`,
+      onClick,
     };
   },
 

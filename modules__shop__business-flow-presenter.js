@@ -158,6 +158,46 @@ const INVENTORY_TRANSFER_STATUSES = Object.freeze([
   { key: 'RECEIVED', label: 'Diterima (Pekalongan)' },
 ]);
 
+// CARD_NAV_TARGETS (Sesi 250, diperbarui Sesi 251 — Business Flow
+// Navigation Consistency) — tujuan navigasi tiap kartu #businessFlowGrid,
+// index SEJAJAR array `cards` di render() (0=Purchase..9=Transfer). MURNI
+// DATA (0 logic navigasi baru) — format {page,tab,goTo} SAMA PERSIS
+// format target FEATURE_REGISTRY (dashboard-hub-registry.js), dieksekusi
+// lewat dashHubNavigateToFeature() yang SUDAH ADA (dashboard-hub.js,
+// dipakai juga oleh openTripPage() S249 di bawah). Dikonsumsi LANGSUNG
+// oleh masing2 _xxxCard() (S251, lihat onClick di tiap card factory di
+// bawah) — SAMA PERSIS pola FinanceDashboard._sparepartCards() (finance-
+// dashboard.js) yang menempel onClick per-kartu, bukan lewat method+index
+// indirection. Index 1 (Trip) SENGAJA tidak dimasukkan di sini — Trip py
+// penanganan sendiri (openTripPage(), reuse + fallback DeliveryPlanUI)
+// karena ybs juga harus jalan di konteks tanpa dashHubNavigateToFeature.
+// 9 kartu lain semuanya menunjuk container yang
+// TERVERIFIKASI ADA di index.html/app_production.html (grep manual, 0
+// halaman/tab/container baru dibuat):
+//   0 Purchase       -> Etalase > Rekomendasi Restock AI (stockRekoWidgetList)
+//   2 Stock          -> Etalase > Daftar Produk (productList)
+//   3 Sale           -> Riwayat > Riwayat Transaksi (shopList)
+//   4 KPI            -> Riwayat > Alur Bisnis Shop (businessFlowBody)
+//   5 Cost/Pricing   -> sda (belum ada kartu Cost/Pricing berdiri sendiri)
+//   6 Load/Transport -> sda (belum ada kartu Load/Transport berdiri sendiri)
+//   7 Decision       -> sda (belum ada kartu Decision berdiri sendiri)
+//   8 Finance        -> halaman Keuangan (ringkasan finansial lengkap)
+//   9 Transfer       -> daftar Transfer di kartu ini sendiri
+//     (businessFlowTransferList, sama halaman Dashboard Hub — sudah ada
+//     tombol "Buat Transfer" di kartu ini, klik kartu cuma scroll+
+//     highlight ke daftarnya, 0 navigasi baru selain scroll)
+const CARD_NAV_TARGETS = Object.freeze({
+  0: { page: 'shop', tab: 'etalase', goTo: 'stockRekoWidgetList' },
+  2: { page: 'shop', tab: 'etalase', goTo: 'productList' },
+  3: { page: 'shop', tab: 'riwayat', goTo: 'shopList' },
+  4: { page: 'shop', tab: 'riwayat', goTo: 'businessFlowBody' },
+  5: { page: 'shop', tab: 'riwayat', goTo: 'businessFlowBody' },
+  6: { page: 'shop', tab: 'riwayat', goTo: 'businessFlowBody' },
+  7: { page: 'shop', tab: 'riwayat', goTo: 'businessFlowBody' },
+  8: { page: 'keuangan' },
+  9: { page: 'dashboard-hub', goTo: 'businessFlowTransferList' },
+});
+
 const BusinessFlowPresenter = {
 
   // --- Memoization per render tick (S225-226) -------------------------
@@ -235,6 +275,7 @@ const BusinessFlowPresenter = {
       this._costPricingCard(this.costPricingKPI()),
       this._loadCostCard(this.loadCostKPI()),
       this._decisionCard(this.aiDecisionSummary()),
+      this._financeCard(this.decisionDashboard().financeSummary),
       this._transferCard(this.locationSummary()),
     ];
     // S206 (Wire Purchase->Trip): tombol CTA di kartu Purchase HANYA
@@ -244,8 +285,20 @@ const BusinessFlowPresenter = {
     // planTripForRestock() -> DeliveryPlanUI.open(candidate).
     const candidate = this.restockTripCandidate();
 
+    // S249/S250/S251 (Business Flow Navigation Consistency): SELURUH
+    // kartu #businessFlowGrid clickable lewat SATU mekanisme yang SAMA
+    // PERSIS dipakai FinanceDashboard.render() (modules/finance/finance-
+    // dashboard.js, field "onClick: {action,args}") — tiap kartu carry
+    // field `onClick:{action,args}` sendiri (ditempel di masing2
+    // _xxxCard() di bawah, reuse CARD_NAV_TARGETS sbg sumber target),
+    // lalu template di sini CUMA mengecek `c.onClick` (0 logic navigasi
+    // baru di render(), 0 percabangan per-index) — persis pola
+    // `c.onClick ? ... : ''` di finance-dashboard.js. openCard(index)
+    // (S250, indirection ad-hoc per-index) DIHAPUS sesi ini (S251): 100%
+    // digantikan onClick per-kartu supaya 1 pola navigasi konsisten di
+    // seluruh codebase, bukan 2 varian (card.onClick vs method+index).
     el.innerHTML = cards.map((c, i) => `
-      <div class="findash-card">
+      <div class="findash-card${c.onClick ? ' u-pointer' : ''}"${c.onClick ? ` data-action="${escapeHtml(c.onClick.action)}" data-args="${escapeHtml(JSON.stringify(c.onClick.args))}"` : ''} aria-label="Buka ${escapeHtml(c.label)}">
         <div class="findash-card-icon">${c.icon}</div>
         <div class="findash-card-body">
           <div class="findash-card-label">${escapeHtml(c.label)}</div>
@@ -253,7 +306,7 @@ const BusinessFlowPresenter = {
           ${c.sub ? `<div class="findash-card-sub">${escapeHtml(c.sub)}</div>` : ''}
           ${(i === 0 && candidate) ? `<button class="btn btn-sm u-mt6" data-action="BusinessFlowPresenter.planTripForRestock">🚚 Rencanakan Pengiriman</button>
           <button class="btn btn-sm btn-ghost u-mt6" data-action="BusinessFlowPresenter.completeTrip">📦 Barang Sampai (Trip Selesai)</button>` : ''}
-          ${(i === 8) ? `<button class="btn btn-sm u-mt6" data-action="BusinessFlowPresenter.openTransferModal">🚚 Buat Transfer</button>` : ''}
+          ${(i === 9) ? `<button class="btn btn-sm u-mt6" data-action="BusinessFlowPresenter.openTransferModal">🚚 Buat Transfer</button>` : ''}
         </div>
       </div>
     `).join('');
@@ -284,6 +337,7 @@ const BusinessFlowPresenter = {
       `💰 Cost/Pricing: ${this._costPricingCard(this.costPricingKPI()).value}`,
       `🚛 Load/Transport: ${this._loadCostCard(this.loadCostKPI()).value}`,
       `🧭 Decision: ${this._decisionCard(this.aiDecisionSummary()).value}`,
+      `🩺 Finance: ${this._financeCard(this.decisionDashboard().financeSummary).value}`,
       `🚚 Inventory Transfer: ${this._transferCard(this.locationSummary()).value}`,
     ];
     el.innerHTML = lines.map((l) => `<div class="u-fs12 u-lh15">${escapeHtml(l)}</div>`).join('');
@@ -315,6 +369,31 @@ const BusinessFlowPresenter = {
     const candidate = this.restockTripCandidate();
     if (!candidate) return;
     if (typeof DeliveryPlanUI !== 'undefined') DeliveryPlanUI.open(candidate);
+  },
+
+  // openTripPage() — WIRE Trip Navigation (Sesi 249): tombol "🚚 Trip" pada
+  // kartu Business Flow. TIDAK ADA halaman Trip berdiri sendiri di app
+  // ini — Trip SUDAH direpresentasikan oleh TripPresenter (S204-A), yang
+  // landing/render-nya ada di 2 tempat: #tripPresenterGrid (Dashboard Hub)
+  // & #tripPresenterBody (tab Shop > Riwayat, lihat komentar
+  // "S204-A (Trip Presenter)" di index.html). Sesuai prinsip "jangan buat
+  // halaman/modal/engine baru bila sudah ada yang relevan": navigasi di
+  // sini 100% REUSE dashHubNavigateToFeature() (dashboard-hub.js) — fungsi
+  // navigasi generik yang SUDAH ADA & dipakai persis oleh seluruh entri
+  // FEATURE_REGISTRY (dashboard-hub-registry.js, mis. 'shop-laporan-omzet'
+  // -> {page:'shop', tab:'riwayat', goTo:'shopList'}) — ke tab Shop >
+  // Riwayat lalu scroll+flash-highlight ke #tripPresenterBody (landing
+  // TripPresenter, container yang SUDAH ADA sejak S204-A). Kalau
+  // dashHubNavigateToFeature belum dimuat (mis. dipanggil dari konteks
+  // tanpa dashboard-hub.js), fallback ke DeliveryPlanUI.open() (S203,
+  // fitur Delivery/Pengiriman yang SUDAH ADA) — 0 halaman/modal/engine
+  // baru dibuat di kedua jalur.
+  openTripPage() {
+    if (typeof dashHubNavigateToFeature === 'function') {
+      dashHubNavigateToFeature({ page: 'shop', tab: 'riwayat', goTo: 'tripPresenterBody' });
+      return;
+    }
+    if (typeof DeliveryPlanUI !== 'undefined' && DeliveryPlanUI.open) DeliveryPlanUI.open();
   },
 
   // receiveGoods(candidate) — WIRE Trip->Goods Receipt->Stock (S207-208):
@@ -732,9 +811,11 @@ const BusinessFlowPresenter = {
 
   // _transferCard(summary) — kartu ke-9 (Inventory Transfer, S243) ke
   // #businessFlowGrid, pola PERSIS _kpiCard()/_decisionCard() di atas.
+  // onClick (S251) reuse CARD_NAV_TARGETS[9].
   _transferCard(summary) {
+    const onClick = { action: 'dashHubNavigateToFeature', args: [CARD_NAV_TARGETS[9]] };
     if (!summary || !summary.ok) {
-      return { icon: '🚚', label: 'Inventory Transfer', value: 'Belum ada data', cls: '', sub: '' };
+      return { icon: '🚚', label: 'Inventory Transfer', value: 'Belum ada data', cls: '', sub: '', onClick };
     }
     return {
       icon: '🚚',
@@ -742,6 +823,7 @@ const BusinessFlowPresenter = {
       value: `Magelang ${summary.magelangQty} · On Trip ${summary.onTripQty} · Pekalongan ${summary.pekalonganQty}`,
       cls: '',
       sub: `Total stok ${summary.totalStockQty} pcs`,
+      onClick,
     };
   },
 
@@ -1636,65 +1718,81 @@ const BusinessFlowPresenter = {
   },
 
   // _purchaseCard(p) — p = flow().purchase = ShopBusinessEnginePresenter
-  // summary().purchase, dipakai APA ADANYA (0 recompute).
+  // summary().purchase, dipakai APA ADANYA (0 recompute). onClick (S251)
+  // reuse CARD_NAV_TARGETS[0], pola SAMA PERSIS FinanceDashboard.
+  // _sparepartCards() (finance-dashboard.js).
   _purchaseCard(p) {
-    if (!p || !p.ok) return { icon: '🧾', label: 'Purchase', value: 'Belum ada rekomendasi', cls: '', sub: '' };
-    if (p.itemCount === 0) return { icon: '🧾', label: 'Purchase', value: 'Stok semua produk aman', cls: '', sub: '' };
+    const onClick = { action: 'dashHubNavigateToFeature', args: [CARD_NAV_TARGETS[0]] };
+    if (!p || !p.ok) return { icon: '🧾', label: 'Purchase', value: 'Belum ada rekomendasi', cls: '', sub: '', onClick };
+    if (p.itemCount === 0) return { icon: '🧾', label: 'Purchase', value: 'Stok semua produk aman', cls: '', sub: '', onClick };
     return {
       icon: '🧾',
       label: 'Purchase',
       value: `${p.itemCount} produk direstock`,
       cls: 'red',
       sub: `Estimasi modal ${this._money(p.totalCost)} (${p.totalQty} pcs)`,
+      onClick,
     };
   },
 
   // _tripCard(t) — t = flow().trip = TripPresenter.summary(), dipakai APA
-  // ADANYA (0 recompute).
+  // ADANYA (0 recompute). onClick (S251) delegasi ke openTripPage() (S249,
+  // reuse dashHubNavigateToFeature + fallback DeliveryPlanUI) — bukan
+  // dashHubNavigateToFeature langsung krn Trip butuh fallback tsb.
   _tripCard(t) {
-    if (!t || !t.ok || t.trips === 0) return { icon: '🚚', label: 'Trip', value: 'Belum ada pengiriman', cls: '', sub: '' };
+    const onClick = { action: 'BusinessFlowPresenter.openTripPage', args: [] };
+    if (!t || !t.ok || t.trips === 0) return { icon: '🚚', label: 'Trip', value: 'Belum ada pengiriman', cls: '', sub: '', onClick };
     return {
       icon: '🚚',
       label: 'Trip',
       value: `${t.trips} pengiriman`,
       cls: t.thinMarginCount > 0 ? 'red' : '',
       sub: `Total ongkir ${this._money(t.totalOngkir)}`,
+      onClick,
     };
   },
 
   // _stockCard(inv) — inv = flow().stock = ShopBusinessEnginePresenter
-  // summary().inventory, dipakai APA ADANYA (0 recompute).
+  // summary().inventory, dipakai APA ADANYA (0 recompute). onClick (S251)
+  // reuse CARD_NAV_TARGETS[2].
   _stockCard(inv) {
-    if (!inv || !inv.ok) return { icon: '📦', label: 'Stock', value: '—', cls: '', sub: 'InventoryEngine belum dimuat' };
+    const onClick = { action: 'dashHubNavigateToFeature', args: [CARD_NAV_TARGETS[2]] };
+    if (!inv || !inv.ok) return { icon: '📦', label: 'Stock', value: '—', cls: '', sub: 'InventoryEngine belum dimuat', onClick };
     return {
       icon: '📦',
       label: 'Stock',
       value: this._money(inv.totalModal),
       cls: '',
       sub: `Estimasi nilai jual ${this._money(inv.totalNilaiJual)}`,
+      onClick,
     };
   },
 
   // _saleCard(pr) — pr = flow().sale = ShopBusinessEnginePresenter
-  // summary().profit, dipakai APA ADANYA (0 recompute).
+  // summary().profit, dipakai APA ADANYA (0 recompute). onClick (S251)
+  // reuse CARD_NAV_TARGETS[3].
   _saleCard(pr) {
-    if (!pr || !pr.ok) return { icon: '📈', label: 'Sale', value: '—', cls: '', sub: 'ProfitEngine belum dimuat' };
-    if (pr.trip === 0) return { icon: '📈', label: 'Sale', value: 'Belum ada transaksi', cls: '', sub: '' };
+    const onClick = { action: 'dashHubNavigateToFeature', args: [CARD_NAV_TARGETS[3]] };
+    if (!pr || !pr.ok) return { icon: '📈', label: 'Sale', value: '—', cls: '', sub: 'ProfitEngine belum dimuat', onClick };
+    if (pr.trip === 0) return { icon: '📈', label: 'Sale', value: 'Belum ada transaksi', cls: '', sub: '', onClick };
     return {
       icon: '📈',
       label: 'Sale',
       value: Math.round(pr.marginPct) + '%',
       cls: '',
       sub: `Omzet ${this._money(pr.omzet)} · Untung ${this._money(pr.untung)}`,
+      onClick,
     };
   },
 
   // _kpiCard(kpi) — kpi = businessKPI(), dipakai APA ADANYA (0 recompute).
   // Kartu ke-5 (Dashboard KPI, S211-212) yang merangkum lintas-tahap jadi
   // 1 angka utama (jumlah trip bulan ini) + sub margin/status restock.
+  // onClick (S251) reuse CARD_NAV_TARGETS[4].
   _kpiCard(kpi) {
+    const onClick = { action: 'dashHubNavigateToFeature', args: [CARD_NAV_TARGETS[4]] };
     if (!kpi || kpi.tripBulanIni === 0) {
-      return { icon: '📊', label: 'KPI Bulan Ini', value: 'Belum ada trip', cls: '', sub: kpi && kpi.purchaseStatus === 'pending' ? 'Ada produk perlu direstock' : '' };
+      return { icon: '📊', label: 'KPI Bulan Ini', value: 'Belum ada trip', cls: '', sub: kpi && kpi.purchaseStatus === 'pending' ? 'Ada produk perlu direstock' : '', onClick };
     }
     return {
       icon: '📊',
@@ -1702,15 +1800,18 @@ const BusinessFlowPresenter = {
       value: `${kpi.tripBulanIni} trip · margin ${Math.round(kpi.marginPctBulanIni)}%`,
       cls: (kpi.thinMarginTripCount > 0 || kpi.purchaseStatus === 'pending') ? 'red' : '',
       sub: `Untung ${this._money(kpi.untungBulanIni)}${kpi.purchaseStatus === 'pending' ? ' · perlu restock' : ''}`,
+      onClick,
     };
   },
 
   // _costPricingCard(kpi) — kpi = costPricingKPI(), dipakai APA ADANYA (0
   // recompute). Kartu ke-6 (Cost Analysis / Pricing Analysis, S215-216)
   // yang merangkum rata2 cost per trip & margin lintas trip.
+  // onClick (S251) reuse CARD_NAV_TARGETS[5].
   _costPricingCard(kpi) {
+    const onClick = { action: 'dashHubNavigateToFeature', args: [CARD_NAV_TARGETS[5]] };
     if (!kpi || !kpi.ok) {
-      return { icon: '💰', label: 'Cost/Pricing', value: 'Belum ada trip', cls: '', sub: '' };
+      return { icon: '💰', label: 'Cost/Pricing', value: 'Belum ada trip', cls: '', sub: '', onClick };
     }
     return {
       icon: '💰',
@@ -1718,15 +1819,18 @@ const BusinessFlowPresenter = {
       value: `Cost/trip ${this._money(kpi.avgCostPerTrip)}`,
       cls: kpi.thinMarginCount > 0 ? 'red' : '',
       sub: `Margin rata-rata ${Math.round(kpi.avgMarginPct)}%${kpi.thinMarginCount > 0 ? ` · ${kpi.thinMarginCount} trip margin tipis` : ''}`,
+      onClick,
     };
   },
 
   // _loadCostCard(kpi) — kpi = loadCostKPI(), dipakai APA ADANYA (0
   // recompute). Kartu ke-7 (Trip Load Analysis / Transportation Cost
   // Analysis, S217-218) yang merangkum rata2 efisiensi ongkir lintas trip.
+  // onClick (S251) reuse CARD_NAV_TARGETS[6].
   _loadCostCard(kpi) {
+    const onClick = { action: 'dashHubNavigateToFeature', args: [CARD_NAV_TARGETS[6]] };
     if (!kpi || !kpi.ok) {
-      return { icon: '🚛', label: 'Load/Transport', value: 'Belum ada data', cls: '', sub: '' };
+      return { icon: '🚛', label: 'Load/Transport', value: 'Belum ada data', cls: '', sub: '', onClick };
     }
     return {
       icon: '🚛',
@@ -1734,6 +1838,7 @@ const BusinessFlowPresenter = {
       value: `Omzet/Ongkir ${kpi.avgOmzetPerOngkir.toFixed(1)}x`,
       cls: kpi.inefficientCount > 0 ? 'red' : '',
       sub: kpi.inefficientCount > 0 ? `${kpi.inefficientCount} trip ongkirnya relatif besar` : 'Efisiensi ongkir sehat',
+      onClick,
     };
   },
 
@@ -1741,9 +1846,11 @@ const BusinessFlowPresenter = {
   // recompute). Kartu ke-8 (Business Decision Dashboard, S221-222) yang
   // menyoroti trip margin terendah (sinyal paling actionable) + jumlah
   // rekomendasi aktif dari recommendation().
+  // onClick (S251) reuse CARD_NAV_TARGETS[7].
   _decisionCard(ds) {
+    const onClick = { action: 'dashHubNavigateToFeature', args: [CARD_NAV_TARGETS[7]] };
     if (!ds || !ds.ok) {
-      return { icon: '🧭', label: 'Decision', value: 'Belum ada trip', cls: '', sub: '' };
+      return { icon: '🧭', label: 'Decision', value: 'Belum ada trip', cls: '', sub: '', onClick };
     }
     return {
       icon: '🧭',
@@ -1751,6 +1858,30 @@ const BusinessFlowPresenter = {
       value: `Margin terendah ${Math.round(ds.lowestMargin.marginPct)}%`,
       cls: ds.lowestMargin.marginPct < 10 ? 'red' : '',
       sub: `Cost terbesar ${this._money(ds.biggestCost.cost)} · Untung terbesar ${this._money(ds.highestProfit.profit)}`,
+      onClick,
+    };
+  },
+
+  // _financeCard(fs) — fs = decisionDashboard().financeSummary
+  // (FinanceIntelligence.summary(), S74), dipakai APA ADANYA (0 recompute).
+  // Kartu ke-9 (Business Decision Dashboard, S221-222) — SATU-SATUNYA dari
+  // 6 ringkasan decisionDashboard() yang belum pernah dirender ke mana pun
+  // sebelum sesi ini (Trip/Cost/Profit/Stock/Delivery sudah tampil lewat
+  // _tripCard/_costPricingCard/_saleCard/_stockCard/_loadCostCard di atas).
+  // onClick (S251) reuse CARD_NAV_TARGETS[8].
+  _financeCard(fs) {
+    const onClick = { action: 'dashHubNavigateToFeature', args: [CARD_NAV_TARGETS[8]] };
+    if (!fs || !fs.healthScore) {
+      return { icon: '🩺', label: 'Finance', value: 'Belum ada data', cls: '', sub: '', onClick };
+    }
+    const hs = fs.healthScore;
+    return {
+      icon: '🩺',
+      label: 'Finance',
+      value: `Skor Kesehatan ${hs.score}/100`,
+      cls: hs.score < 60 ? 'red' : '',
+      sub: hs.label,
+      onClick,
     };
   },
 

@@ -20,6 +20,22 @@
 // dulu di features-gaji-shop-tagihan.js) TETAP terpisah karena juga menangani domain
 // BBM/Sparepart (Car Notes) — lihat PEMISAHAN-FILE-ROADMAP.md.
 
+// isProductOwnershipSelf(p) — helper REUSE dari OwnershipEngine (Product Ownership
+// Foundation, Inventory/Shop), pola PERSIS isCobekOwnershipSelf() (cobek-order.js,
+// Sesi 194) / isVehicleOwnershipSelf() (vehicle-core.js, Sesi 196). Balikin true
+// kalau kepemilikan EFEKTIF produk ini SELF (termasuk produk lama yg belum punya
+// field `ownership` sama sekali — via OwnershipEngine.resolve() otomatis fallback
+// ke SELF/DEFAULT, sekaligus jadi "migrasi" data lama: TIDAK perlu menulis ulang
+// D.products yang sudah ada, field ownership dianggap SELF sampai produk itu
+// diedit & disimpan ulang lewat Product Modal, saat itu field `ownership` baru
+// dipatenkan eksplisit — sama persis pola saveVehicle()). Balikin false kalau
+// ownership-nya salah satu dari INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY. Guard typeof
+// OwnershipEngine: kalau engine belum dimuat, fallback true (anggap SELF/tidak
+// exclude apa pun), sama pola guard fungsi lain di atas.
+function isProductOwnershipSelf(p){
+if(typeof OwnershipEngine==='undefined')return true;
+return OwnershipEngine.resolve(p).type==='SELF';
+}
 const Etalase={
 editIdx:null,
 // pairKey/parseSizeName (kw206-cobek-size-pairing): banyak produk shop dijual "2 ukuran 1 harga"
@@ -199,10 +215,10 @@ toast('🔓 Produk dilepas dari grup harga');
 // cNilaiJualStok) & disuntikkan ke konteks chat AI (features-aiwidget-reminder-gdrive-search.js)
 // supaya analisa keuangan AI tahu ada uang yg "nyangkut" di bentuk barang, bukan cuma saldo akun.
 totalModalStok(){
-return(D.products||[]).reduce((s,p)=>s+((p.stock||0)*(p.hargaBeli||0)),0);
+return(D.products||[]).filter(isProductOwnershipSelf).reduce((s,p)=>s+((p.stock||0)*(p.hargaBeli||0)),0);
 },
 totalNilaiJualStok(){
-return(D.products||[]).reduce((s,p)=>s+((p.stock||0)*(p.hargaJual||0)),0);
+return(D.products||[]).filter(isProductOwnershipSelf).reduce((s,p)=>s+((p.stock||0)*(p.hargaJual||0)),0);
 },
 renderModalStat(){
 const elModal=document.getElementById('cModalStok');
@@ -240,6 +256,19 @@ const pAccEl=document.getElementById('pAcc');
 if(pAccEl) pAccEl.innerHTML=D.accounts.map(a=>`<option value="${a.id}">${a.emoji} ${escapeHtml(a.name)}</option>`).join('');
 const hint=document.getElementById('pAccHint');
 if(hint) hint.textContent=isEdit?'Hanya dipakai kalau angka Stok di atas kamu naikkan (tambah stok) — selisihnya tercatat otomatis sebagai pengeluaran modal.':'Stok awal akan tercatat otomatis sebagai pengeluaran modal dari akun ini.';
+// Ownership (Product Ownership Foundation) — dropdown pakai OwnershipEngine.TYPES,
+// pola PERSIS _populateVehOwnershipSelect() (vehicle-core.js, Sesi 231). Produk
+// lama tanpa field ownership: resolve() fallback ke SELF/DEFAULT.
+const pOwnSel=document.getElementById('pOwnership');
+if(pOwnSel){
+if(typeof OwnershipEngine!=='undefined'){
+pOwnSel.innerHTML=OwnershipEngine.TYPES.map(t=>'<option value="'+t+'">'+escapeHtml(OwnershipEngine.label(t))+'</option>').join('');
+pOwnSel.value=OwnershipEngine.resolve(p||{}).type;
+}else{
+pOwnSel.innerHTML='<option value="SELF">Milik Sendiri</option>';
+pOwnSel.value='SELF';
+}
+}
 PriceReko.reset();
 // S238 (Inventory Movement): render rantai lokasi barang ke
 // #productMovementList, reuse BusinessFlowPresenter.renderMovement()
@@ -307,12 +336,19 @@ const accId=document.getElementById('pAcc')?document.getElementById('pAcc').valu
 const prevStock=this.editIdx!==null?(D.products[this.editIdx].stock||0):0;
 const delta=stock-prevStock;
 const kategoriId=resolveShopKategori(kategoriName);
+// Ownership (Product Ownership Foundation) — dibaca dari dropdown, divalidasi/
+// dinormalisasi via OwnershipEngine, pola PERSIS saveVehicle() (vehicle-core.js).
+// Ini juga jadi titik "migrasi": produk lama yang belum punya field ownership
+// (dianggap SELF lewat resolve() sampai titik ini) dipatenkan eksplisit begitu
+// diedit & disimpan ulang lewat modal ini.
+const ownRawP=document.getElementById('pOwnership')?.value;
+const ownership=(typeof OwnershipEngine!=='undefined'&&OwnershipEngine.isValidType(ownRawP))?OwnershipEngine.normalize(ownRawP):(typeof OwnershipEngine!=='undefined'?OwnershipEngine.DEFAULT:'SELF');
 let product;
 if(this.editIdx!==null){
 product=D.products[this.editIdx];
-Object.assign(product,{name,stock,hargaBeli,hargaJual,hargaReseller,diskonPersen,kategoriId,beratPerUnit,panjang,lebar,tinggi});
+Object.assign(product,{name,stock,hargaBeli,hargaJual,hargaReseller,diskonPersen,kategoriId,beratPerUnit,panjang,lebar,tinggi,ownership});
 } else {
-product={id:'prod_'+Date.now(),name,stock,hargaBeli,hargaJual,hargaReseller,diskonPersen,kategoriId,beratPerUnit,panjang,lebar,tinggi,produsenId:'',hargaByProdusen:{}};
+product={id:'prod_'+Date.now(),name,stock,hargaBeli,hargaJual,hargaReseller,diskonPersen,kategoriId,beratPerUnit,panjang,lebar,tinggi,ownership,produsenId:'',hargaByProdusen:{}};
 D.products.push(product);
 }
 if(!product.hargaByProdusen)product.hargaByProdusen={};

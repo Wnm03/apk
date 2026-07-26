@@ -329,10 +329,10 @@ const b=D.bills.find(x=>x.id===id);
 if(!b)return;
 document.getElementById('billActionsTitle').textContent=`🔔 ${b.name}`;
 document.getElementById('billActionsList').innerHTML=`
-    <div class="bill-action-row" data-onclick="closeQS('qsBillActions');shareBillWA(${id})"><span class="bar-icon" style="color:#25D366">💬</span> Kirim ke WhatsApp</div>
-    <div class="bill-action-row" data-onclick="closeQS('qsBillActions');openBillHistory(${id})"><span class="bar-icon u-cacc3">📋</span> Riwayat Pembayaran</div>
-    <div class="bill-action-row" data-onclick="closeQS('qsBillActions');openBillModal(${id})"><span class="bar-icon u-cacc">✏️</span> Edit</div>
-    <div class="bill-action-row danger" data-onclick="closeQS('qsBillActions');delBill(${id})"><span class="bar-icon">🗑</span> Hapus</div>`;
+    <div class="bill-action-row" data-action="billActionShareWA" data-args="[${id}]"><span class="bar-icon" style="color:#25D366">💬</span> Kirim ke WhatsApp</div>
+    <div class="bill-action-row" data-action="billActionHistory" data-args="[${id}]"><span class="bar-icon u-cacc3">📋</span> Riwayat Pembayaran</div>
+    <div class="bill-action-row" data-action="billActionEdit" data-args="[${id}]"><span class="bar-icon u-cacc">✏️</span> Edit</div>
+    <div class="bill-action-row danger" data-action="billActionDelete" data-args="[${id}]"><span class="bar-icon">🗑</span> Hapus</div>`;
 openQS('qsBillActions');
 }
 let billCalYear=null, billCalMonth=null, billCalSelectedDate=null;

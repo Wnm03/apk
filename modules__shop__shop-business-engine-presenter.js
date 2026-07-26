@@ -44,6 +44,19 @@
 // angka, bukan dihitung ulang di 2 tempat) — item insight barunya
 // memakai action {page:'shop', navIdx:2} SAMA PERSIS pola action item
 // ShopInsight lain (mis. 'shop-stok-menipis').
+// SHOP_ENGINE_NAV_TARGETS (Sesi 251, Business Flow Navigation Consistency) —
+// tujuan navigasi tiap kartu #shopBusinessEngineGrid. MURNI DATA (0 logic
+// navigasi baru), format {page,tab,goTo} SAMA PERSIS format target
+// FEATURE_REGISTRY (dashboard-hub-registry.js) & CARD_NAV_TARGETS di
+// business-flow-presenter.js (container yang SAMA dipakai kartu Stock/
+// Purchase/Sale di sana — TIDAK ADA container baru dibuat), dieksekusi
+// lewat dashHubNavigateToFeature() yang SUDAH ADA (dashboard-hub.js).
+const SHOP_ENGINE_NAV_TARGETS = Object.freeze({
+  inventory: { page: 'shop', tab: 'etalase', goTo: 'productList' },
+  purchase: { page: 'shop', tab: 'etalase', goTo: 'stockRekoWidgetList' },
+  profit: { page: 'shop', tab: 'riwayat', goTo: 'shopList' },
+});
+
 const ShopBusinessEnginePresenter = {
 
   // _money(n) — helper format, fallback kalau fmt() belum dimuat (pola
@@ -121,8 +134,15 @@ const ShopBusinessEnginePresenter = {
       this._profitCard(s.profit),
     ];
 
+    // S251 (Business Flow Navigation Consistency): kartu clickable lewat
+    // field `onClick:{action,args}` per-kartu (ditempel di masing2
+    // _xxxCard() di bawah) — SAMA PERSIS mekanisme FinanceDashboard.
+    // render() (modules/finance/finance-dashboard.js) & BusinessFlow
+    // Presenter.render() (business-flow-presenter.js, S251) — reuse
+    // data-action + dashHubNavigateToFeature() yang SUDAH ADA, 0 pola
+    // navigasi baru.
     el.innerHTML = cards.map((c) => `
-      <div class="findash-card">
+      <div class="findash-card${c.onClick ? ' u-pointer' : ''}"${c.onClick ? ` data-action="${escapeHtml(c.onClick.action)}" data-args="${escapeHtml(JSON.stringify(c.onClick.args))}"` : ''}>
         <div class="findash-card-icon">${c.icon}</div>
         <div class="findash-card-body">
           <div class="findash-card-label">${escapeHtml(c.label)}</div>
@@ -158,44 +178,53 @@ const ShopBusinessEnginePresenter = {
 
   // _inventoryCard(inv) — inv = summary().inventory, dipakai APA ADANYA
   // (totalModal/totalNilaiJual — 0 recompute, dari InventoryEngine).
+  // onClick (S251) reuse SHOP_ENGINE_NAV_TARGETS.inventory.
   _inventoryCard(inv) {
-    if (!inv.ok) return { icon: '📦', label: 'Nilai Stok Shop', value: '—', cls: '', sub: 'InventoryEngine belum dimuat' };
+    const onClick = { action: 'dashHubNavigateToFeature', args: [SHOP_ENGINE_NAV_TARGETS.inventory] };
+    if (!inv.ok) return { icon: '📦', label: 'Nilai Stok Shop', value: '—', cls: '', sub: 'InventoryEngine belum dimuat', onClick };
     return {
       icon: '📦',
       label: 'Nilai Stok Shop',
       value: this._money(inv.totalModal),
       cls: '',
       sub: `Estimasi nilai jual ${this._money(inv.totalNilaiJual)}`,
+      onClick,
     };
   },
 
   // _purchaseCard(p) — p = summary().purchase, dipakai APA ADANYA
   // (itemCount/totalQty/totalCost — 0 recompute, dari
   // InventoryEngine.restockScan() + PurchaseEngine.estimatedCost()).
+  // onClick (S251) reuse SHOP_ENGINE_NAV_TARGETS.purchase.
   _purchaseCard(p) {
-    if (!p.ok) return { icon: '🧾', label: 'Rencana Restock', value: 'Belum ada rekomendasi', cls: '', sub: '' };
-    if (p.itemCount === 0) return { icon: '🧾', label: 'Rencana Restock', value: 'Stok semua produk aman', cls: '', sub: '' };
+    const onClick = { action: 'dashHubNavigateToFeature', args: [SHOP_ENGINE_NAV_TARGETS.purchase] };
+    if (!p.ok) return { icon: '🧾', label: 'Rencana Restock', value: 'Belum ada rekomendasi', cls: '', sub: '', onClick };
+    if (p.itemCount === 0) return { icon: '🧾', label: 'Rencana Restock', value: 'Stok semua produk aman', cls: '', sub: '', onClick };
     return {
       icon: '🧾',
       label: 'Rencana Restock',
       value: `${p.itemCount} produk`,
       cls: 'red',
       sub: `Estimasi modal ${this._money(p.totalCost)} (${p.totalQty} pcs)`,
+      onClick,
     };
   },
 
   // _profitCard(pr) — pr = summary().profit, dipakai APA ADANYA
   // (trip/omzet/untung/marginPct — 0 recompute, dari
   // ProfitEngine.summarize() atas transaksi ownership SELF bulan ini).
+  // onClick (S251) reuse SHOP_ENGINE_NAV_TARGETS.profit.
   _profitCard(pr) {
-    if (!pr.ok) return { icon: '📈', label: 'Margin Shop Bulan Ini', value: '—', cls: '', sub: 'ProfitEngine belum dimuat' };
-    if (pr.trip === 0) return { icon: '📈', label: 'Margin Shop Bulan Ini', value: 'Belum ada transaksi', cls: '', sub: '' };
+    const onClick = { action: 'dashHubNavigateToFeature', args: [SHOP_ENGINE_NAV_TARGETS.profit] };
+    if (!pr.ok) return { icon: '📈', label: 'Margin Shop Bulan Ini', value: '—', cls: '', sub: 'ProfitEngine belum dimuat', onClick };
+    if (pr.trip === 0) return { icon: '📈', label: 'Margin Shop Bulan Ini', value: 'Belum ada transaksi', cls: '', sub: '', onClick };
     return {
       icon: '📈',
       label: 'Margin Shop Bulan Ini',
       value: Math.round(pr.marginPct) + '%',
       cls: '',
       sub: `Omzet ${this._money(pr.omzet)} · Untung ${this._money(pr.untung)} · ${pr.trip} transaksi (SELF)`,
+      onClick,
     };
   },
 

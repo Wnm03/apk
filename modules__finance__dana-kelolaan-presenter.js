@@ -22,6 +22,23 @@
 // feature-insights.js) — SENGAJA tidak dicampur ke KeuanganInsight
 // ("Insight Keuangan") karena Dana Kelolaan WAJIB DIKECUALIKAN dari
 // Insight Keuangan sesuai spesifikasi sesi ini (exclude list).
+//
+// DANAKELOLAAN_NAV_TARGETS (S254A — Batch Finance Navigation Consistency)
+// — tujuan navigasi tiap kartu #danaKelolaanGrid. MURNI DATA (0 logic
+// navigasi baru), format {page,tab,subtab,goTo} SAMA PERSIS format target
+// dashHubNavigateToFeature() yang SUDAH ADA (dashboard-hub.js). Nama
+// disendirikan per-file supaya tidak bentrok dgn const global lain (lihat
+// kasus S251/S253). BEDA dgn 4 presenter lain di batch ini (yang
+// self-scroll ke wrap sendiri) — Dana Kelolaan PUNYA tampilan lebih
+// detail di tab Laporan Keuangan (kartu #danaKelolaanLapCard, diisi
+// DanaKelolaanPresenter.renderLaporan(), breakdown per jenis dana sama
+// persis kartu di sini) — jadi target = kartu Laporan itu, TERVERIFIKASI
+// ADA di index.html/app_production.html (di dalam #laporanTab-ringkasan,
+// #keuanganTab-laporan), pola sama persis VEHICLE_ANALYTICS_NAV_TARGETS.
+// fuel/service (kartu komposit -> daftar/detail terkait yang sudah ada).
+const DANAKELOLAAN_NAV_TARGETS = Object.freeze({
+  self: { page: 'keuangan', tab: 'laporan', subtab: 'ringkasan', goTo: 'danaKelolaanLapCard' },
+});
 const DanaKelolaanPresenter = {
 
   _money(n) {
@@ -53,15 +70,22 @@ const DanaKelolaanPresenter = {
     const ownDetail = (type) => (typeof OwnershipEngine !== 'undefined')
       ? `<div class="u-fs10 u-t2">Ownership<br>${escapeHtml(type)}</div>` : '';
     const cards = [
-      { icon: '💼', label: 'Dana Investor', value: this._money(s.investor), badge: ownBadge('INVESTOR'), detail: ownDetail('INVESTOR') },
-      { icon: '🤝', label: 'Dana Titipan', value: this._money(s.titipan), badge: ownBadge('THIRD_PARTY'), detail: ownDetail('THIRD_PARTY') },
-      { icon: '🧾', label: 'DP Customer', value: this._money(s.dpCustomer), badge: ownBadge('CUSTOMER'), detail: ownDetail('CUSTOMER') },
-      { icon: '👨‍👩‍👧', label: 'Dana Keluarga', value: this._money(s.keluarga), badge: ownBadge('FAMILY'), detail: ownDetail('FAMILY') },
-      { icon: '💰', label: 'Total Dana Kelolaan', value: this._money(s.total), cls: 'u-fw700', badge: '', detail: '' },
+      { icon: '💼', label: 'Dana Investor', value: this._money(s.investor), badge: ownBadge('INVESTOR'), detail: ownDetail('INVESTOR'), onClick: { action: 'dashHubNavigateToFeature', args: [DANAKELOLAAN_NAV_TARGETS.self] } },
+      { icon: '🤝', label: 'Dana Titipan', value: this._money(s.titipan), badge: ownBadge('THIRD_PARTY'), detail: ownDetail('THIRD_PARTY'), onClick: { action: 'dashHubNavigateToFeature', args: [DANAKELOLAAN_NAV_TARGETS.self] } },
+      { icon: '🏷️', label: 'Titipan dlm Aset Sendiri', value: this._money(s.titipanAset), badge: '', detail: '', onClick: { action: 'dashHubNavigateToFeature', args: [DANAKELOLAAN_NAV_TARGETS.self] } },
+      { icon: '🧾', label: 'DP Customer', value: this._money(s.dpCustomer), badge: ownBadge('CUSTOMER'), detail: ownDetail('CUSTOMER'), onClick: { action: 'dashHubNavigateToFeature', args: [DANAKELOLAAN_NAV_TARGETS.self] } },
+      { icon: '👨‍👩‍👧', label: 'Dana Keluarga', value: this._money(s.keluarga), badge: ownBadge('FAMILY'), detail: ownDetail('FAMILY'), onClick: { action: 'dashHubNavigateToFeature', args: [DANAKELOLAAN_NAV_TARGETS.self] } },
+      { icon: '💰', label: 'Total Dana Kelolaan', value: this._money(s.total), cls: 'u-fw700', badge: '', detail: '', onClick: { action: 'dashHubNavigateToFeature', args: [DANAKELOLAAN_NAV_TARGETS.self] } },
     ];
 
+    // S254A (Batch Finance Navigation Consistency): SELURUH kartu
+    // clickable lewat mekanisme SAMA PERSIS FinanceDashboard.render()/
+    // VehicleAnalyticsPresenter.render() — tiap kartu carry field
+    // onClick:{action,args} sendiri (ditempel langsung di array `cards`
+    // di atas, pola sama _sparepartCards() finance-dashboard.js), template
+    // di sini CUMA mengecek `c.onClick` (0 logic navigasi baru).
     el.innerHTML = cards.map((c) => `
-      <div class="findash-card">
+      <div class="findash-card${c.onClick ? ' u-pointer' : ''}"${c.onClick ? ` data-action="${escapeHtml(c.onClick.action)}" data-args="${escapeHtml(JSON.stringify(c.onClick.args))}"` : ''}>
         <div class="findash-card-icon">${c.icon}</div>
         <div class="findash-card-body">
           <div class="findash-card-label">${escapeHtml(c.label)}${c.badge ? ' ' + c.badge : ''}</div>
@@ -85,6 +109,7 @@ const DanaKelolaanPresenter = {
       body.innerHTML = `
         <div class="u-flex u-jcb u-fs12 u-mb4"><span>💼 Dana Investor</span><span class="u-fw700">${this._money(s.investor)}</span></div>
         <div class="u-flex u-jcb u-fs12 u-mb4"><span>🤝 Dana Titipan</span><span class="u-fw700">${this._money(s.titipan)}</span></div>
+        <div class="u-flex u-jcb u-fs12 u-mb4"><span>🏷️ Titipan dlm Aset Sendiri</span><span class="u-fw700">${this._money(s.titipanAset)}</span></div>
         <div class="u-flex u-jcb u-fs12 u-mb4"><span>🧾 DP Customer</span><span class="u-fw700">${this._money(s.dpCustomer)}</span></div>
         <div class="u-flex u-jcb u-fs12"><span>👨‍👩‍👧 Dana Keluarga</span><span class="u-fw700">${this._money(s.keluarga)}</span></div>
       `;
@@ -121,7 +146,7 @@ const DanaKelolaanInsight = {
     const out = [{
       id: 'dana-kelolaan-total',
       icon: '💰',
-      text: `Total Dana Kelolaan (di luar milik sendiri): ${money(s.total)} — Investor ${money(s.investor)}, Titipan ${money(s.titipan)}, DP Customer ${money(s.dpCustomer)}, Keluarga ${money(s.keluarga)}.`,
+      text: `Total Dana Kelolaan (di luar milik sendiri): ${money(s.total)} — Investor ${money(s.investor)}, Titipan ${money(s.titipan)}, DP Customer ${money(s.dpCustomer)}, Keluarga ${money(s.keluarga)}, Titipan dlm Aset Sendiri ${money(s.titipanAset)}.`,
     }];
     return out;
   },

@@ -264,13 +264,26 @@ toast(`✅ Ongkos/km diisi ${fmtFull(rounded)} dari konsumsi ${veh?veh.name:''} 
 // produk itu & otomatis buka panel PriceReko yang sudah ada, tinggal tap "🔍 Cek Harga Pasar via AI".
 const PriceRekoWidget={
 THRESHOLD_PCT:15,
+// selfProducts() (S260, Business AI Ownership Sync) — SSOT: D.products yang
+// sudah difilter isProductOwnershipSelf() (helper SSOT dari cobek-etalase.js,
+// dimuat sebelum file ini di build.js — lihat catatan urutan di atas file).
+// Dipakai di SEMUA titik widget ini yang men-scan/menghitung dari D.products
+// (avgMarginForKategori/scan/render/applyBulk) supaya Rekomendasi Harga Jual
+// AI konsisten: HANYA produk ownership SELF yang dianalisa/direkomendasikan,
+// sama seperti Etalase.totalModalStok()/totalNilaiJualStok() (S259) & kartu
+// Etalase lain. Guard typeof: fallback anggap semua SELF kalau
+// isProductOwnershipSelf belum dimuat (pola sama guard lain di file ini).
+selfProducts(){
+const selfFilter=(typeof isProductOwnershipSelf==='function')?isProductOwnershipSelf:(()=>true);
+return(D.products||[]).filter(selfFilter);
+},
 avgTransport(){
 const recent=(D.bbmLogs||[]).filter(b=>b.liter>0&&b.harga>0).slice(-10);
 if(!recent.length)return 0;
 return recent.reduce((s,b)=>s+b.harga,0)/recent.length;
 },
 avgMarginForKategori(kategoriId,excludeId){
-const sejenis=(D.products||[]).filter(p=>p.kategoriId===kategoriId&&p.id!==excludeId&&p.hargaBeli>0&&p.hargaJual>0);
+const sejenis=this.selfProducts().filter(p=>p.kategoriId===kategoriId&&p.id!==excludeId&&p.hargaBeli>0&&p.hargaJual>0);
 if(!sejenis.length)return 50;
 const margins=sejenis.map(p=>((p.hargaJual-p.hargaBeli)/p.hargaBeli)*100).filter(m=>isFinite(m)&&m>0);
 if(!margins.length)return 50;
@@ -281,8 +294,12 @@ return margins.reduce((a,b)=>a+b,0)/margins.length;
 // ke avgMarginForKategori (kategoriId D.cobekKategori itu tier Kecil/Sedang/Besar, kurang relevan
 // dibanding produk dgn bentuk & bracket ukuran yg persis sama). Balikin null (bukan fallback 50) kalau
 // produk ini tidak punya pairKey (mis. kategori alu/muntu) atau tidak ada pasangan dgn data harga.
+// S260: siblings JUGA disaring ke ownership SELF saja (Etalase.pairSiblings sendiri TIDAK diubah —
+// dipakai juga oleh fitur merge/pairing manual yang memang perlu lihat semua produk terkait terlepas
+// dari ownership — filter SELF ditambahkan di sini saja, titik pemakaian utk baseline margin AI).
 avgMarginForPair(product){
-const siblings=Etalase.pairSiblings(product).filter(p=>p.hargaBeli>0&&p.hargaJual>0);
+const selfFilter=(typeof isProductOwnershipSelf==='function')?isProductOwnershipSelf:(()=>true);
+const siblings=Etalase.pairSiblings(product).filter(selfFilter).filter(p=>p.hargaBeli>0&&p.hargaJual>0);
 if(!siblings.length)return null;
 const margins=siblings.map(p=>((p.hargaJual-p.hargaBeli)/p.hargaBeli)*100).filter(m=>isFinite(m)&&m>0);
 if(!margins.length)return null;
@@ -306,8 +323,10 @@ const diffPct=((p.hargaJual-reko)/reko)*100;
 if(Math.abs(diffPct)<this.THRESHOLD_PCT)return null;
 return{reko,diffPct};
 },
+// scan() (S260: pakai selfProducts() bukan D.products langsung) — widget "Rekomendasi Harga Jual
+// AI" HANYA menandai produk ownership SELF, konsisten dgn Restock/Purchase/Modal Stok.
 scan(){
-return(D.products||[]).map(p=>{
+return this.selfProducts().map(p=>{
 const chk=this.checkOne(p);
 return chk?{product:p,reko:chk.reko,diffPct:chk.diffPct}:null;
 }).filter(Boolean)
@@ -321,10 +340,11 @@ const bulkM=document.getElementById('priceRekoBulkMargin');
 const countEl=document.getElementById('priceRekoWidgetCount');
 if(!card||!list)return;
 const flagged=this.scan();
-// targets = SEMUA produk dgn Harga Beli terisi, bukan cuma yg ditandai flagged — dipakai count tombol
-// bulk & syarat tampil kartu (kartu ini juga jadi rumah tombol bulk apply, jadi tetap tampil selama
-// ada minimal 1 produk yg bisa dihitung, walau kebetulan tidak ada yg lagi menyimpang)
-const targets=(D.products||[]).filter(p=>p.hargaBeli>0);
+// targets = SEMUA produk ownership SELF dgn Harga Beli terisi (S260: selfProducts(), bukan cuma
+// yg ditandai flagged) — dipakai count tombol bulk & syarat tampil kartu (kartu ini juga jadi
+// rumah tombol bulk apply, jadi tetap tampil selama ada minimal 1 produk SELF yg bisa dihitung,
+// walau kebetulan tidak ada yg lagi menyimpang)
+const targets=this.selfProducts().filter(p=>p.hargaBeli>0);
 if(!flagged.length&&!targets.length){card.style.display='none';list.innerHTML='';return;}
 card.style.display='';
 if(bulkT&&!bulkT.value)bulkT.value=Math.round(this.avgTransport());
@@ -360,17 +380,20 @@ p.hargaJual=reko;
 save();this.render();renderProductList();
 toast(`✅ Harga Jual "${p.name}" diperbarui ke ${fmtFull(reko)}`);
 },
-// applyBulk() — hitung ulang Harga Jual SEMUA produk (yg Harga Beli-nya terisi) sekaligus, pakai
-// rumus PriceReko yg sama (Harga Beli + Transport) × (1 + Target Margin%), tapi Transport & Margin-nya
-// SATU angka yg diisi manual di sini (bukan rata-rata per-kategori kayak recommend()/scan() di atas)
-// — jadi hasilnya konsisten sesuai kebijakan harga yg mau dipakai, bukan cuma produk yg "menyimpang".
+// applyBulk() — hitung ulang Harga Jual SEMUA produk ownership SELF (yg Harga Beli-nya terisi)
+// sekaligus, pakai rumus PriceReko yg sama (Harga Beli + Transport) × (1 + Target Margin%), tapi
+// Transport & Margin-nya SATU angka yg diisi manual di sini (bukan rata-rata per-kategori kayak
+// recommend()/scan() di atas) — jadi hasilnya konsisten sesuai kebijakan harga yg mau dipakai,
+// bukan cuma produk yg "menyimpang". S260: pakai selfProducts() supaya bulk apply TIDAK menimpa
+// Harga Jual produk INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY (bukan milik sendiri, bukan keputusan
+// harga AI ini yang mengatur), konsisten dgn targets di render() & scan().
 async applyBulk(){
 const transportEl=document.getElementById('priceRekoBulkTransport');
 const marginEl=document.getElementById('priceRekoBulkMargin');
 const transport=Math.max(0,Number(transportEl?.value)||0);
 const margin=Number(marginEl?.value);
 if(!(margin>0)){toast('⚠️ Isi dulu Target Margin (%) yang mau dipakai');return;}
-const targets=(D.products||[]).filter(p=>p.hargaBeli>0);
+const targets=this.selfProducts().filter(p=>p.hargaBeli>0);
 if(!targets.length){toast('⚠️ Belum ada produk dengan Harga Beli terisi');return;}
 if(!await askConfirm(`Hitung ulang Harga Jual ${targets.length} produk pakai rumus (Harga Beli + Transport ${fmtFull(transport)}) × (1 + Margin ${margin}%)? Harga Jual lama akan ditimpa.`,{okText:'Ya, Terapkan ke Semua'}))return;
 targets.forEach(p=>{p.hargaJual=PriceReko.roundNice((p.hargaBeli+transport)*(1+margin/100));});
@@ -413,8 +436,15 @@ return qty;
 // pecah jadi 2 angka kecil yg saling tidak nyambung padahal sama2 masuk bracket harga yg sama. Produk
 // tanpa pairKey (termasuk kategori alu/muntu, sesuai instruksi user) tetap dianalisa satu-satu seperti
 // semula.
+// S260 (Business AI Ownership Sync): D.products disaring ke ownership SELF SAJA sebelum
+// dikelompokkan — reuse isProductOwnershipSelf() (SSOT, cobek-etalase.js, dimuat sebelum file ini),
+// guard typeof (fallback anggap semua SELF kalau belum dimuat). Ini titik SATU-SATUNYA yg perlu
+// diubah supaya Restock Engine (scan() di bawah) & Purchase Engine (PurchaseEngine.restockPlan()/
+// estimatedCost(), modules/shop/purchase-engine.js — konsumen scan() lewat InventoryEngine.
+// restockScan()) otomatis ikut ownership-aware tanpa duplikasi filter di tempat lain.
 groupForScan(){
-const products=D.products||[];
+const selfFilter=(typeof isProductOwnershipSelf==='function')?isProductOwnershipSelf:(()=>true);
+const products=(D.products||[]).filter(selfFilter);
 const groups=[];
 const seen=new Set();
 products.forEach(p=>{

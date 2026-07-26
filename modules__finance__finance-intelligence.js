@@ -164,9 +164,17 @@ healthScore() {
     const bs = this.budgetSummary();
     parts.push({ key: 'budget', weight: 25, score: Math.max(0, Math.min(1, 1 - bs.overallPct)) * 25 });
   }
-  if (typeof totalSaldoAkun === 'function' && typeof totalDebtValue === 'function') {
+  // BUG FIX (S269, Finance Engine Validation): sebelumnya komponen "debt" di
+  // sini pakai totalDebtValue() SAJA sbg "total utang" -> TIDAK menyertakan
+  // sisa cicilan/paylater (totalCicilanOutstanding()), beda dari SSOT
+  // resmi "total utang" project ini (`FI.totalDebt()`, sudah dipakai
+  // Kekayaan.currentNetWorth() sejak S268 & DebtOptimizerAPI.dsr()) ->
+  // Skor Kesehatan Finansial/Financial Risk Dashboard bisa meremehkan
+  // beban utang kalau user punya cicilan aktif. Sekarang reuse
+  // FI.totalDebt() (0 rumus baru) supaya konsisten dgn engine lain.
+  if (typeof totalSaldoAkun === 'function' && typeof FI !== 'undefined' && typeof FI.totalDebt === 'function') {
     const saldo = totalSaldoAkun();
-    const debt = totalDebtValue();
+    const debt = FI.totalDebt();
     const debtRatio = saldo > 0 ? Math.min(1, debt / saldo) : (debt > 0 ? 1 : 0);
     parts.push({ key: 'debt', weight: 25, score: Math.max(0, 1 - debtRatio) * 25 });
   }

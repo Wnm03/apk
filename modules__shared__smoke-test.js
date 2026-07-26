@@ -110,10 +110,18 @@
   // template string) maupun dinamis (elemen.id='xxx' lewat assignment JS -- pola
   // umum dipakai buat elemen yang dibuat sekali lalu di-cache/reuse, mis. tombol
   // "muat lebih banyak" yang baru ada di DOM setelah tab/list terkait dirender).
+  //
+  // BUG NYATA ditemukan saat audit (2026-07-26): pola id="xxx" TANPA `\\?` di
+  // depan tiap kutip tidak match id yang ditulis id=\"xxx\" (backslash-escaped) --
+  // pola ini muncul di modules/shared/modals.js (MODAL_HTML disimpan sbg array
+  // string JS, jadi kutip di dalamnya di-escape). Akibatnya id yang SAH ada &
+  // aktif dipakai (mis. dpProduct/dpAiBox/dst di #deliveryPlanModal) salah
+  // dilaporkan "hilang". Fix: `\\?` opsional sebelum tiap kutip pembuka/penutup,
+  // backward-compatible 100% dgn id="xxx" biasa (0 backslash cocok juga).
   function extractDefinedIds(src) {
     var ids = {};
-    var reAttr = /\bid=(['"])([A-Za-z0-9_-]+)\1/g;
-    var reAssign = /\.id\s*=\s*(['"])([A-Za-z0-9_-]+)\1/g;
+    var reAttr = /\bid=\\?(['"])([A-Za-z0-9_-]+)\\?\1/g;
+    var reAssign = /\.id\s*=\s*\\?(['"])([A-Za-z0-9_-]+)\\?\1/g;
     var m;
     while ((m = reAttr.exec(src))) ids[m[2]] = true;
     while ((m = reAssign.exec(src))) ids[m[2]] = true;
@@ -156,10 +164,10 @@
       if (old) old.remove();
       var b = document.createElement('div');
       b.setAttribute('data-smoke-test-banner', '1');
-      b.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:99999;' +
+      b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;' +
         'background:#c0392b;color:#fff;padding:9px 14px;' +
         'font:600 12px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;' +
-        'box-shadow:0 -2px 8px rgba(0,0,0,.3);';
+        'box-shadow:0 2px 8px rgba(0,0,0,.3);';
       b.textContent = text;
       var closeBtn = document.createElement('span');
       closeBtn.textContent = ' ✕';

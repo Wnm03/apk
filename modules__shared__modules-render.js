@@ -2,7 +2,7 @@
 // Dipindah ke modules/shared/modules-render.js (Sesi 17-18 restrukturisasi folder — lihat docs/FILE-MAP.md & RENCANA-SESI.md; isi & nama file TIDAK berubah, cuma lokasi folder).
 // Semua fungsi ini murni definisi function global (bukan module), jadi tetap bisa dipanggil dari file manapun
 // yang loadnya belakangan (sama seperti modules-calc.js/features-*.js).
-const MODULE_RENDER_VERSION='sesi249-dana-titipan-aset-2';
+const MODULE_RENDER_VERSION='kw269-finance-engine-validation-6';
 
 function renderPageContent(name){
 // KW perf fix: jaring pengaman selain hook di save() -- pastikan cache saldo akun juga fresh
@@ -849,6 +849,15 @@ _safeRender('AssetMaintenancePresenter',function(){if(typeof AssetMaintenancePre
 _safeRender('ShopBusinessEnginePresenter',function(){if(typeof ShopBusinessEnginePresenter!=='undefined')ShopBusinessEnginePresenter.render();});
 _safeRender('TripPresenter',function(){if(typeof TripPresenter!=='undefined')TripPresenter.render();});
 _safeRender('BusinessFlowPresenter',function(){if(typeof BusinessFlowPresenter!=='undefined')BusinessFlowPresenter.render();});
+// Sesi 251 (lanjutan Business Intelligence tab, S250): BusinessIntelligencePresenter
+// — 100% reuse ShopBusinessEnginePresenter/TripPresenter/BusinessFlowPresenter
+// (3 baris di atas), pola _safeRender sama persis.
+_safeRender('BusinessIntelligencePresenter',function(){if(typeof BusinessIntelligencePresenter!=='undefined')BusinessIntelligencePresenter.render();});
+// Sesi 250 (Business Intelligence tab migration): ShopMiniSummary
+// (dashboard-hub.js) — kartu ringkas pengganti #shopBusinessEngineWrap/
+// #tripPresenterWrap/#businessFlowWrap di Beranda, 100% reuse
+// ShopBusinessEnginePresenter.summary(), 0 rumus baru.
+_safeRender('ShopMiniSummary',function(){if(typeof ShopMiniSummary!=='undefined')ShopMiniSummary.render();});
 // VehicleDashboard/VehicleInsightPresenter/VehicleDailyBrief/VehicleAlertPanel/
 // VehicleInsightFeed/VehicleAnalyticsPresenter/VehicleDecisionPresenter/
 // VehicleAutomationPresenter (8 presenter) — DIHAPUS dari live-wiring ini di Sesi 134

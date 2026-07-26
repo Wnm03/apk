@@ -43,8 +43,8 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1')return true;
 }catch(e){ /* anggap bukan dev mode kalau gagal deteksi */ }
 return false;
 }
-const APP_BUILD_VERSION = 'sesi249-dana-titipan-aset-2';
-const PRODUCTION_BUILD_SYNCED_VERSION = 'sesi249-dana-titipan-aset-2';
+const APP_BUILD_VERSION = 'kw269-finance-engine-validation-6';
+const PRODUCTION_BUILD_SYNCED_VERSION = 'kw269-finance-engine-validation-6';
 let D = {
 schemaVersion:SCHEMA_VERSION,
 transactions:[],cobek:[],products:[],produsen:[],cobekKategori:JSON.parse(JSON.stringify(DEFAULT_COBEK_KATEGORI)),targets:[],eduFunds:[],reminders:[],bills:[],billsArchive:[],inventoryTransfers:[],
@@ -234,10 +234,10 @@ let _lastUid=0;
 function uid(){let n=Date.now();if(n<=_lastUid)n=_lastUid+1;_lastUid=n;return n;}
 function sameId(a,b){return String(a)===String(b);}
 document.addEventListener('click', function(e){
-const el = e.target.closest('[data-action],[data-onclick]');
+const el = e.target.closest('[data-action]');
 if(!el) return;
 if(el.dataset.stop) e.stopPropagation();
-if(el.dataset.action){
+{
 const path = el.dataset.action.split('.');
 let owner = window, fn = window;
 for(const p of path){ owner = fn; fn = fn ? fn[p] : undefined; }
@@ -261,15 +261,6 @@ return navItems[Number(a.slice(5))]||null;
 return a;
 });
 fn.apply(owner, args);
-return;
-}
-const code = el.getAttribute('data-onclick');
-if(!code) return;
-try{
-new Function('event', code).call(el, e);
-}catch(err){
-console.error('data-onclick error:', code, err);
-if(typeof toast==='function') toast('⚠️ Terjadi error saat menjalankan aksi ini. Tolong laporkan ke pengembang.',5000);
 }
 });
 function migrateShopCategory(){

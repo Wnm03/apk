@@ -122,7 +122,7 @@ function openStockRekoWidgetDetail(id,restockQty){return StockRekoWidget.openDet
 function setShopTab(t,el){
 document.querySelectorAll('#page-shop .cn-tab').forEach(b=>b.classList.remove('active'));
 el.classList.add('active');
-['kasir','jual','etalase','produsen','riwayat','pelanggan','laporan'].forEach(x=>{const elx=document.getElementById('shopTab-'+x);if(elx){elx.classList.toggle('u-dnone', x!==t);elx.style.display='';}});
+['kasir','jual','etalase','produsen','riwayat','pelanggan','laporan','bi'].forEach(x=>{const elx=document.getElementById('shopTab-'+x);if(elx){elx.classList.toggle('u-dnone', x!==t);elx.style.display='';}});
 if(t==='kasir')Kasir.render();
 if(t==='etalase')renderProductList();
 if(t==='produsen')renderProdusenList();
@@ -130,6 +130,22 @@ if(t==='riwayat'){renderShop();renderShopGrafik();}
 if(t==='jual')renderShopRecent();
 if(t==='pelanggan')renderCustomerList();
 if(t==='laporan')Laporan.renderTab();
+// Sesi 250 (Business Intelligence tab): panggil ulang render() 3 presenter
+// yang SUDAH ADA (100% reuse, 0 rumus baru) supaya kartu-nya SELALU
+// ter-refresh tiap kali tab ini dibuka — sama seperti sebelumnya sudah
+// otomatis ter-refresh lewat _safeRender (modules-render.js) tiap render
+// cycle, cuma sekarang container-nya pindah ke tab Shop (bukan lagi di
+// Beranda), jadi butuh trigger tambahan saat tab-nya benar2 dibuka.
+if(t==='bi'){
+if(typeof ShopBusinessEnginePresenter!=='undefined')ShopBusinessEnginePresenter.render();
+if(typeof TripPresenter!=='undefined')TripPresenter.render();
+if(typeof BusinessFlowPresenter!=='undefined')BusinessFlowPresenter.render();
+// Sesi 251 (lanjutan Business Intelligence tab): BusinessIntelligencePresenter
+// — Health Score/Decision Panel/Trend Analytics/Executive Summary/AI Insight,
+// 100% reuse 3 presenter di atas + engine Shop (0 rumus baru), lihat
+// modules/shop/business-intelligence-presenter.js.
+if(typeof BusinessIntelligencePresenter!=='undefined')BusinessIntelligencePresenter.render();
+}
 }
 // BUGFIX (2026-07-11): alias kompatibilitas mundur. `setCobekTab` di-rename jadi `setShopTab`
 // saat redesign Etalase (lihat CATATAN-CEK-CLAUDE.md), tapi PWA yang service worker-nya belum
