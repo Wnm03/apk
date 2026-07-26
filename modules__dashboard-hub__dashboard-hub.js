@@ -432,6 +432,52 @@ const DashboardHubOwnershipSummary = {
   },
 };
 
+// ================== SHOP MINI SUMMARY (Sesi 250) ==================
+// ShopMiniSummary — MURNI TAMPILAN + navigasi, 0 rumus baru, 0 field D
+// baru. Menggantikan 3 wrap detail (#shopBusinessEngineWrap/
+// #tripPresenterWrap/#businessFlowWrap) yang DIPINDAH APA ADANYA ke tab
+// baru #shopTab-bi ("Business Intelligence") di #page-shop (lihat
+// index.html/app_production.html + cobek-io.js setShopTab()). Beranda
+// sekarang cukup menampilkan 3 angka ringkas (Omzet/Profit/Stok Menipis)
+// — 100% REUSE ShopBusinessEnginePresenter.summary() (S199, modules/shop/
+// shop-business-engine-presenter.js), yang sendiri sudah 100% delegasi ke
+// ProfitEngine.summarize() (omzet/untung, ownership SELF-only, pola Sesi
+// 194) & InventoryEngine.restockScan() (jumlah produk perlu direstock =
+// "Stok Menipis") — TIDAK membaca D langsung, TIDAK menghitung ulang apa
+// pun. Guard typeof (pola sama persis DashboardHubOwnershipSummary di
+// atas) supaya aman dipakai standalone di tests tanpa D/ShopBusinessEnginePresenter.
+const ShopMiniSummary = {
+  _money(n) {
+    return (typeof fmt === 'function') ? fmt(n) : ('Rp ' + Math.round(n || 0));
+  },
+  render() {
+    const el = document.getElementById('shopMiniSummaryGrid');
+    if (!el) return;
+    if (typeof ShopBusinessEnginePresenter === 'undefined') {
+      el.innerHTML = '<div class="u-hint10">Shop Business Engine belum tersedia.</div>';
+      return;
+    }
+    const s = ShopBusinessEnginePresenter.summary();
+    const omzet = (s.profit && s.profit.ok) ? s.profit.omzet : 0;
+    const untung = (s.profit && s.profit.ok) ? s.profit.untung : 0;
+    const stokMenipis = (s.purchase && s.purchase.ok) ? s.purchase.itemCount : 0;
+    const esc = typeof escapeHtml === 'function' ? escapeHtml : String;
+    const cards = [
+      { label: 'Omzet Bulan Ini', value: this._money(omzet), cls: '' },
+      { label: 'Profit Bulan Ini', value: this._money(untung), cls: untung < 0 ? 'red' : 'green' },
+      { label: 'Stok Menipis', value: String(stokMenipis), cls: stokMenipis > 0 ? 'red' : '' },
+    ];
+    el.innerHTML = cards.map((c) => `
+      <div class="findash-card">
+        <div class="findash-card-body">
+          <div class="findash-card-label">${esc(c.label)}</div>
+          <div class="findash-card-val${c.cls ? ' ' + c.cls : ''}">${esc(c.value)}</div>
+        </div>
+      </div>
+    `).join('');
+  },
+};
+
 const DashboardHub = {
   render() {
     const el = document.getElementById('dashboardHubGrid');

@@ -137,8 +137,13 @@ const out=[];
 const now=new Date();
 if(typeof daysUntilDate!=='function')return out;
 // (1) Piutang jatuh tempo dekat (<=7 hari)/lewat, belum lunas — prioritas nagih.
+// (Sesi 265, Ownership Sync — AI): TAMBAH filter isPiutangOwnershipSelf (0
+// logic lama diubah), pola sama persis prodSelfFilter/cobSelfFilter di
+// bawah — piutang ber-ownership INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY
+// dikecualikan dari insight nagih. Guard typeof: fallback semua SELF.
 try{
-(D.piutang||[]).filter(p=>!p.lunas&&p.jatuhTempo).forEach(p=>{
+const piutangSelfFilter=typeof isPiutangOwnershipSelf==='function'?isPiutangOwnershipSelf:(()=>true);
+(D.piutang||[]).filter(p=>!p.lunas&&p.jatuhTempo).filter(piutangSelfFilter).forEach(p=>{
 const d=daysUntilDate(p.jatuhTempo);
 if(d===null||d>7)return;
 const late=d<0;
@@ -149,8 +154,12 @@ out.push({id:'piutang-due-'+p.id,level:late?'danger':'warning',icon:late?'🔴':
 // (2) Utang jatuh tempo dekat (<=7 hari)/lewat, belum lunas — sama seperti FinCoach lama #6.
 // KW-170: ikut cek cicilan barang aktif (Debt.billCicilanAktif(), sudah dianggap "utang beneran"
 // di Buku Utang), digabung & diambil yang paling dekat jatuh temponya dari kedua sumber.
+// (Sesi 265, Ownership Sync — AI): TAMBAH filter isDebtOwnershipSelf (0
+// logic lama diubah) — utang non-SELF dikecualikan dari insight jatuh
+// tempo. Guard typeof: fallback semua SELF.
 try{
-const soonDebt=(D.debts||[]).filter(d=>!d.lunas&&d.jatuhTempo).map(d=>({id:'debt-due-'+d.id,name:d.name,nilai:d.nilai,diff:daysUntilDate(d.jatuhTempo)}));
+const debtSelfFilter=typeof isDebtOwnershipSelf==='function'?isDebtOwnershipSelf:(()=>true);
+const soonDebt=(D.debts||[]).filter(d=>!d.lunas&&d.jatuhTempo).filter(debtSelfFilter).map(d=>({id:'debt-due-'+d.id,name:d.name,nilai:d.nilai,diff:daysUntilDate(d.jatuhTempo)}));
 const billCicilan=(typeof Debt!=='undefined'&&typeof Debt.billCicilanAktif==='function')?Debt.billCicilanAktif():[];
 const soonBill=billCicilan.filter(b=>b.nextDue).map(b=>({id:'debt-due-bill-'+b.id,name:b.name,nilai:b.amount,diff:daysUntilDate(b.nextDue)}));
 const soon=soonDebt.concat(soonBill).filter(x=>x.diff!==null&&x.diff<=7).sort((a,b)=>a.diff-b.diff);
@@ -182,7 +191,14 @@ const ShopInsight={
 MARGIN_DROP_RATIO:0.75,
 compute(){
 const out=[];
-const products=D.products||[];
+// S260 (Business AI Ownership Sync): Shop AI Insight HANYA menghitung produk
+// ownership SELF — reuse isProductOwnershipSelf() (SSOT, cobek-etalase.js),
+// guard typeof biar aman kalau file itu belum dimuat (fallback anggap semua
+// SELF), pola SAMA PERSIS cobSelfFilter/cobSelfFilter2 di bawah (S194, versi
+// transaksi) & selfFilter di InventoryEngine/StockRekoWidget/PriceRekoWidget
+// (S259/S260).
+const prodSelfFilter=typeof isProductOwnershipSelf==='function'?isProductOwnershipSelf:(()=>true);
+const products=(D.products||[]).filter(prodSelfFilter);
 // (1) Stok menipis (<=2, sama dgn ambang badge "Menipis" di Etalase.renderList()).
 const menipis=products.filter(p=>(p.stock||0)<=2);
 if(menipis.length){

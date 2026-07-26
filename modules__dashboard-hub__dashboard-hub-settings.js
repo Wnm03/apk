@@ -129,7 +129,7 @@ const DashboardSettings = {
     D.dashCardOrder = order;
     save();
     this.renderDashCardOrderUI();
-    if (document.getElementById('page-dashboard')) renderDashboard();
+    if (document.getElementById('page-dashboard-hub')) renderDashboard();
   },
 
   // Render checklist urutan (id=dashCardOrderList, lihat Pengaturan → Kartu
@@ -172,7 +172,7 @@ const DashboardSettings = {
     localStorage.removeItem(DASH_DEFAULT_TAB_KEY);
     this.applyDashDisplayPrefs();
     this.renderSettingsUI();
-    if (document.getElementById('page-dashboard')) renderDashboard();
+    if (document.getElementById('page-dashboard-hub')) renderDashboard();
     if (typeof toast === 'function') toast('↩️ Tata letak Dashboard Hub dikembalikan ke default');
   },
 

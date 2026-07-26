@@ -69,7 +69,7 @@ const preset=ALOKASI_PRESETS[risk];
 if(!preset)return;
 const dana=danaEl?parsePzNum(danaEl.value):0;
 const dd=(D.targets||[]).find(t=>t.isDanaDarurat);
-const ddBanner=dd?'':`<div class="u-fs11 u-cacc2 u-r10 u-mb10 u-lh15" style="background:var(--accent2-soft);padding:8px 10px">🚨 Belum ada target yang ditandai <b>Dana Darurat</b>, jadi baris "Kas / Dana Darurat" di bawah masih ilustrasi murni. <span class="u-pointer u-fw600" style="text-decoration:underline" data-onclick="openTargetModal();document.getElementById('tDanaDarurat').checked=true;onTargetDanaDaruratToggle();">+ Buat targetnya sekarang</span></div>`;
+const ddBanner=dd?'':`<div class="u-fs11 u-cacc2 u-r10 u-mb10 u-lh15" style="background:var(--accent2-soft);padding:8px 10px">🚨 Belum ada target yang ditandai <b>Dana Darurat</b>, jadi baris "Kas / Dana Darurat" di bawah masih ilustrasi murni. <span class="u-pointer u-fw600" style="text-decoration:underline" data-action="openTargetModalDanaDarurat">+ Buat targetnya sekarang</span></div>`;
 box.innerHTML=ddBanner+'<div class="u-hint10">'+escapeHtml(preset.desc)+'</div>'+
 preset.items.map(it=>{
 const nominal=Math.round(dana*it.pct/100);
@@ -622,8 +622,18 @@ divBox.innerHTML=`<div class="u-r10 u-mt10" style="background:var(--accent-soft)
 // terisi & >0) TETAP SAMA seperti sebelumnya. Read-only, tidak menyentuh
 // DOM sama sekali — caller (renderInvestasi() di bawah, atau
 // InvestmentPlannerAPI) yang urus presentasinya masing-masing.
+// S261 (Investment Ownership Sync): TAMBAH 1 filter isAssetOwnershipSelf(a)
+// di awal (0 rumus baru) — SEBELUM sesi ini, fungsi ini membaca D.assets
+// MENTAH tanpa filter ownership, beda dari Aset.totalValue()/AssetInsight
+// yang sudah SELF-only sejak S193. Akibatnya aset ber-ownership
+// INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY ikut nyasar ke totalModal/
+// totalNilai/gain/roiPct/best/worst di sini, DAN ke portfolioOverview()/
+// assetAllocation()/investmentRecommendation() InvestmentPlannerAPI
+// (modules/finance/investment-planner-api.js) yang 100% reuse fungsi ini.
+// Pola filter SAMA PERSIS isAssetOwnershipSelf() yang sudah dipakai
+// totalValue()/AssetInsight.compute() di file ini.
 investmentPerformance(){
-const tracked=(D.assets||[]).map(a=>{
+const tracked=(D.assets||[]).filter(isAssetOwnershipSelf).map(a=>{
 const buku=a.modalInvestasi!=null?a.modalInvestasi:(a.hargaBeli!=null&&a.jumlahUnit!=null?a.hargaBeli*a.jumlahUnit:null);
 return{a,buku};
 }).filter(x=>x.buku!=null&&x.buku>0);
