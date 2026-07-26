@@ -14,6 +14,28 @@
 // dari file ini).
 /* moved to modules-render.js: renderVehicleSelect */
 function selectVehicle(id){curVehicleId=id;renderVehicleSelect();renderCnTab();}
+// isVehicleOwnershipSelf(vehicleId) — helper REUSE dari OwnershipEngine (Sesi 196,
+// Ownership Sync Vehicle/Car Notes/Fuel/Servis/Reminder/Dashboard/Report/AI).
+// Balikin true kalau kepemilikan EFEKTIF kendaraan ini SELF (termasuk kendaraan
+// lama yg belum punya field `ownership` sama sekali — via OwnershipEngine.resolve()
+// otomatis fallback ke SELF/DEFAULT, jadi 100% backward compatible, TIDAK ada
+// kendaraan existing yang tiba-tiba ke-exclude). Balikin false kalau ownership-nya
+// salah satu dari INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY — dikecualikan dari agregat
+// LINTAS-KENDARAAN (fleetSummary/reminder fleet-wide/cost trend fleet-wide/
+// Dashboard/AI briefing) — TAPI TIDAK dari tampilan per-kendaraan (Car Notes tab
+// kendaraan terpilih, vehicleOverview(vehicleId)/fuel-dashboard dst tetap normal
+// kalau diakses langsung by id), sama persis pola isAccOwnershipSelf/
+// isAssetOwnershipSelf/isHoldingOwnershipSelf/isCobekOwnershipSelf (Sesi 192-194).
+// Guard typeof OwnershipEngine/D: kalau engine/data belum dimuat, fallback true
+// (anggap SELF/tidak exclude apa pun) — pola sama persis guard fungsi lain di file
+// ini.
+function isVehicleOwnershipSelf(vehicleId){
+if(typeof OwnershipEngine==='undefined')return true;
+if(typeof D==='undefined'||!D.vehicles)return true;
+const v=D.vehicles.find(x=>x.id===vehicleId);
+if(!v)return true;
+return OwnershipEngine.resolve(v).type==='SELF';
+}
 /* moved to modules-render.js: renderCarImportVehicleSelect */
 let vehEditIdx=null;
 // Field per Jenis Kendaraan (KW-165, lanjutan sesi KW-164 — sebelumnya cuma 1 field generik
@@ -57,7 +79,22 @@ if(jenisEl)jenisEl.value='motor';
 onVehJenisChange();
 const kmWrap=document.getElementById('vehKmAwalWrap');if(kmWrap)kmWrap.style.display='';
 document.getElementById('vehSaveBtn').textContent='+ Tambah Kendaraan';
+_populateVehOwnershipSelect(null);
 openModal('vehicleModal');
+}
+// _populateVehOwnershipSelect(v) — helper (S231, reuse OwnershipEngine) dipakai openVehicleModal
+// (tambah baru, v=null) & editVehicle (v=kendaraan existing). Kendaraan lama tanpa field
+// ownership: resolve() fallback ke SELF/DEFAULT, sama pola dgn Akun/Aset.
+function _populateVehOwnershipSelect(v){
+const ownSel=document.getElementById('vehOwnership');
+if(!ownSel)return;
+if(typeof OwnershipEngine!=='undefined'){
+ownSel.innerHTML=OwnershipEngine.TYPES.map(t=>'<option value="'+t+'">'+escapeHtml(OwnershipEngine.label(t))+'</option>').join('');
+ownSel.value=OwnershipEngine.resolve(v||{}).type;
+}else{
+ownSel.innerHTML='<option value="SELF">Milik Sendiri</option>';
+ownSel.value='SELF';
+}
 }
 function editVehicle(i){
 vehEditIdx=i;
@@ -71,6 +108,7 @@ if(jenisEl)jenisEl.value=v.jenis||'motor';
 onVehJenisChange();
 const kmWrap=document.getElementById('vehKmAwalWrap');if(kmWrap)kmWrap.style.display='none';
 document.getElementById('vehSaveBtn').textContent='Simpan Perubahan';
+_populateVehOwnershipSelect(v);
 openModal('vehicleModal');
 }
 function saveVehicle(){
@@ -79,6 +117,9 @@ const emoji=document.getElementById('vehEmoji').value||'🏍️';
 const jenisEl=document.getElementById('vehJenis');
 const jenis=jenisEl?(jenisEl.value||'motor'):'motor';
 if(!name){toast('⚠️ Isi nama kendaraan');return;}
+// Ownership (S231) — dibaca dari dropdown, divalidasi/dinormalisasi via OwnershipEngine.
+const ownRawV=document.getElementById('vehOwnership')?.value;
+const ownership=(typeof OwnershipEngine!=='undefined'&&OwnershipEngine.isValidType(ownRawV))?OwnershipEngine.normalize(ownRawV):(typeof OwnershipEngine!=='undefined'?OwnershipEngine.DEFAULT:'SELF');
 let interval,oliTrans=null,batteryCapacity=null;
 if(jenis==='listrik'){
 const batEl=document.getElementById('vehBatteryCapacity');
@@ -95,7 +136,7 @@ oliTrans=transEl?(parseFloat(transEl.value)||null):null;
 if(vehEditIdx!==null&&vehEditIdx!==undefined){
 const v=D.vehicles[vehEditIdx];
 if(!v){vehEditIdx=null;return;}
-v.name=name;v.emoji=emoji;v.jenis=jenis;v.serviceIntervalKm=interval;
+v.name=name;v.emoji=emoji;v.jenis=jenis;v.serviceIntervalKm=interval;v.ownership=ownership;
 if(jenis==='mobil'&&oliTrans)v.oliTransmisiIntervalKm=oliTrans;else delete v.oliTransmisiIntervalKm;
 if(jenis==='listrik'&&batteryCapacity)v.batteryCapacityKwh=batteryCapacity;else delete v.batteryCapacityKwh;
 vehEditIdx=null;
@@ -105,7 +146,7 @@ return;
 const kmAwalEl=document.getElementById('vehKmAwal');
 const kmAwal=kmAwalEl?parseFloat(kmAwalEl.value):NaN;
 const newId='veh_'+Date.now();
-const newVeh={id:newId,name,emoji,jenis,serviceIntervalKm:interval,intervalOverrides:{}};
+const newVeh={id:newId,name,emoji,jenis,serviceIntervalKm:interval,intervalOverrides:{},ownership};
 if(jenis==='mobil'&&oliTrans)newVeh.oliTransmisiIntervalKm=oliTrans;
 if(jenis==='listrik'&&batteryCapacity)newVeh.batteryCapacityKwh=batteryCapacity;
 D.vehicles.push(newVeh);
@@ -118,15 +159,26 @@ save();renderVehicleManageList();renderVehicleSelect();renderCarImportVehicleSel
 // PURE function (tidak sentuh DOM/D), dipanggil dari renderVehicleManageList() di modules-render.js.
 function vehMetaText(v){
 const jenis=v.jenis||'motor';
+// Ownership Badge (S233) — upgrade dari teks sederhana (S232) jadi badge, reuse class
+// "acc-chip" yang SUDAH ADA (dipakai badge/chip lain di project ini, mis. akun.js/aset.js/
+// bill render — lihat styles.css) — TIDAK ada style baru. Data diambil HANYA dari
+// OwnershipEngine.resolve()/label() (0 rumus baru). Data lama tanpa field ownership:
+// resolve() fallback ke SELF/DEFAULT (backward compatible, sama seperti S232).
+// Ownership Detail View (S234) — SATU pemanggilan OwnershipEngine.resolve(v) dipakai
+// bareng utk badge (S233, label Bahasa Indonesia) DAN detail view di bawahnya (kode tipe
+// mentah, mis. "SELF") — supaya TIDAK ada logic resolve/hitung ulang yang duplikat.
+const ownResolved=(typeof OwnershipEngine!=='undefined')?OwnershipEngine.resolve(v):null;
+const ownText=ownResolved?(' <span class="acc-chip">'+escapeHtml(OwnershipEngine.label(ownResolved.type))+'</span>'):'';
+const ownDetail=ownResolved?('<div class="u-fs10 u-t2">Ownership<br>'+escapeHtml(ownResolved.type)+'</div>'):'';
 if(jenis==='mobil'){
 const mesin=(v.serviceIntervalKm||5000).toLocaleString('id-ID');
 const trans=v.oliTransmisiIntervalKm?(v.oliTransmisiIntervalKm.toLocaleString('id-ID')+' km'):'belum diisi';
-return 'Oli mesin: '+mesin+' km · Oli transmisi: '+trans;
+return 'Oli mesin: '+mesin+' km · Oli transmisi: '+trans+ownText+ownDetail;
 }
 if(jenis==='listrik'){
-return v.batteryCapacityKwh?('Kapasitas baterai: '+v.batteryCapacityKwh+' kWh'):'Kapasitas baterai belum diisi';
+return (v.batteryCapacityKwh?('Kapasitas baterai: '+v.batteryCapacityKwh+' kWh'):'Kapasitas baterai belum diisi')+ownText+ownDetail;
 }
-return 'Interval servis: '+(v.serviceIntervalKm||3000).toLocaleString('id-ID')+' km';
+return 'Interval servis: '+(v.serviceIntervalKm||3000).toLocaleString('id-ID')+' km'+ownText+ownDetail;
 }
 function populateKmVehicleSelect(){
 const sel=document.getElementById('kmVehicle');
@@ -576,7 +628,7 @@ function startEditCurKm(){
 const el=document.getElementById('cnCurKm');
 if(!el||document.getElementById('cnCurKmInput'))return;
 const curKm=getVehicleKm(curVehicleId);
-el.innerHTML='<input class="u-fw800 u-ctext u-r8" type="number" inputmode="numeric" id="cnCurKmInput" value="'+curKm+'" style="width:120px;font-size:20px;background:var(--surface3);border:1px solid var(--accent);padding:2px 8px" data-onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\'){this.blur();}else if(event.key===\'Escape\'){this.dataset.cancel=\'1\';this.blur();}">';
+el.innerHTML='<input class="u-fw800 u-ctext u-r8" type="number" inputmode="numeric" id="cnCurKmInput" value="'+curKm+'" style="width:120px;font-size:20px;background:var(--surface3);border:1px solid var(--accent);padding:2px 8px" data-stop="1" data-action="vehCnCurKmInputStop" onkeydown="if(event.key===\'Enter\'){this.blur();}else if(event.key===\'Escape\'){this.dataset.cancel=\'1\';this.blur();}">';
 const inp=document.getElementById('cnCurKmInput');
 inp.focus();inp.select();
 inp.onblur=()=>commitCurKmEdit(inp);

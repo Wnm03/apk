@@ -42,14 +42,22 @@ async function catalogImportUiOnFileChange(e) {
   _vehImportSetStatus('🔍 Membaca PDF (OCR otomatis kalau perlu, bisa beberapa detik)...');
   const commitBtn = document.getElementById('vehCatImportCommitBtn');
   if (commitBtn) commitBtn.disabled = true;
+  const pickBtn = document.querySelector('[data-action="VehicleCatalogImportUI.pickFile"]');
+  if (pickBtn) pickBtn.disabled = true;
   try {
     const text = await VehicleCatalogImport.extractPdfText(file);
     const rows = VehicleCatalogImport.parseCatalogRows(text);
-    _vehImportRows = rows.map((r) => Object.assign({}, r, { included: true }));
+    // Hanya tampilkan baris yang sudah punya kode part — harga TIDAK
+    // wajib (banyak PDF katalog dealer nyata cuma nampilkan harga sbg
+    // angka polos tanpa "Rp", jadi tidak selalu kedeteksi parser; harga
+    // masih bisa diisi/dikoreksi manual di preview di bawah).
+    const completeRows = VehicleCatalogImport.filterCompleteRows(rows, { requirePrice: false });
+    const skippedIncomplete = rows.length - completeRows.length;
+    _vehImportRows = completeRows.map((r) => Object.assign({}, r, { included: true }));
     if (!_vehImportRows.length) {
-      _vehImportSetStatus('⚠️ Tidak ada baris terbaca dari PDF ini — coba file lain atau pastikan halaman cukup jelas.');
+      _vehImportSetStatus('⚠️ Tidak ada part dgn kode part dari PDF ini' + (rows.length ? ' (' + rows.length + ' baris terbaca, tapi tidak ada yang punya kode part)' : '') + ' — coba file lain atau pastikan halaman cukup jelas.');
     } else {
-      _vehImportSetStatus('✅ ' + _vehImportRows.length + ' baris terbaca — cek & sesuaikan dulu di bawah sebelum import.');
+      _vehImportSetStatus('✅ ' + _vehImportRows.length + ' part dgn kode part' + (skippedIncomplete ? ', ' + skippedIncomplete + ' baris dilewati (tidak ada kode part)' : '') + ' — cek & sesuaikan dulu di bawah (isi harga manual kalau belum ada) sebelum import.');
     }
     catalogImportUiRenderPreview();
   } catch (err) {
@@ -58,6 +66,8 @@ async function catalogImportUiOnFileChange(e) {
       ? VehicleScanner.errorMessage(err)
       : ((err && err.message) || 'gagal membaca PDF, coba lagi');
     _vehImportSetStatus('❌ Gagal baca PDF: ' + msg);
+  } finally {
+    if (pickBtn) pickBtn.disabled = false;
   }
 }
 
@@ -81,11 +91,13 @@ function catalogImportUiRenderPreview() {
   const commitBtn = document.getElementById('vehCatImportCommitBtn');
   if (!el) return;
   if (!_vehImportRows.length) {
-    el.innerHTML = '';
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Belum ada baris terbaca. Pilih file PDF katalog dulu.</div></div>';
     if (commitBtn) commitBtn.disabled = true;
     return;
   }
-  el.innerHTML = _vehImportRows.map((row, idx) => {
+  const includedCount = _vehImportRows.filter((r) => r.included).length;
+  const countLabel = '<div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-weight:600">' + includedCount + ' dari ' + _vehImportRows.length + ' dicentang</div>';
+  el.innerHTML = countLabel + _vehImportRows.map((row, idx) => {
     const checkedAttr = row.included ? 'checked' : '';
     const priceVal = (typeof row.price === 'number' && !isNaN(row.price)) ? row.price : '';
     return '<div class="tx-item" style="align-items:flex-start">'
@@ -97,7 +109,7 @@ function catalogImportUiRenderPreview() {
       + '<input type="number" class="fi" style="flex:1" value="' + priceVal + '" placeholder="Harga (opsional)" inputmode="numeric" oninput="VehicleCatalogImportUI.editField(' + idx + ',\'price\',this.value)">'
       + '</div></div></div>';
   }).join('');
-  if (commitBtn) commitBtn.disabled = !_vehImportRows.some((r) => r.included);
+  if (commitBtn) commitBtn.disabled = !includedCount;
 }
 
 async function catalogImportUiCommit() {
@@ -105,14 +117,21 @@ async function catalogImportUiCommit() {
   if (!rowsToImport.length) return;
   const ok = await askConfirm('Import ' + rowsToImport.length + ' part yang dicentang ke katalog?');
   if (!ok) return;
+  const commitBtn = document.getElementById('vehCatImportCommitBtn');
+  if (commitBtn) commitBtn.disabled = true;
   _vehImportSetStatus('⏳ Mengimpor...');
-  const summary = await VehicleCatalogImport.commitRows(rowsToImport);
-  toast('✅ ' + summary.imported + ' part diimpor' + (summary.skipped ? ', ' + summary.skipped + ' dilewati' : ''));
-  _vehImportRows = [];
-  catalogImportUiRenderPreview();
-  closeModal('vehCatalogImportModal');
-  if (typeof VehicleCatalogUI !== 'undefined' && VehicleCatalogUI && typeof VehicleCatalogUI.renderList === 'function') {
-    await VehicleCatalogUI.renderList();
+  try {
+    const summary = await VehicleCatalogImport.commitRows(rowsToImport);
+    const dupNote = summary.duplicates ? ' (' + summary.duplicates + ' duplikat)' : '';
+    toast('✅ ' + summary.imported + ' part diimpor' + (summary.skipped ? ', ' + summary.skipped + ' dilewati' + dupNote : ''));
+    _vehImportRows = [];
+    catalogImportUiRenderPreview();
+    closeModal('vehCatalogImportModal');
+    if (typeof VehicleCatalogUI !== 'undefined' && VehicleCatalogUI && typeof VehicleCatalogUI.renderList === 'function') {
+      await VehicleCatalogUI.renderList();
+    }
+  } finally {
+    if (commitBtn) commitBtn.disabled = !_vehImportRows.some((r) => r.included);
   }
 }
 

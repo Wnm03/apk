@@ -2,8 +2,18 @@
 // Tahap 2 ACR-001. Scan (vehicle-scanner.js) & storage/CRUD (vehicle-catalog.js) SUDAH ADA
 // dari sesi sebelumnya — sesi ini isinya HANYA lapisan UI, scope disepakati eksplisit dgn
 // user (ringkas & additive):
+//
+// PERUBAHAN SESI INI (Tahap 7B-1 — Fondasi Scanner Sparepart): tambah field `catBarcode`
+// (baca/tulis openForm()/save()) — REUSE MURNI field `barcode` yang SUDAH ADA di skema
+// VehicleCatalog (vehicle-catalog.js, dipakai findByCode()/handleScan() sejak Tahap 2),
+// sebelumnya cuma belum ada input-nya di form UI ini. Ditambahkan supaya kode hasil scan
+// dari sparepart-scanner.js (baru, lihat file itu) kelihatan & bisa diisi/dikoreksi manual
+// di form yang sama — TIDAK ada skema/formula baru, presenter-layer saja.
 // - 1 modal baru (`catalogModal`) — list part (nama, OEM code, foto thumbnail).
-// - Tombol "📷 Scan" -> reuse VehicleScanner.scan() (TIDAK ada logic scan baru di sini).
+// - Tombol "📷 Scan" -> reuse SparepartScannerUI.scanCamera() (Tahap 7B-2,
+//   lihat sparepart-scanner-ui.js/sparepart-scanner.js — adapter 'camera'
+//   reuse penuh VehicleScanner.ensureZXing()/buildHints()) — TIDAK ada logic
+//   scan baru di sini.
 // - Tombol "+ Tambah Manual" -> form pakai field yang SUDAH ADA di VehicleCatalog
 //   (partName/oemCode/category/photos) -- TIDAK ada field/skema baru.
 // Entry point: tombol "📦 Katalog Suku Cadang" ditambah di page:'carnotes', tepat di bawah
@@ -66,6 +76,10 @@ async function catalogUiRenderList() {
     if (it.oemCode) metaParts.push('OEM: ' + escapeHtml(it.oemCode));
     if (it.category) metaParts.push(escapeHtml(it.category));
     if (it.compatibleVehicleIds && it.compatibleVehicleIds.length) metaParts.push('🏍️ ' + it.compatibleVehicleIds.length + ' kendaraan');
+    if (typeof D !== 'undefined' && Array.isArray(D.partsStock) && it.partName) {
+      const matchedStock = D.partsStock.find((p) => p.name && p.name.trim().toLowerCase() === it.partName.trim().toLowerCase());
+      if (matchedStock) metaParts.push('📦 Stok ' + matchedStock.qty + (matchedStock.unit ? ' ' + matchedStock.unit : ''));
+    }
     if (it.isDraft) metaParts.push('⚠️ Draft');
     const idArg = escapeHtml(JSON.stringify([it.id]));
     return '<div class="tx-item">' + thumb
@@ -90,6 +104,7 @@ async function catalogUiOpenForm(id) {
     document.getElementById('catFormLabel').textContent = 'Edit Part';
     document.getElementById('catPartName').value = item ? item.partName : '';
     document.getElementById('catOemCode').value = item ? (item.oemCode || '') : '';
+    document.getElementById('catBarcode').value = item ? (item.barcode || '') : '';
     document.getElementById('catCategory').value = item ? (item.category || '') : '';
     _catPhotos = (item && Array.isArray(item.photos)) ? item.photos.slice() : [];
     compatibleVehicleIds = (item && Array.isArray(item.compatibleVehicleIds)) ? item.compatibleVehicleIds : [];
@@ -99,6 +114,7 @@ async function catalogUiOpenForm(id) {
     document.getElementById('catFormLabel').textContent = 'Tambah Part Baru';
     document.getElementById('catPartName').value = '';
     document.getElementById('catOemCode').value = '';
+    document.getElementById('catBarcode').value = '';
     document.getElementById('catCategory').value = '';
     document.getElementById('catSaveBtn').textContent = '+ Tambah Part';
     if (delBtn) delBtn.classList.add('u-dnone');
@@ -178,12 +194,13 @@ function catalogUiRenderPhotos() {
 async function catalogUiSave() {
   const partName = (document.getElementById('catPartName').value || '').trim();
   const oemCode = (document.getElementById('catOemCode').value || '').trim();
+  const barcode = (document.getElementById('catBarcode').value || '').trim();
   const category = (document.getElementById('catCategory').value || '').trim();
   const compatWrap = document.getElementById('catCompatWrap');
   const compatibleVehicleIds = compatWrap
     ? Array.from(compatWrap.querySelectorAll('input[type="checkbox"]:checked')).map((cb) => cb.value)
     : [];
-  const data = { partName, oemCode, category, photos: _catPhotos.slice(), compatibleVehicleIds };
+  const data = { partName, oemCode, barcode, category, photos: _catPhotos.slice(), compatibleVehicleIds };
   const res = _catEditId
     ? await VehicleCatalog.update(_catEditId, data)
     : await VehicleCatalog.create(data);

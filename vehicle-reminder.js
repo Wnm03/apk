@@ -40,9 +40,17 @@ const VehicleReminder = {
 // (array kosong kalau D/D.vehicles belum ada — guard typeof, pola sama
 // persis VehicleIntelligence._vehicles()), difilter ke 1 kendaraan kalau
 // vehicleId diberikan.
+// _vehicles(vehicleId) (Sesi 196, Ownership Sync Vehicle): dengan
+// vehicleId -> tetap balikin kendaraan itu apa adanya (TIDAK peduli
+// ownership, sama pola per-akun/per-aset Sesi 192-193). TANPA vehicleId
+// (fleet-wide, dipakai reminder-notif.js/VehicleNotifBridge/
+// FuelNotifBridge/Dashboard) -> HANYA kendaraan ownership SELF (default/
+// tanpa field ownership ikut SELF), kendaraan INVESTOR/CUSTOMER/
+// THIRD_PARTY/FAMILY dikecualikan dari reminder lintas-armada.
 _vehicles(vehicleId) {
   const all = (typeof D !== 'undefined' && D.vehicles) ? D.vehicles : [];
-  return vehicleId ? all.filter((v) => v.id === vehicleId) : all;
+  if (vehicleId) return all.filter((v) => v.id === vehicleId);
+  return all.filter((v) => (typeof isVehicleOwnershipSelf !== 'function') || isVehicleOwnershipSelf(v.id));
 },
 
 // serviceReminders(vehicleId?) — reminder servis lintas kendaraan (atau 1

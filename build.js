@@ -124,7 +124,26 @@ const GROUP_A = [
 ];
 const GROUP_B = [
   'modules/shared/data-default.js',
+  // Sesi 191: Ownership Engine — ditaruh SEBELUM features-helpers-global-
+  // security.js (0 dependency ke arah situ atau modul lain mana pun, 100%
+  // pure/standalone) supaya berdekatan dgn modul shared "fondasi" lain di
+  // awal GROUP_B. TIDAK disinkronkan/dipanggil dari modul lain mana pun
+  // sesi ini (sesuai batasan eksplisit user) — murni terdaftar biar ikut
+  // ter-bundle.
+  'modules/shared/ownership-engine.js',
+  // S229-230: Settings -> Ownership (read-only presenter). Ditaruh TEPAT
+  // setelah ownership-engine.js (dependency: OwnershipSettingsPresenter.
+  // summary()/render() memanggil OwnershipEngine.TYPES/label()/countByType()
+  // — semuanya method yang SUDAH ADA sejak S191, tidak ditambah/diubah sesi
+  // ini). Dipanggil dari renderSettings() (modules-render.js) via guard
+  // typeof, pola sama persis DashboardSettings.renderSettingsUI() (S129).
+  'modules/shared/ownership-settings-presenter.js',
   'modules/shared/features-helpers-global-security.js',
+  // S264: Security Hardening — wrapper functions utk eks data-onclick,
+  // dipanggil lewat data-action. Ditaruh langsung setelah dispatcher
+  // (features-helpers-global-security.js) krn cuma re-wrap handler yg
+  // sebelumnya inline; tidak ada dependency baru ke modul lain.
+  'modules/shared/action-wrappers.js',
   'diagnostik-versi.js',
   'modules/shared/format-tema.js',
   'modules/shared/error-handler.js',
@@ -172,6 +191,12 @@ const GROUP_B = [
 
   'modules/business/payroll-absensi.js',
   'modules/business/tukang-absensi.js',
+  // insight-target-mingguan.js (S132 — Insight Target Mingguan kirim uang ke
+  // istri): logic-only, BACA D.workDays/D.profile.kiriman via getWeekRange
+  // (reset-gaji-mingguan.js, sudah dimuat lebih dulu di GROUP_B) & dipanggil
+  // dari Payroll.renderDashMini() (payroll-absensi.js, di atas) — ditaruh
+  // tepat setelahnya krn dependency logis (dibaca setelah Payroll dimuat).
+  'modules/business/insight-target-mingguan.js',
   'modules/vehicle/vehicle-core.js',
   // vehicle-catalog.js (Milestone 0 Phase 1, BARU — lihat ACR-001):
   // dependency uid()/sameId() (features-helpers-global-security.js) &
@@ -190,6 +215,68 @@ const GROUP_B = [
   // VehicleCatalog (vehicle-catalog.js) & openModal/closeModal/askConfirm/
   // toast/escapeHtml (modal-navigasi.js dkk) sudah dimuat lebih dulu.
   'modules/vehicle/vehicle-catalog-ui.js',
+  // sparepart-scanner.js (Tahap 7B-1 — Fondasi Scanner Sparepart): adapter
+  // "gallery" (upload foto, decode 1x lewat ZXing) + registry adapter utk
+  // tahap kamera berikutnya. Dependency: VehicleScanner (vehicle-scanner.js,
+  // reuse ensureZXing/buildHints/errorMessage) & VehicleCatalog
+  // (vehicle-catalog.js, reuse handleScan) sudah dimuat lebih dulu di atas.
+  'modules/vehicle/sparepart-scanner.js',
+  // sparepart-scanner-ui.js: lapisan tipis tombol "Scan dari Galeri" di
+  // catalogModal, dependency SparepartScanner (file di atas) &
+  // VehicleCatalogUI.openForm()/renderList() (vehicle-catalog-ui.js) sudah
+  // dimuat lebih dulu.
+  'modules/vehicle/sparepart-scanner-ui.js',
+  // sparepart-ocr.js (Tahap 7C-1 — Engine OCR Sparepart, Fondasi): baca 1
+  // foto dari galeri, OCR (100% reuse ocrRecognize() di scan-ocr.js),
+  // kembalikan STRING teks OCR saja — TIDAK ada parsing/integrasi Vehicle
+  // Catalog (sengaja di luar cakupan sesi ini, kandidat tahap lanjutan).
+  // Dependency: ocrRecognize() (scan-ocr.js) sudah dimuat lebih dulu di
+  // blok atas; SparepartScanner (file di atas) opsional (reuse
+  // pickImageFile() kalau ada).
+  'modules/vehicle/sparepart-ocr.js',
+  // sparepart-ocr-parser.js (Tahap 7C-2 — Parser Hasil OCR Sparepart):
+  // logic murni, terima STRING teks OCR -> ekstrak { oemCode, partName,
+  // brand, barcode }. OEM Code/Barcode reuse VehicleCatalog.parseLabelText()
+  // (guard typeof); Brand & Nama Part heuristik baru (belum ada di modul
+  // manapun sebelumnya). BELUM menyimpan data (tidak panggil
+  // VehicleCatalog.create()) & BELUM menyentuh DOM/UI. Dependency:
+  // VehicleCatalog (vehicle-catalog.js) opsional, sudah dimuat lebih dulu
+  // di blok atas kalau ada.
+  'modules/vehicle/sparepart-ocr-parser.js',
+  // sparepart-ocr-catalog-link.js (Tahap 7C-3a — jembatan MURNI LOGIC
+  // hasil SparepartOcrParser (file di atas) <-> VehicleCatalog): cari
+  // part berdasar OEM Code/Barcode/Part Number (aftermarketCode), HANYA
+  // kembalikan found/not found — TIDAK bikin draft, TIDAK ubah UI/form.
+  // Dependency: SparepartOcrParser (file di atas) & VehicleCatalog
+  // (vehicle-catalog.js) keduanya opsional (guard typeof), sudah dimuat
+  // lebih dulu di blok atas.
+  'modules/vehicle/sparepart-ocr-catalog-link.js',
+  // sparepart-ocr-catalog-detail.js (Tahap 7C-3b — tampilkan detail part
+  // KALAU hasil pencarian file di atas ditemukan): presenter MURNI
+  // (field siap tampil + HTML kartu, fallback "Belum diisi"), TIDAK
+  // menyentuh DOM/VehicleCatalog/parser sama sekali. Dependency:
+  // escapeHtml() (helper-teks.js) & fmt() (format-tema.js) keduanya
+  // opsional (guard typeof), sudah dimuat lebih dulu di blok GROUP_A.
+  'modules/vehicle/sparepart-ocr-catalog-detail.js',
+  // sparepart-ocr-catalog-add.js (Tahap 7C-3c — kalau part TIDAK ditemukan
+  // di file 7C-3a di atas, buka form tambah part yang SUDAH ADA
+  // (VehicleCatalogUI.openForm()) dalam mode "Tambah Part Baru", isi
+  // otomatis field dari hasil parse OCR (SparepartOcrParser, Tahap 7C-2),
+  // baru simpan (VehicleCatalogUI.save()) SETELAH user konfirmasi
+  // (askConfirm()). TIDAK ubah openForm()/save()/parser/pencarian/kartu
+  // detail yang sudah ada. Dependency: VehicleCatalogUI
+  // (vehicle-catalog-ui.js) & askConfirm() (modal-navigasi.js) keduanya
+  // opsional (guard typeof), sudah dimuat lebih dulu di blok atas.
+  'modules/vehicle/sparepart-ocr-catalog-add.js',
+  // sparepart-ocr-orchestrator.js (Tahap 7C-4b — orkestrator utama Scan ->
+  // Parse -> Cari Vehicle Catalog -> (ditemukan -> Detail) / (tidak
+  // ditemukan -> Add)): 0 logic baru, murni merangkai pemanggilan
+  // SparepartOcr.scan() (7C-1) -> SparepartOcrParser.parseText() (7C-2) ->
+  // SparepartOcrCatalogLink.findFromParsed() (7C-3a) -> found ?
+  // SparepartOcrCatalogDetail.show() (7C-3b) :
+  // SparepartOcrCatalogAdd.open() (7C-3c). Dependency: kelima file di atas,
+  // semuanya opsional (guard typeof), sudah dimuat lebih dulu di blok ini.
+  'modules/vehicle/sparepart-ocr-orchestrator.js',
   // vehicle-catalog-import.js (Tahap 5 — Import Katalog PDF -> OCR ->
   // Parser -> Preview -> Import): logic murni (pdf.js lazy-load, parsing
   // per baris, commitRows()). Dependency VehicleCatalog.parseLabelText()/
@@ -201,6 +288,20 @@ const GROUP_B = [
   // di atas) & openModal/closeModal/askConfirm/toast/escapeHtml sudah
   // dimuat lebih dulu.
   'modules/vehicle/vehicle-catalog-import-ui.js',
+  // vehicle-catalog-web-import.js (Tahap 6 — Import Katalog dari URL Web:
+  // fetch(url) -> Parser HTML -> Preview -> Import). App ini PWA
+  // client-side murni tanpa backend/proxy, jadi fetch(url) ke situs
+  // katalog pihak ketiga besar kemungkinan diblokir CORS — fallback-nya
+  // paste HTML manual, 1 parser dipakai utk kedua jalur (lihat komentar
+  // desain lengkap di file ini). Reuse VehicleCatalogImport.
+  // filterCompleteRows()/commitRows() (Tahap 5, file di atas) apa adanya
+  // utk preview-filter & commit — TIDAK ada logic commit baru.
+  'modules/vehicle/vehicle-catalog-web-import.js',
+  // vehicle-catalog-web-import-ui.js: lapisan DOM/presenter modal
+  // "vehCatWebImportModal" saja, dependency VehicleCatalogWebImport (file
+  // di atas), VehicleCatalogImport (Tahap 5) & openModal/closeModal/
+  // askConfirm/toast/escapeHtml sudah dimuat lebih dulu.
+  'modules/vehicle/vehicle-catalog-web-import-ui.js',
   // vehicle-catalog-servis-link.js (Vehicle Catalog Tahap 6, Sesi 1/3 —
   // jembatan MURNI LOGIC D.servisLogs <-> VehicleCatalog, TANPA UI).
   // Dependency: D (data-default.js) & VehicleCatalog (vehicle-catalog.js)
@@ -209,6 +310,60 @@ const GROUP_B = [
   // ini (baru dipakai mulai Sesi 2 — UI picker), ditaruh di sini supaya
   // mengelompok dengan file vehicle-catalog-* lain.
   'modules/vehicle/vehicle-catalog-servis-link.js',
+  // vehicle-catalog-tx-link.js (Vehicle Catalog Tahap 7A — "Smart
+  // Transaction Foundation": jembatan MURNI LOGIC D.transactions <->
+  // VehicleCatalog, TANPA UI, pola SAMA PERSIS vehicle-catalog-servis-
+  // link.js di atas). Dependency: D (data-default.js, transaksi.js sudah
+  // dimuat lebih dulu) & VehicleCatalog (vehicle-catalog.js) sudah dimuat
+  // lebih dulu di blok atas. transaksi.js TIDAK bergantung ke file ini
+  // secara langsung sesi ini (wiring UI txModal baru dikerjakan sesi
+  // berikutnya), ditaruh di sini supaya mengelompok dengan file
+  // vehicle-catalog-* lain.
+  'modules/finance/vehicle-catalog-tx-link.js',
+  // honda-pdf-import.js (Tahap 7D-1 — Import PDF Honda, Fondasi): pilih
+  // 1/banyak file PDF (input `multiple`, filter application/pdf), simpan
+  // SEMENTARA (metadata+base64) ke store IndexedDB terpisah
+  // (`honda-pdf-import:store`), status selalu `pending` — BELUM ada
+  // parsing/OCR/integrasi VehicleCatalog sesi ini (di luar cakupan,
+  // kandidat tahap lanjutan 7D-2 dst). Pola sama persis vehicle-catalog.js
+  // (storage IDBStore) & sparepart-ocr.js (picker + orkestrasi, Tahap
+  // 7C-1). TIDAK menyentuh D, TIDAK ada UI/modal baru di index.html/
+  // app_production.html sesi ini. Dependency: uid()/sameId()
+  // (features-helpers-global-security.js) & IDBStore sudah dimuat lebih
+  // dulu di blok GROUP_A; toast()/scanErrorMessage() (opsional, guard
+  // typeof) sudah dimuat lebih dulu juga.
+  'modules/vehicle/honda-pdf-import.js',
+  // honda-pdf-import-extract.js (Tahap 7D-2 — Extract Text -> Preview):
+  // reuse VehicleCatalogImport.extractPdfText() (Tahap 5) apa adanya lewat
+  // adapter file-like dari base64 tersimpan (HondaPdfImport, Tahap 7D-1).
+  // Hasil disimpan balik via HondaPdfImport.update(). TIDAK ada parsing
+  // field part/integrasi VehicleCatalog (di luar cakupan, kandidat tahap
+  // lanjutan 7D-3 dst). Dependency: HondaPdfImport (file di atas) &
+  // VehicleCatalogImport (vehicle-catalog-import.js) sudah dimuat lebih
+  // dulu di blok atas.
+  'modules/vehicle/honda-pdf-import-extract.js',
+  // honda-pdf-import-parse.js (Tahap 7D-3 — Parse Text -> JSON): reuse
+  // VehicleCatalogImport.parseCatalogRows() (Tahap 5) apa adanya atas
+  // `record.extractedText` (HondaPdfImport, Tahap 7D-2). Hasil disimpan
+  // balik via HondaPdfImport.update() sbg `parsedRows`. TIDAK ada
+  // integrasi VehicleCatalog/UI (di luar cakupan, kandidat tahap lanjutan
+  // 7D-4 dst). Dependency: HondaPdfImport & VehicleCatalogImport (file di
+  // atas) sudah dimuat lebih dulu.
+  'modules/vehicle/honda-pdf-import-parse.js',
+  // honda-pdf-import-commit.js (Tahap 7D-4 — JSON -> Vehicle Catalog):
+  // reuse VehicleCatalogImport.commitRows() (Tahap 5) apa adanya atas
+  // `record.parsedRows` (HondaPdfImport, Tahap 7D-3) atau subset baris
+  // dikirim eksplisit. Hasil disimpan balik via HondaPdfImport.update()
+  // sbg `commitResult`. TIDAK ada UI/modal (di luar cakupan, kandidat
+  // tahap lanjutan 7D-5 dst). Dependency: HondaPdfImport &
+  // VehicleCatalogImport (file di atas) sudah dimuat lebih dulu.
+  'modules/vehicle/honda-pdf-import-commit.js',
+  // honda-pdf-import-ui.js (Tahap 7D-5 — "Preview Import" UI): lapisan
+  // DOM/presenter modal `hondaPdfImportModal` SAJA, pola sama persis
+  // vehicle-catalog-import-ui.js. Dependency: HondaPdfImport/Extract/
+  // Parse/Commit (file-file di atas) & openModal/closeModal/askConfirm/
+  // toast/escapeHtml sudah dimuat lebih dulu.
+  'modules/vehicle/honda-pdf-import-ui.js',
   'modules/ai/chat-action.js',
   'modules/shared/data-archive.js',
   'modules/vehicle/sparepart-servis.js',
@@ -607,6 +762,62 @@ const GROUP_B = [
   // Delivery Engine" berurutan di satu tempat, bukan karena ketergantungan.
   'modules/logistics/logistics-engine.js',
   'modules/logistics/logistics-service.js',
+
+  // S198 (Business Engine untuk Shop): PurchaseEngine/TripEngine/
+  // InventoryEngine/ProfitEngine — TARGET EKSPLISIT USER: "Buat Business
+  // Engine untuk Shop. Reuse seluruh Shop existing. Jangan ubah business
+  // logic. Jangan implementasi ke modul lain. Jangan refactor... Belum
+  // digunakan UI. Belum dihubungkan ke Shop." Ditaruh SETELAH seluruh
+  // modules/shop/cobek-*.js (GROUP_A) & LogisticsEngine di atas (semua 4
+  // engine ini memanggil fungsi dari file-file itu, mis. calculateProfit/
+  // calculateVehicleCapacity/weightCalculator/Etalase.*/StockRekoWidget.*)
+  // supaya 0 forward-reference. Murni terdaftar biar ikut ter-bundle
+  // (sama pola ownership-engine.js S191 & logistics-engine.js Sesi 3) —
+  // TIDAK dipanggil dari cobek-*.js atau modul lain mana pun sesi ini.
+  'modules/shop/purchase-engine.js',
+  'modules/shop/trip-engine.js',
+  'modules/shop/inventory-engine.js',
+  'modules/shop/profit-engine.js',
+
+  // S203 (Continue — Delivery Plan UI): DeliveryPlanUI, presenter yang
+  // menutup gap TripEngine "Belum digunakan UI" dari S198 di atas. Ditaruh
+  // langsung setelah TripEngine (0 forward-reference: TripEngine sudah
+  // dimuat baris sebelumnya, requestAIRecommendation/calculateSmartDelivery
+  // sudah dimuat lebih dulu lewat GROUP_A/cobek-order.js).
+  'modules/shop/delivery-plan-ui.js',
+
+  // S199 (Finalisasi Integrasi Shop): ShopBusinessEnginePresenter — menutup
+  // gap "Belum digunakan UI. Belum dihubungkan ke Shop." dari S198 di atas.
+  // Ditaruh langsung setelah ke-4 engine (pola sama persis
+  // property-management-api.js -> -presenter.js / dana-kelolaan.js ->
+  // -presenter.js) — 0 forward-reference (InventoryEngine/PurchaseEngine/
+  // ProfitEngine sudah dimuat baris sebelumnya, isCobekOwnershipSelf sudah
+  // dimuat lebih dulu di GROUP_A lewat ownership-engine.js).
+  'modules/shop/shop-business-engine-presenter.js',
+
+  // S204-A: TripPresenter — menutup gap yang dicatat eksplisit di
+  // shop-business-engine-presenter.js ("TripEngine tidak dipakai di sini
+  // ... tidak ada ringkasan pengiriman yang relevan ditampilkan di
+  // Dashboard/Laporan"). Ditaruh langsung setelah ShopBusinessEnginePresenter
+  // (0 forward-reference: TripEngine sudah dimuat 2 baris di atas,
+  // isCobekOwnershipSelf & getAIDeliveryThinMarginThreshold sudah dimuat
+  // lebih dulu lewat GROUP_A/ownership-engine.js/cobek-pricing.js).
+  'modules/shop/trip-presenter.js',
+
+  // S205: BusinessFlowPresenter — WIRE ONLY, menyusun 4 tahap alur bisnis
+  // Purchase->Trip->Stock->Sale dari ShopBusinessEnginePresenter.summary()
+  // + TripPresenter.summary() (2 baris di atas) — 0 engine/rumus baru.
+  // Ditaruh langsung setelah TripPresenter (0 forward-reference: kedua
+  // presenter sumber sudah dimuat baris-baris sebelumnya).
+  'modules/shop/business-flow-presenter.js',
+
+  // S195 (Managed Funds / Dana Kelolaan): reuse OwnershipEngine (S191) +
+  // nilai per-entity yang sudah ada di akun.js/aset.js/investasi.js/
+  // cobek-order.js — SEMUA sudah dimuat lebih dulu (GROUP_A + GROUP_B di
+  // atas), jadi 0 forward-reference. Presenter langsung setelah engine-nya,
+  // pola sama persis property-management-api.js -> -presenter.js.
+  'modules/finance/dana-kelolaan.js',
+  'modules/finance/dana-kelolaan-presenter.js',
 ];
 const ALL_SOURCE = [...GROUP_A, ...GROUP_B];
 const HTML_FILES = ['index.html', 'app_production.html'];

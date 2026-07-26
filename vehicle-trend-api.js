@@ -36,9 +36,14 @@ const VehicleTrendAPI = {
 // (array kosong kalau D/D.vehicles belum ada — guard typeof, pola sama
 // persis VehicleIntelligence._vehicles()/VehicleReminder._vehicles()),
 // difilter ke 1 kendaraan kalau vehicleId diberikan.
+// _vehicles(vehicleId) (Sesi 196, Ownership Sync Vehicle): pola SAMA
+// PERSIS VehicleReminder._vehicles() — dengan vehicleId tetap balikin
+// kendaraan itu apa adanya, tanpa vehicleId (fleet-wide) HANYA kendaraan
+// ownership SELF.
 _vehicles(vehicleId) {
   const all = (typeof D !== 'undefined' && D.vehicles) ? D.vehicles : [];
-  return vehicleId ? all.filter((v) => v.id === vehicleId) : all;
+  if (vehicleId) return all.filter((v) => v.id === vehicleId);
+  return all.filter((v) => (typeof isVehicleOwnershipSelf !== 'function') || isVehicleOwnershipSelf(v.id));
 },
 
 // _monthKeys(months) — bangkitkan array kunci bulan 'YYYY-MM' N bulan
@@ -74,9 +79,17 @@ _monthLabel(key) {
 // vehicleId (opsional, tanpa vehicleId = seluruh armada) & cost>0 &
 // punya date. Field cost/date SUDAH ADA (tx-bbm.js/sparepart-servis.js),
 // TIDAK ada transformasi.
+// _costLogs(vehicleId, source) (Sesi 196, Ownership Sync Vehicle): TAMBAH
+// 1 filter isVehicleOwnershipSelf(l.vehicleId) di atas logic lama, HANYA
+// aktif kalau vehicleId TIDAK diberikan (fleet-wide/"seluruh armada").
+// Dengan vehicleId eksplisit (1 kendaraan), log tetap dibaca apa adanya
+// TANPA filter ownership — permintaan langsung ke 1 kendaraan tetap utuh
+// sama pola recalcAccBalance() per-akun (Sesi 192) yang TIDAK disentuh.
 _costLogs(vehicleId, source) {
   const arr = (typeof D !== 'undefined' && D[source]) ? D[source] : [];
-  return arr.filter((l) => (!vehicleId || l.vehicleId === vehicleId) && l.cost > 0 && typeof l.date === 'string' && l.date.length >= 7);
+  return arr.filter((l) => (!vehicleId || l.vehicleId === vehicleId)
+    && l.cost > 0 && typeof l.date === 'string' && l.date.length >= 7
+    && (vehicleId || typeof isVehicleOwnershipSelf !== 'function' || isVehicleOwnershipSelf(l.vehicleId)));
 },
 
 // monthlyCostTrend({vehicleId, type, months}) — LOGIC BARU sesi ini:

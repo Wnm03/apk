@@ -22,6 +22,27 @@
 // CSS: TIDAK ada class baru — reuse penuh .findash-grid/.findash-card*
 // (styles.css, Sesi 75) & class "empty"/"empty-text" (SUDAH dipakai
 // VehicleAnalyticsPresenter) apa adanya.
+//
+// VEHICLE_AUTOMATION_NAV_TARGETS (Sesi 253 — Batch Vehicle Navigation
+// Consistency) — tujuan navigasi tiap kartu #vehAutomationGrid. MURNI DATA
+// (0 logic navigasi baru), format {page,tab,subtab,goTo} SAMA PERSIS
+// format target dashHubNavigateToFeature() yang SUDAH ADA (dashboard-
+// hub.js). Nama disendirikan per-file supaya tidak bentrok dgn const
+// global lain (lihat kasus S251). Target TERVERIFIKASI ADA di index.html/
+// app_production.html (grep manual, 0 halaman/tab/container baru dibuat):
+//   total/today -> gabungan servis+pajak, tidak ada 1 daftar spesifik ->
+//     container kartu ini sendiri (vehAutomationWrap)
+//   maintenance -> Kendaraan > tab Servis > servisList (SAMA PERSIS target
+//     'cn-servis' di dashboard-hub-registry.js)
+//   tax -> Kendaraan > vehTaxList (SAMA PERSIS target 'cn-pajak-sim' di
+//     dashboard-hub-registry.js)
+const VEHICLE_AUTOMATION_NAV_TARGETS = Object.freeze({
+  total: { page: 'carnotes', tab: 'insight', subtab: 'rekomendasi', goTo: 'vehAutomationWrap' },
+  today: { page: 'carnotes', tab: 'insight', subtab: 'rekomendasi', goTo: 'vehAutomationWrap' },
+  maintenance: { page: 'carnotes', tab: 'servis', goTo: 'servisList' },
+  tax: { page: 'carnotes', goTo: 'vehTaxList' },
+});
+
 const VehicleAutomationPresenter = {
 
   render() {
@@ -53,8 +74,14 @@ const VehicleAutomationPresenter = {
       this._taxCard(taxPlan),
     ];
 
+    // S253 (Batch Vehicle Navigation Consistency): SELURUH kartu clickable
+    // lewat mekanisme SAMA PERSIS FinanceDashboard.render()/
+    // VehicleDashboard.render() — tiap kartu carry field onClick:{action,
+    // args} sendiri (ditempel di masing2 _xxxCard() di bawah), template di
+    // sini CUMA mengecek `c.onClick` (0 logic navigasi baru, 0 percabangan
+    // per-index, JANGAN openCard(index)).
     el.innerHTML = cards.map((c) => `
-      <div class="findash-card">
+      <div class="findash-card${c.onClick ? ' u-pointer' : ''}"${c.onClick ? ` data-action="${escapeHtml(c.onClick.action)}" data-args="${escapeHtml(JSON.stringify(c.onClick.args))}"` : ''}>
         <div class="findash-card-icon">${c.icon}</div>
         <div class="findash-card-body">
           <div class="findash-card-label">${escapeHtml(c.label)}</div>
@@ -68,26 +95,38 @@ const VehicleAutomationPresenter = {
   // adanya (jumlah semua item terjadwal fleet-level — 0 recompute di
   // sini).
   _totalCard(s) {
-    return { icon: '🤖', label: 'Total Item Terjadwal', value: String(s.total), cls: '' };
+    return {
+      icon: '🤖', label: 'Total Item Terjadwal', value: String(s.total), cls: '',
+      onClick: { action: 'dashHubNavigateToFeature', args: [VEHICLE_AUTOMATION_NAV_TARGETS.total] },
+    };
   },
 
   // _todayCard(s) — s.counts.today dari VehicleReminderScheduler.
   // summary() apa adanya (bucket 'today' — severity 'overdue' — 0
   // recompute di sini).
   _todayCard(s) {
-    return { icon: '⏰', label: 'Segera (Hari Ini)', value: String(s.counts.today), cls: s.counts.today > 0 ? 'red' : '' };
+    return {
+      icon: '⏰', label: 'Segera (Hari Ini)', value: String(s.counts.today), cls: s.counts.today > 0 ? 'red' : '',
+      onClick: { action: 'dashHubNavigateToFeature', args: [VEHICLE_AUTOMATION_NAV_TARGETS.today] },
+    };
   },
 
   // _maintenanceCard(p) — p.total dari VehicleMaintenanceAutomation.
   // plan() apa adanya (filter type 'service' — 0 recompute di sini).
   _maintenanceCard(p) {
-    return { icon: '🔧', label: 'Servis Terjadwal', value: String(p.total), cls: '' };
+    return {
+      icon: '🔧', label: 'Servis Terjadwal', value: String(p.total), cls: '',
+      onClick: { action: 'dashHubNavigateToFeature', args: [VEHICLE_AUTOMATION_NAV_TARGETS.maintenance] },
+    };
   },
 
   // _taxCard(p) — p.total dari VehicleTaxDocumentAutomation.plan() apa
   // adanya (filter type 'tax' — 0 recompute di sini).
   _taxCard(p) {
-    return { icon: '📋', label: 'Pajak/Dokumen Terjadwal', value: String(p.total), cls: '' };
+    return {
+      icon: '📋', label: 'Pajak/Dokumen Terjadwal', value: String(p.total), cls: '',
+      onClick: { action: 'dashHubNavigateToFeature', args: [VEHICLE_AUTOMATION_NAV_TARGETS.tax] },
+    };
   },
 
 };

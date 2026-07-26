@@ -99,8 +99,15 @@ healthScore(vehicleId) {
 // ulang hasil predictService() yang sudah ada), rata-rata healthScore
 // seluruh armada. Belum ada versi murni (non-DOM, lintas-kendaraan) untuk
 // ini sebelum sesi ini.
+// fleetSummary() (Sesi 196, Ownership Sync Vehicle): TAMBAH 1 filter
+// isVehicleOwnershipSelf(v.id) di atas this._vehicles() (0 logic lama
+// diubah). Kendaraan ber-ownership INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY
+// dikecualikan dari agregat armada (Dashboard/AI briefing), TAPI
+// vehicleOverview(vehicleId)/healthScore(vehicleId) per-kendaraan TIDAK
+// disentuh — kendaraan itu tetap kehitung normal kalau dilihat langsung
+// by id (sama pola totalSaldoAkun() Sesi 192).
 fleetSummary() {
-  const vehicles = this._vehicles();
+  const vehicles = this._vehicles().filter((v) => (typeof isVehicleOwnershipSelf !== 'function') || isVehicleOwnershipSelf(v.id));
   const rows = vehicles.map((v) => {
     const hs = this.healthScore(v.id);
     let overdueCount = 0;
