@@ -25,10 +25,17 @@
 // `(b.id||0)-(a.id||0)` di _aiContextShop() ai-core.js) — bukan rumus
 // baru. Guard `typeof D==='undefined'` (tidak pernah menyentuh/mengubah D,
 // murni baca) — kalau D belum ada atau tidak ada order pending, balik null.
+// (Sesi 265, Ownership Sync — AI): TAMBAH filter isCobekOwnershipSelf di
+// atas D.cobek (0 logic lama diubah) — pesanan Cobek ber-ownership
+// INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY dikecualikan dari Delivery Summary
+// AI Daily Briefing, pola sama persis _aiContextShop() (ai-core.js, S265).
+// Guard typeof: kalau helper belum dimuat, anggap semua SELF.
 function _aiLastPendingCobekOrder() {
   if (typeof D === 'undefined' || !D || !Array.isArray(D.cobek)) return null;
+  const cobSelfFilter = typeof isCobekOwnershipSelf === 'function' ? isCobekOwnershipSelf : (() => true);
   const pending = D.cobek
     .filter((c) => c.items && c.delivered === false)
+    .filter(cobSelfFilter)
     .sort((a, b) => (b.id || 0) - (a.id || 0));
   return pending[0] || null;
 }

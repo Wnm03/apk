@@ -19,6 +19,21 @@
 // findash-grid/findash-card (grid generik, sudah dipakai
 // FinanceDashboard/FinancialForecastPresenter/BudgetRecommendationPresenter/
 // VehicleDashboard/dst).
+//
+// CASHFLOWPROJ_NAV_TARGETS (S254B — Batch Finance Navigation
+// Consistency) — tujuan navigasi tiap kartu #cashflowProjGrid. MURNI
+// DATA (0 logic navigasi baru), format {page,goTo} SAMA PERSIS format
+// target dashHubNavigateToFeature() yang SUDAH ADA (dashboard-hub.js).
+// Nama disendirikan per-file supaya tidak bentrok dgn const global lain
+// (lihat kasus S251/S253/S254A). Ketiga kartu murni komposit 1 proyeksi
+// arus kas yang sama — TIDAK ada 1 daftar spesifik per pos, jadi target
+// = container section-nya sendiri (cashflowProjWrap, dashboard-hub,
+// TERVERIFIKASI ADA di index.html/app_production.html), pola sama
+// persis FINHEALTH_NAV_TARGETS.self (S254A, self-scroll utk kartu
+// komposit).
+const CASHFLOWPROJ_NAV_TARGETS = Object.freeze({
+  self: { page: 'dashboard-hub', goTo: 'cashflowProjWrap' },
+});
 const CashFlowProjectionPresenter = {
 
   render() {
@@ -42,8 +57,14 @@ const CashFlowProjectionPresenter = {
       this._cashBalanceCard(s.cashBalance),
     ];
 
+    // S254B (Batch Finance Navigation Consistency): SELURUH kartu
+    // clickable lewat mekanisme SAMA PERSIS FinanceDashboard.render()/
+    // FinancialHealthScorePresenter.render() (S254A) — tiap kartu carry
+    // field onClick:{action,args} sendiri (ditempel di masing2 _xxxCard()
+    // di bawah), template di sini CUMA mengecek `c.onClick` (0 logic
+    // navigasi baru, 0 percabangan per-index, JANGAN openCard(index)).
     el.innerHTML = cards.map((c) => `
-      <div class="findash-card">
+      <div class="findash-card${c.onClick ? ' u-pointer' : ''}"${c.onClick ? ` data-action="${escapeHtml(c.onClick.action)}" data-args="${escapeHtml(JSON.stringify(c.onClick.args))}"` : ''}>
         <div class="findash-card-icon">${c.icon}</div>
         <div class="findash-card-body">
           <div class="findash-card-label">${escapeHtml(c.label)}</div>
@@ -58,8 +79,9 @@ const CashFlowProjectionPresenter = {
   // APA ADANYA (avgMonthly/months/currentMonthIncome — 0 recompute).
   _incomeCard(f) {
     const money = (n) => (typeof fmt === 'function') ? fmt(n) : ('Rp ' + Math.round(n || 0));
+    const onClick = { action: 'dashHubNavigateToFeature', args: [CASHFLOWPROJ_NAV_TARGETS.self] };
     if (!f || !f.ok) {
-      return { icon: '💰', label: 'Proyeksi Pemasukan', value: '—', cls: '', sub: f && f.reason };
+      return { icon: '💰', label: 'Proyeksi Pemasukan', value: '—', cls: '', sub: f && f.reason, onClick };
     }
     return {
       icon: '💰',
@@ -67,6 +89,7 @@ const CashFlowProjectionPresenter = {
       value: money(f.avgMonthly) + '/bln',
       cls: 'green',
       sub: `Rata-rata ${f.months} bulan terakhir · bulan ini ${money(f.currentMonthIncome)}`,
+      onClick,
     };
   },
 
@@ -74,8 +97,9 @@ const CashFlowProjectionPresenter = {
   // APA ADANYA (avgMonthly/months/currentMonthExpense — 0 recompute).
   _expenseCard(f) {
     const money = (n) => (typeof fmt === 'function') ? fmt(n) : ('Rp ' + Math.round(n || 0));
+    const onClick = { action: 'dashHubNavigateToFeature', args: [CASHFLOWPROJ_NAV_TARGETS.self] };
     if (!f || !f.ok) {
-      return { icon: '💸', label: 'Proyeksi Pengeluaran', value: '—', cls: '', sub: f && f.reason };
+      return { icon: '💸', label: 'Proyeksi Pengeluaran', value: '—', cls: '', sub: f && f.reason, onClick };
     }
     return {
       icon: '💸',
@@ -83,6 +107,7 @@ const CashFlowProjectionPresenter = {
       value: money(f.avgMonthly) + '/bln',
       cls: 'red',
       sub: `Rata-rata ${f.months} bulan terakhir · bulan ini ${money(f.currentMonthExpense)}`,
+      onClick,
     };
   },
 
@@ -91,8 +116,9 @@ const CashFlowProjectionPresenter = {
   // recompute, `projected` sudah final dari computeCashflowForecast()).
   _cashBalanceCard(f) {
     const money = (n) => (typeof fmt === 'function') ? fmt(n) : ('Rp ' + Math.round(n || 0));
+    const onClick = { action: 'dashHubNavigateToFeature', args: [CASHFLOWPROJ_NAV_TARGETS.self] };
     if (!f || !f.ok) {
-      return { icon: '🏦', label: 'Proyeksi Saldo Kas', value: '—', cls: '', sub: f && f.reason };
+      return { icon: '🏦', label: 'Proyeksi Saldo Kas', value: '—', cls: '', sub: f && f.reason, onClick };
     }
     const projected = f.projected;
     return {
@@ -101,6 +127,7 @@ const CashFlowProjectionPresenter = {
       value: (projected < 0 ? '-' : '') + money(Math.abs(projected)),
       cls: projected < 0 ? 'red' : 'green',
       sub: `Saldo sekarang ${money(f.saldoNow)} · ${f.upcomingCount} tagihan jatuh tempo (${money(f.billsDue)})`,
+      onClick,
     };
   },
 

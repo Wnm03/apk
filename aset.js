@@ -69,7 +69,7 @@ const preset=ALOKASI_PRESETS[risk];
 if(!preset)return;
 const dana=danaEl?parsePzNum(danaEl.value):0;
 const dd=(D.targets||[]).find(t=>t.isDanaDarurat);
-const ddBanner=dd?'':`<div class="u-fs11 u-cacc2 u-r10 u-mb10 u-lh15" style="background:var(--accent2-soft);padding:8px 10px">🚨 Belum ada target yang ditandai <b>Dana Darurat</b>, jadi baris "Kas / Dana Darurat" di bawah masih ilustrasi murni. <span class="u-pointer u-fw600" style="text-decoration:underline" data-onclick="openTargetModal();document.getElementById('tDanaDarurat').checked=true;onTargetDanaDaruratToggle();">+ Buat targetnya sekarang</span></div>`;
+const ddBanner=dd?'':`<div class="u-fs11 u-cacc2 u-r10 u-mb10 u-lh15" style="background:var(--accent2-soft);padding:8px 10px">🚨 Belum ada target yang ditandai <b>Dana Darurat</b>, jadi baris "Kas / Dana Darurat" di bawah masih ilustrasi murni. <span class="u-pointer u-fw600" style="text-decoration:underline" data-action="openTargetModalDanaDarurat">+ Buat targetnya sekarang</span></div>`;
 box.innerHTML=ddBanner+'<div class="u-hint10">'+escapeHtml(preset.desc)+'</div>'+
 preset.items.map(it=>{
 const nominal=Math.round(dana*it.pct/100);
@@ -96,6 +96,24 @@ init(suffix){
 AlokasiAset.renderOne(suffix||'');
 }
 };
+// isAssetOwnershipSelf(a) — helper REUSE dari OwnershipEngine (Sesi 193,
+// Ownership Sync Asset & Investasi). Balikin true kalau kepemilikan EFEKTIF
+// aset ini SELF (termasuk aset lama yg belum punya field `ownership` sama
+// sekali — via OwnershipEngine.resolve() otomatis fallback ke SELF/DEFAULT,
+// 100% backward compatible, TIDAK ada aset existing yang tiba-tiba
+// ke-exclude). Balikin false kalau ownership-nya salah satu dari INVESTOR/
+// CUSTOMER/THIRD_PARTY/FAMILY (sesuai spesifikasi sesi ini: aset2 tipe ini
+// WAJIB dikecualikan dari agregat Total Aset/Dashboard Aset/AI Insight/Net
+// Worth — tapi TIDAK dari Aset.renderList() [Buku Aset], aset & histori
+// tersebut tetap tampil & tersimpan apa adanya di daftar, cuma tidak ikut
+// dijumlah ke total).
+// Guard typeof OwnershipEngine: kalau engine belum dimuat, fallback true
+// (anggap SELF/tidak exclude apa pun) — pola sama persis
+// isAccOwnershipSelf() (modules/finance/akun.js, Sesi 192).
+function isAssetOwnershipSelf(a){
+if(typeof OwnershipEngine==='undefined')return true;
+return OwnershipEngine.resolve(a).type==='SELF';
+}
 // AssetInsight — kartu "💡 Insight Aset" di paling atas halaman Aset (page-aset).
 // Tujuan: kasih ringkasan cepat yg butuh perhatian, TANPA user perlu buka semua
 // card di bawahnya satu-satu (Dashboard Aset, Performa Investasi, Histori
@@ -111,7 +129,7 @@ CONCENTRATION_THRESHOLD:60,
 // mengubah sedikit pun teks/urutan insight yang sudah ada & sudah dites di aset.test.js —
 // murni ekstraksi array `insights` yang sebelumnya dibangun langsung di render().
 compute(){
-const list=D.assets||[];
+const list=(D.assets||[]).filter(isAssetOwnershipSelf);
 const totalNilai=list.reduce((s,a)=>s+(a.nilai||0),0);
 const insights=[];
 // (1) Konsentrasi kategori — kalau 1 jenis aset mendominasi porsi terbesar,
@@ -165,7 +183,7 @@ render(){
 const card=document.getElementById('assetInsightCard');
 const box=document.getElementById('assetInsightBody');
 if(!card||!box)return;
-const list=D.assets||[];
+const list=(D.assets||[]).filter(isAssetOwnershipSelf);
 if(!list.length){card.classList.add('u-dnone');return;}
 card.classList.remove('u-dnone');
 const totalNilai=list.reduce((s,a)=>s+(a.nilai||0),0);
@@ -217,8 +235,31 @@ Aset._zakatableState=a?!!a.zakatable:false;
 const btn=document.getElementById('assetZakatableBtn');
 btn.textContent=Aset._zakatableState?'✓ Aktif':'Nonaktif';
 btn.className='chip-btn'+(Aset._zakatableState?' active':'');
+// Dana Titipan (permintaan user): satu instrumen investasi bisa campuran dana sendiri
+// & dana titipan investor/keluarga -- toggle + field terpisah, pola sama dgn
+// billShared/txCicilanShared (toggle -> tampilkan wrap). Nominal titipan disimpan apa
+// adanya (bukan %), disinkron ke Buku Utang lewat Aset._syncTitipanDebt() di save().
+const titipanToggle=document.getElementById('assetTitipanToggle');
+const titipanHasAmount=!!(a&&a.titipanAmount>0);
+if(titipanToggle)titipanToggle.checked=titipanHasAmount;
+document.getElementById('assetTitipanOwnerType').value=a&&a.titipanOwnerType?a.titipanOwnerType:'investor';
+document.getElementById('assetTitipanOwnerName').value=a&&a.titipanOwnerName?a.titipanOwnerName:'';
+document.getElementById('assetTitipanAmount').value=titipanHasAmount?a.titipanAmount:'';
+document.getElementById('assetTitipanWrap').classList.toggle('u-dnone',!titipanHasAmount);
 Aset.renderJenisFields(a);
 Aset.updateProfitPreview();
+// Ownership (S231) — reuse OwnershipEngine, sama pola dgn Akun/Kendaraan. Aset lama tanpa
+// field ownership: resolve() fallback ke SELF/DEFAULT (backward compatible).
+const ownSel=document.getElementById('assetOwnership');
+if(ownSel){
+if(typeof OwnershipEngine!=='undefined'){
+ownSel.innerHTML=OwnershipEngine.TYPES.map(t=>'<option value="'+t+'">'+escapeHtml(OwnershipEngine.label(t))+'</option>').join('');
+ownSel.value=OwnershipEngine.resolve(a||{}).type;
+}else{
+ownSel.innerHTML='<option value="SELF">Milik Sendiri</option>';
+ownSel.value='SELF';
+}
+}
 openModal('assetModal');
 },
 // FITUR BARU (permintaan user): input Buku Aset dibedakan sesuai kategori --
@@ -275,6 +316,38 @@ const btn=document.getElementById('assetZakatableBtn');
 btn.textContent=Aset._zakatableState?'✓ Aktif':'Nonaktif';
 btn.className='chip-btn'+(Aset._zakatableState?' active':'');
 },
+toggleTitipan(){
+const on=document.getElementById('assetTitipanToggle').checked;
+document.getElementById('assetTitipanWrap').classList.toggle('u-dnone',!on);
+},
+// _syncTitipanDebt(a) — jaga entry Buku Utang (D.debts) tetap sinkron dgn porsi
+// titipan aset ini, pola SAMA PERSIS dgn Investment._syncTitipanDebt()
+// (modules/asset/investasi.js) -- 0 rumus baru, cuma dipindah ke domain Aset supaya
+// 1 instrumen investasi bisa campuran dana sendiri & dana titipan investor/keluarga.
+// nilai aset (a.nilai) TETAP dicatat penuh & apa adanya; porsi titipan (a.titipanAmount)
+// otomatis jadi 1 entry utang bernama pemilik dana, sehingga Kekayaan Bersih = Nilai
+// Aset − Utang Titipan (tidak overstated). titipanAmount 0/toggle mati -> entry utang
+// lama (kalau ada) otomatis dihapus, tidak menyisakan sampah.
+_syncTitipanDebt(a){
+if(!a||typeof D==='undefined'||!D.debts)return;
+if(a.titipanAmount>0){
+const typeLabel=a.titipanOwnerType==='keluarga'?'Keluarga':(a.titipanOwnerType==='lainnya'?'Pihak Lain':'Investor');
+const owner=(a.titipanOwnerName&&String(a.titipanOwnerName).trim())?(String(a.titipanOwnerName).trim()+' ('+typeLabel+')'):typeLabel;
+const amount=a.titipanAmount;
+const catatan='Dana titipan aset: '+a.name;
+let debt=a.titipanDebtLinkId?D.debts.find(d=>String(d.id)===String(a.titipanDebtLinkId)):null;
+if(debt){
+Object.assign(debt,{name:owner,nilai:amount,catatan,lunas:amount<=0});
+}else{
+debt={id:uid(),name:owner,nilai:amount,bunga:0,cicilanBulanan:0,tanggal:todayStr(),jatuhTempo:'',catatan,lunas:amount<=0};
+D.debts.push(debt);
+a.titipanDebtLinkId=debt.id;
+}
+}else if(a.titipanDebtLinkId){
+D.debts=D.debts.filter(d=>String(d.id)!==String(a.titipanDebtLinkId));
+a.titipanDebtLinkId=null;
+}
+},
 save(){
 const name=document.getElementById('assetName').value.trim();
 if(!name){toast('⚠️ Nama aset wajib diisi');return;}
@@ -300,9 +373,22 @@ D.accounts.push(newAcc);
 accountId=newAcc.id;
 _createdNewAcc=true;
 }
+// Ownership (S231) — dibaca dari dropdown, divalidasi/dinormalisasi via OwnershipEngine.
+const ownRawA=document.getElementById('assetOwnership')?.value;
+const ownership=(typeof OwnershipEngine!=='undefined'&&OwnershipEngine.isValidType(ownRawA))?OwnershipEngine.normalize(ownRawA):(typeof OwnershipEngine!=='undefined'?OwnershipEngine.DEFAULT:'SELF');
 const keuntungan=modalInvestasi?(nilai-modalInvestasi):null;
 const keuntunganPct=modalInvestasi?((nilai-modalInvestasi)/modalInvestasi*100):null;
 const extra={modalInvestasi,hargaBeli,jumlahUnit,keuntungan,keuntunganPct};
+// Dana Titipan (permintaan user): nominal titipan dijepit ke [0, nilai] -- titipan
+// TIDAK BOLEH lebih besar dari Estimasi Nilai instrumen ini sendiri. Toggle mati =
+// titipanAmount 0 (Aset._syncTitipanDebt() di bawah otomatis lepas tautan utang lama).
+const titipanOn=document.getElementById('assetTitipanToggle')?.checked;
+let titipanAmount=titipanOn?parsePzNum(document.getElementById('assetTitipanAmount').value):0;
+if(titipanAmount<0)titipanAmount=0;
+if(titipanAmount>nilai)titipanAmount=nilai;
+extra.titipanAmount=titipanAmount;
+extra.titipanOwnerType=titipanAmount>0?(document.getElementById('assetTitipanOwnerType').value||'investor'):'';
+extra.titipanOwnerName=titipanAmount>0?document.getElementById('assetTitipanOwnerName').value.trim():'';
 // Field kategori-spesifik (lihat Aset.renderJenisFields) -- selalu di-reset dulu
 // ke null lalu diisi ULANG sesuai jenis yg dipilih SEKARANG, supaya kalau user
 // ganti kategori pas Edit Aset (mis. dari Kendaraan ke Tanah), field kategori
@@ -326,13 +412,17 @@ const gk=document.getElementById('assetGoldKadar');
 extra.goldBeratGram=gg&&gg.value!==''?(parseDecStr(gg.value)||null):null;
 extra.goldKadar=gk&&gk.value?(parseInt(gk.value,10)||null):null;
 }
+let savedAsset;
 if(Aset.editId){
 const a=D.assets.find(x=>sameId(x.id,Aset.editId));
 if(!a){toast('⚠️ Aset tidak ditemukan, coba tutup dan buka lagi');return;}
-Object.assign(a,{name,jenis,lokasi,nilai,tanggal,zakatable:Aset._zakatableState,accountId},extra);
+Object.assign(a,{name,jenis,lokasi,nilai,tanggal,zakatable:Aset._zakatableState,accountId,ownership},extra);
+savedAsset=a;
 } else {
-D.assets.push(Object.assign({id:uid(),name,jenis,lokasi,nilai,tanggal,zakatable:Aset._zakatableState,accountId},extra));
+savedAsset=Object.assign({id:uid(),name,jenis,lokasi,nilai,tanggal,zakatable:Aset._zakatableState,accountId,ownership},extra);
+D.assets.push(savedAsset);
 }
+Aset._syncTitipanDebt(savedAsset);
 save();
 if(typeof AIBus!=="undefined")AIBus.emit("asset.updated",{jenis,nilai,editId:Aset.editId});
 closeModal('assetModal');
@@ -342,6 +432,10 @@ toast(_createdNewAcc?'✅ Aset tersimpan & akun baru dibuat':'✅ Aset tersimpan
 },
 async delete(id){
 if(!await askConfirm('Hapus aset ini dari Buku Aset?',{okText:'Ya, Hapus'}))return;
+const a=D.assets.find(x=>sameId(x.id,id));
+if(a&&a.titipanDebtLinkId&&D.debts){
+D.debts=D.debts.filter(d=>String(d.id)!==String(a.titipanDebtLinkId));
+}
 D.assets=D.assets.filter(a=>!sameId(a.id,id));
 save();
 if(typeof AIBus!=="undefined")AIBus.emit("asset.updated",{deletedId:id});
@@ -350,7 +444,19 @@ Aset.renderList();renderKekayaanBersih();hitungZakatMaal();renderAccGrid();rende
 renderList(){
 const el=document.getElementById('assetList');
 if(!el)return;
-const list=D.assets||[];
+// Ownership Filter UI (S235) — reuse OwnershipEngine.filterByType() apa adanya, TIDAK ada
+// filter/logic baru. HANYA memfilter daftar yang DIRENDER di sini; totalValue()/
+// renderDashboard()/dst di bawah TETAP dihitung dari D.assets penuh lewat pemanggilan
+// masing2 (Jangan mengubah perhitungan). Ini juga mencakup item Investasi (jenis
+// "Deposito/Investasi"/"Saham"/"Reksadana"/"Kripto" ikut tampil & difilter di sini,
+// karena project ini belum punya daftar Investasi terpisah dari Buku Aset).
+const assetOwnFilterEl=document.getElementById('assetOwnFilter');
+const assetOwnFilterVal=assetOwnFilterEl?assetOwnFilterEl.value:'ALL';
+let list=D.assets||[];
+if(assetOwnFilterVal&&assetOwnFilterVal!=='ALL'&&typeof OwnershipEngine!=='undefined'){
+const assetOwnFiltered=OwnershipEngine.filterByType(list,assetOwnFilterVal);
+if(assetOwnFiltered.ok)list=assetOwnFiltered.items;
+}
 if(!list.length){el.innerHTML='<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Belum ada aset tercatat</div></div>';Aset.renderDashboard();Aset.renderInvestasi();Penyusutan.renderList();PajakAset.renderList();LaporanAset.renderList();AssetInsight.render();return;}
 el.innerHTML=list.map(a=>{
 const hasPct=a.keuntunganPct!=null&&isFinite(a.keuntunganPct);
@@ -358,7 +464,22 @@ const pctBadge=hasPct?` <span style="font-size:10px;color:${a.keuntunganPct>=0?'
 const linkedAcc=a.accountId?D.accounts.find(x=>sameId(x.id,a.accountId)):null;
 const linkMeta=linkedAcc?(' · 🔗 '+escapeHtml(linkedAcc.name)):(a.accountId?' · 🔗 (akun terhapus)':'');
 const histBtn=linkedAcc?`<button class="tx-del" style="margin-right:2px" title="Riwayat Transaksi akun ini" data-stop="1" data-action="Aset.openTxHistory" data-args="${escapeHtml(JSON.stringify([a.id]))}" aria-label="Riwayat Transaksi">📜</button>`:'';
-return `<div class="tx-item u-pointer" data-action="openAssetModal" data-args="${escapeHtml(JSON.stringify([a.id]))}"><div class="tx-icon u-bgaccsoft">${Aset.ICON[a.jenis]||'📦'}</div><div class="tx-info"><div class="tx-name">${escapeHtml(a.name)}${a.zakatable?' <span class="u-fs10 u-cacc3 u-r6 u-ml4" style="border:1px solid var(--accent3);padding:1px 5px">Zakat</span>':''}</div><div class="tx-meta">${a.jenis}${Aset.extraLabel(a)?' · '+escapeHtml(Aset.extraLabel(a)):''}${a.lokasi?' · '+escapeHtml(a.lokasi):''}${linkMeta}${pctBadge}</div></div><div class="tx-amount">${fmt(a.nilai)}</div>${histBtn}<button class="tx-del" style="margin-right:2px" title="Update cepat via scan" data-stop="1" data-action="quickScanAsset" data-args="${escapeHtml(JSON.stringify([a.id]))}" aria-label="Update cepat via scan">⚡</button><button class="tx-del" data-stop="1" data-action="delAsset" data-args="${escapeHtml(JSON.stringify([a.id]))}" aria-label="Hapus">🗑</button></div>`;
+// Ownership Badge (S233) — upgrade dari teks sederhana (S232) jadi badge, reuse class
+// "acc-chip" yang SUDAH ADA di project ini (styles.css) — TIDAK ada style baru. Data
+// diambil HANYA dari OwnershipEngine.resolve()/label() (0 rumus baru). Ditaruh sbg span
+// terpisah (bukan digabung ke tx-meta pakai ' · ') supaya tampil sbg badge/chip, bukan teks
+// inline biasa. Data lama tanpa field ownership: resolve() fallback ke SELF/DEFAULT.
+// Ownership Detail View (S234) — SATU pemanggilan OwnershipEngine.resolve(a) dipakai
+// bareng utk badge (S233, label Bahasa Indonesia) DAN detail view di bawahnya (kode tipe
+// mentah, mis. "SELF") — supaya TIDAK ada logic resolve/hitung ulang yang duplikat.
+const ownResolved=(typeof OwnershipEngine!=='undefined')?OwnershipEngine.resolve(a):null;
+const ownMeta=ownResolved?(' <span class="acc-chip">'+escapeHtml(OwnershipEngine.label(ownResolved.type))+'</span>'):'';
+const ownDetail=ownResolved?`<div class="u-fs10 u-t2">Ownership<br>${escapeHtml(ownResolved.type)}</div>`:'';
+// Dana Titipan badge -- cuma tampil kalau ada porsi titipan (bukan dropdown
+// Kepemilikan yang all-or-nothing di atas), reuse class "acc-chip" yang sama.
+const titipanLabel=a.titipanOwnerType==='keluarga'?'Keluarga':(a.titipanOwnerType==='lainnya'?'Pihak Lain':'Investor');
+const titipanMeta=a.titipanAmount>0?(' <span class="acc-chip" title="Dana titipan '+escapeHtml(titipanLabel)+': '+fmt(a.titipanAmount)+'">💰 Titipan '+escapeHtml(titipanLabel)+'</span>'):'';
+return `<div class="tx-item u-pointer" data-action="openAssetModal" data-args="${escapeHtml(JSON.stringify([a.id]))}"><div class="tx-icon u-bgaccsoft">${Aset.ICON[a.jenis]||'📦'}</div><div class="tx-info"><div class="tx-name">${escapeHtml(a.name)}${a.zakatable?' <span class="u-fs10 u-cacc3 u-r6 u-ml4" style="border:1px solid var(--accent3);padding:1px 5px">Zakat</span>':''}</div><div class="tx-meta">${a.jenis}${Aset.extraLabel(a)?' · '+escapeHtml(Aset.extraLabel(a)):''}${a.lokasi?' · '+escapeHtml(a.lokasi):''}${linkMeta}${ownMeta}${titipanMeta}${pctBadge}</div>${ownDetail}</div><div class="tx-amount">${fmt(a.nilai)}</div>${histBtn}<button class="tx-del" style="margin-right:2px" title="Update cepat via scan" data-stop="1" data-action="quickScanAsset" data-args="${escapeHtml(JSON.stringify([a.id]))}" aria-label="Update cepat via scan">⚡</button><button class="tx-del" data-stop="1" data-action="delAsset" data-args="${escapeHtml(JSON.stringify([a.id]))}" aria-label="Hapus">🗑</button></div>`;
 }).join('');
 Aset.renderDashboard();
 Aset.renderInvestasi();
@@ -367,7 +488,13 @@ PajakAset.renderList();
 LaporanAset.renderList();
 AssetInsight.render();
 },
-totalValue(){return(D.assets||[]).reduce((s,a)=>s+(a.nilai||0),0);},
+// totalValue() — Sesi 193 (Ownership Sync): TAMBAH 1 filter isAssetOwnershipSelf(a)
+// (0 logic lama diubah, cuma nambah 1 syarat filter sebelum reduce). Aset
+// ber-ownership INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY dikecualikan dari Total
+// Aset (dipakai jg oleh Kekayaan.currentNetWorth() & AssetPortfolioAPI —
+// keduanya ikut ter-fix otomatis lewat titik ini, 0 perubahan tambahan di
+// modul lain), tapi TETAP muncul apa adanya di Aset.renderList() (Buku Aset).
+totalValue(){return(D.assets||[]).filter(isAssetOwnershipSelf).reduce((s,a)=>s+(a.nilai||0),0);},
 // FITUR BARU: Dashboard Aset — ringkasan Total Aset / Nilai Buku / Nilai Pasar +
 // breakdown per kategori (jenis). Nilai Pasar = total a.nilai (estimasi nilai saat
 // ini, sesuai yang diisi user di modal Aset). Nilai Buku = total modal/harga
@@ -379,7 +506,11 @@ totalValue(){return(D.assets||[]).reduce((s,a)=>s+(a.nilai||0),0);},
 renderDashboard(){
 const box=document.getElementById('assetDashboard');
 if(!box)return;
-const list=D.assets||[];
+// Sesi 193 (Ownership Sync): filter isAssetOwnershipSelf() -- Dashboard Aset
+// (ringkasan Total Aset/Nilai Buku/Nilai Pasar/breakdown kategori) HANYA
+// menghitung aset ber-ownership SELF, sesuai spesifikasi (dikecualikan dari
+// "Dashboard"). Aset non-SELF tetap ada apa adanya di Aset.renderList().
+const list=(D.assets||[]).filter(isAssetOwnershipSelf);
 box.classList.remove('u-dnone');
 if(!list.length){
 const t=document.getElementById('assetDashTotal');if(t)t.textContent=fmtFull(0);
@@ -491,8 +622,18 @@ divBox.innerHTML=`<div class="u-r10 u-mt10" style="background:var(--accent-soft)
 // terisi & >0) TETAP SAMA seperti sebelumnya. Read-only, tidak menyentuh
 // DOM sama sekali — caller (renderInvestasi() di bawah, atau
 // InvestmentPlannerAPI) yang urus presentasinya masing-masing.
+// S261 (Investment Ownership Sync): TAMBAH 1 filter isAssetOwnershipSelf(a)
+// di awal (0 rumus baru) — SEBELUM sesi ini, fungsi ini membaca D.assets
+// MENTAH tanpa filter ownership, beda dari Aset.totalValue()/AssetInsight
+// yang sudah SELF-only sejak S193. Akibatnya aset ber-ownership
+// INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY ikut nyasar ke totalModal/
+// totalNilai/gain/roiPct/best/worst di sini, DAN ke portfolioOverview()/
+// assetAllocation()/investmentRecommendation() InvestmentPlannerAPI
+// (modules/finance/investment-planner-api.js) yang 100% reuse fungsi ini.
+// Pola filter SAMA PERSIS isAssetOwnershipSelf() yang sudah dipakai
+// totalValue()/AssetInsight.compute() di file ini.
 investmentPerformance(){
-const tracked=(D.assets||[]).map(a=>{
+const tracked=(D.assets||[]).filter(isAssetOwnershipSelf).map(a=>{
 const buku=a.modalInvestasi!=null?a.modalInvestasi:(a.hargaBeli!=null&&a.jumlahUnit!=null?a.hargaBeli*a.jumlahUnit:null);
 return{a,buku};
 }).filter(x=>x.buku!=null&&x.buku>0);
@@ -1019,8 +1160,14 @@ return{akunTertaut,recentTx,totalTx:gabungan.length};
 },
 // Nilai Aset: total Nilai Pasar (a.nilai) vs Nilai Buku (modal/harga perolehan,
 // definisi SAMA dgn Aset.renderDashboard()) + breakdown per kategori (jenis).
+// S201 (Finalisasi Sinkronisasi Lintas Modul): fix — filter isAssetOwnershipSelf
+// ditambahkan supaya BENAR-BENAR "SAMA dgn Aset.renderDashboard()" seperti
+// diklaim komentar di atas (Sesi 193 sudah menambah filter ini di
+// renderDashboard(), tapi LaporanAset.nilaiAset() sempat luput -> Dashboard
+// Aset & Laporan Aset bisa beda angka kalau ada aset ber-ownership non-SELF).
+// 0 rumus baru — reuse isAssetOwnershipSelf() yang sudah ada apa adanya.
 nilaiAset(){
-const list=D.assets||[];
+const list=(D.assets||[]).filter(isAssetOwnershipSelf);
 let totalPasar=0,totalBuku=0;
 const perKategori={};
 list.forEach(a=>{
@@ -1053,7 +1200,11 @@ return{jumlahAktif:list.length,totalAkumulasi,totalBukuSekarang,belumLengkap};
 // Ringkasan Kekayaan (dari Aset) — SENGAJA cuma sisi aset (bukan gabungan akun+
 // utang spt renderKekayaanBersih() global), supaya laporan ini murni & mandiri.
 ringkasanKekayaan(){
-const list=D.assets||[];
+// S201: filter isAssetOwnershipSelf() supaya jumlahAset KONSISTEN dgn
+// totalNilaiPasar/totalNilaiBuku (nilaiAset(), sudah difilter di atas) —
+// 1 laporan, 1 populasi aset yang sama, bukan jumlah dari populasi lebih
+// besar dipasangkan dgn nilai dari populasi lebih kecil.
+const list=(D.assets||[]).filter(isAssetOwnershipSelf);
 const nilai=LaporanAset.nilaiAset();
 const zakat=(typeof PajakAset!=='undefined'?PajakAset.hitungZakatAset():{totalNilai:0,totalZakat:0,list:[]});
 const kategoriRows=Object.entries(nilai.perKategori).sort((a,b)=>b[1].nilai-a[1].nilai);
@@ -1313,7 +1464,7 @@ applyOneCardCollapsePref('timelineWCard');
 // renderPageContent('aset') di modules-render.js) TERLEPAS dari tab mana yang
 // lagi aktif -- sama seperti pola kartu ber-collapse yg sudah ada di app ini,
 // cuma sekarang levelnya per-tab, bukan per-kartu.
-const ASET_TAB_ORDER=['ringkasan','buku','analisis'];
+const ASET_TAB_ORDER=['ringkasan','buku','analisis','manajemen'];
 function setAsetTab(t,el){
 document.querySelectorAll('#page-aset .cn-tab').forEach(b=>b.classList.remove('active'));
 if(el) el.classList.add('active');
@@ -1321,6 +1472,8 @@ else { const idx=ASET_TAB_ORDER.indexOf(t); const btn=document.querySelectorAll(
 document.getElementById('asetTab-ringkasan').classList.toggle('u-dnone', t!=='ringkasan');
 document.getElementById('asetTab-buku').classList.toggle('u-dnone', t!=='buku');
 document.getElementById('asetTab-analisis').classList.toggle('u-dnone', t!=='analisis');
+// Manajemen (dipindah dari Dashboard Hub) — pola sama 3 tab di atas.
+document.getElementById('asetTab-manajemen').classList.toggle('u-dnone', t!=='manajemen');
 }
 
 // (bukan module). Dispatcher data-action (mis. data-action="Aset.exportXLSX",

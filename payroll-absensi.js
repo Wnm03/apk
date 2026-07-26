@@ -19,9 +19,18 @@ if(kBtn){kBtn.style.background=!isAbsensi?'var(--accent)':'transparent';kBtn.sty
 if(aWrap)aWrap.classList.toggle('u-dnone',!isAbsensi);
 if(kWrap)kWrap.classList.toggle('u-dnone',isAbsensi);
 },
+showFormFields(){
+const wrapEl=document.getElementById('whFormFieldsWrap');
+if(wrapEl)wrapEl.classList.remove('u-dnone');
+},
+hideFormFields(){
+const wrapEl=document.getElementById('whFormFieldsWrap');
+if(wrapEl)wrapEl.classList.add('u-dnone');
+},
 openAbsensiModal(){
 Payroll.editId=null;
 Payroll.setWhTab('absensi');
+Payroll.hideFormFields();
 const hintEl=document.getElementById('whEditHint');
 if(hintEl)hintEl.style.display='none';
 const saveBtnEl=document.getElementById('whSaveBtn');
@@ -140,6 +149,7 @@ Payroll.editId=id;
 Payroll.selectedGridDate=w.date;
 Payroll.renderWeekGrid();
 Payroll.setWhTab('absensi');
+Payroll.showFormFields();
 document.getElementById('whDate').value=w.date;
 document.getElementById('whMasuk').value=w.masuk||'07:00';
 document.getElementById('whPulang').value=w.pulang||'15:00';
@@ -288,6 +298,7 @@ Payroll.selectGridDay(dayEl.getAttribute('data-wh-date'));
 selectGridDay(iso){
 Payroll.selectedGridDate=iso;
 Payroll.renderWeekGrid();
+Payroll.showFormFields();
 const d=new Date(iso+'T00:00:00');
 const dLabel=d.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long'});
 const entry=D.workDays.find(w=>w.date===iso);
@@ -461,6 +472,10 @@ const statusLine=cukup?`<div class="u-fs11" style="color:var(--accent3);font-wei
 budgetSyncEl.innerHTML=`<div class="u-fs11 u-t2" style="margin-top:8px">🛒 Budget Mingguan: ${fmtFull(totalUsed)} / ${fmtFull(totalLimit)} (sisa ${fmtFull(sisaBudget)})</div>${statusLine}`;
 }
 }
+// S132: kartu Insight Target Mingguan (kirim uang ke istri) — murni BACA data
+// yang sudah dihitung di atas (D.workDays minggu ini), tidak mengubah apa pun
+// di renderDashMini() ini. Guard typeof supaya aman kalau file belum dimuat.
+if(typeof InsightTargetMingguan!=='undefined')InsightTargetMingguan.render();
 }
 };
 function timeToMinutes(t){return Payroll.timeToMinutes(t);}

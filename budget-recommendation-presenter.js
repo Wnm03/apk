@@ -17,6 +17,20 @@
 // CSS TIDAK baru — reuse penuh class findash-grid/findash-card (grid
 // generik, sudah dipakai FinanceDashboard/FinancialForecastPresenter/
 // VehicleDashboard/dst).
+//
+// BUDGETRECO_NAV_TARGETS (S254B — Batch Finance Navigation Consistency) —
+// tujuan navigasi tiap kartu #budgetRecoGrid. MURNI DATA (0 logic
+// navigasi baru), format {page,goTo} SAMA PERSIS format target
+// dashHubNavigateToFeature() yang SUDAH ADA (dashboard-hub.js). Nama
+// disendirikan per-file supaya tidak bentrok dgn const global lain (lihat
+// kasus S251/S253/S254A). Ketiga kartu murni komposit 1 rekomendasi
+// anggaran yang sama — TIDAK ada 1 daftar spesifik per kategori, jadi
+// target = container section-nya sendiri (budgetRecoWrap, dashboard-hub,
+// TERVERIFIKASI ADA di index.html/app_production.html), pola sama persis
+// FINHEALTH_NAV_TARGETS.self (S254A, self-scroll utk kartu komposit).
+const BUDGETRECO_NAV_TARGETS = Object.freeze({
+  self: { page: 'dashboard-hub', goTo: 'budgetRecoWrap' },
+});
 const BudgetRecommendationPresenter = {
 
   render() {
@@ -40,8 +54,14 @@ const BudgetRecommendationPresenter = {
       this._topSuggestionCard(s.budgetSuggestion),
     ];
 
+    // S254B (Batch Finance Navigation Consistency): SELURUH kartu
+    // clickable lewat mekanisme SAMA PERSIS FinanceDashboard.render()/
+    // FinancialHealthScorePresenter.render() (S254A) — tiap kartu carry
+    // field onClick:{action,args} sendiri (ditempel di masing2 _xxxCard()
+    // di bawah), template di sini CUMA mengecek `c.onClick` (0 logic
+    // navigasi baru, 0 percabangan per-index, JANGAN openCard(index)).
     el.innerHTML = cards.map((c) => `
-      <div class="findash-card">
+      <div class="findash-card${c.onClick ? ' u-pointer' : ''}"${c.onClick ? ` data-action="${escapeHtml(c.onClick.action)}" data-args="${escapeHtml(JSON.stringify(c.onClick.args))}"` : ''}>
         <div class="findash-card-icon">${c.icon}</div>
         <div class="findash-card-body">
           <div class="findash-card-label">${escapeHtml(c.label)}</div>
@@ -57,8 +77,9 @@ const BudgetRecommendationPresenter = {
   // over pertama (kalau ada) dipakai sbg sub-teks, murni .find() atas
   // array yang sudah ada.
   _overCard(sa) {
+    const onClick = { action: 'dashHubNavigateToFeature', args: [BUDGETRECO_NAV_TARGETS.self] };
     if (!sa || !sa.ok) {
-      return { icon: '🚨', label: 'Anggaran Over Limit', value: '—', cls: '', sub: sa && sa.reason };
+      return { icon: '🚨', label: 'Anggaran Over Limit', value: '—', cls: '', sub: sa && sa.reason, onClick };
     }
     const first = sa.items.find((it) => it.category === 'over');
     return {
@@ -67,14 +88,16 @@ const BudgetRecommendationPresenter = {
       value: `${sa.overCount} kategori`,
       cls: sa.overCount > 0 ? 'red' : 'green',
       sub: first ? `Terbesar: ${first.name}` : 'Tidak ada anggaran yang over bulan ini',
+      onClick,
     };
   },
 
   // _underusedCard(sa) — pola SAMA PERSIS _overCard() di atas, sisi
   // underusedCount/kategori 'underused' (0 recompute).
   _underusedCard(sa) {
+    const onClick = { action: 'dashHubNavigateToFeature', args: [BUDGETRECO_NAV_TARGETS.self] };
     if (!sa || !sa.ok) {
-      return { icon: '🧊', label: 'Anggaran Kurang Terpakai', value: '—', cls: '', sub: sa && sa.reason };
+      return { icon: '🧊', label: 'Anggaran Kurang Terpakai', value: '—', cls: '', sub: sa && sa.reason, onClick };
     }
     const first = sa.items.find((it) => it.category === 'underused');
     return {
@@ -83,6 +106,7 @@ const BudgetRecommendationPresenter = {
       value: `${sa.underusedCount} kategori`,
       cls: '',
       sub: first ? `Contoh: ${first.name} (${Math.round(first.pct * 100)}%)` : 'Semua anggaran terpakai wajar',
+      onClick,
     };
   },
 
@@ -90,12 +114,13 @@ const BudgetRecommendationPresenter = {
   // budgetSuggestion, dipakai APA ADANYA (suggestions[0].message — 0
   // recompute, teks sudah final dari BudgetRecommendationAPI).
   _topSuggestionCard(bsg) {
+    const onClick = { action: 'dashHubNavigateToFeature', args: [BUDGETRECO_NAV_TARGETS.self] };
     if (!bsg || !bsg.ok) {
-      return { icon: '💡', label: 'Rekomendasi Utama', value: '—', cls: '', sub: bsg && bsg.reason };
+      return { icon: '💡', label: 'Rekomendasi Utama', value: '—', cls: '', sub: bsg && bsg.reason, onClick };
     }
     const top = bsg.suggestions[0];
     if (!top) {
-      return { icon: '💡', label: 'Rekomendasi Utama', value: 'Tidak ada saran', cls: 'green', sub: 'Semua anggaran dalam batas aman' };
+      return { icon: '💡', label: 'Rekomendasi Utama', value: 'Tidak ada saran', cls: 'green', sub: 'Semua anggaran dalam batas aman', onClick };
     }
     return {
       icon: '💡',
@@ -103,6 +128,7 @@ const BudgetRecommendationPresenter = {
       value: top.name,
       cls: top.category === 'over' ? 'red' : '',
       sub: top.message,
+      onClick,
     };
   },
 

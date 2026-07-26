@@ -47,8 +47,14 @@ return{inventori,piutang,net:inventori+piutang};
 // (D.assets) — TIDAK ADA field penghubung baru, murni baca 2 data yang
 // sudah ada apa adanya (nama kendaraan & nama aset bisa beda, jadi
 // dibandingkan JUMLAHNYA saja, bukan dicocokkan satu-satu).
+// Sesi 197 (Ownership Sync — Family/Aset Keluarga): TAMBAH 1 filter
+// isVehicleOwnershipSelf(v.id) di atas D.vehicles (0 logic lama diubah) —
+// kendaraan ber-ownership INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY dikecualikan
+// dari hitungan "jumlahKendaraan" kartu Aset Keluarga, pola sama persis
+// isVehicleOwnershipSelf() di vehicle-core.js (Sesi 196). Guard typeof: kalau
+// helper belum dimuat, anggap semua SELF (tidak exclude apa pun).
 carNotes(){
-const vehicles=D.vehicles||[];
+const vehicles=(D.vehicles||[]).filter(v=>typeof isVehicleOwnershipSelf!=='function'||isVehicleOwnershipSelf(v.id));
 const assetKendaraan=(D.assets||[]).filter(a=>a.jenis==='Kendaraan');
 const nilaiTercatat=assetKendaraan.reduce((s,a)=>s+(a.nilai||0),0);
 return{jumlahKendaraan:vehicles.length,jumlahAsetKendaraan:assetKendaraan.length,nilaiTercatat};

@@ -29,9 +29,17 @@ const InvestAI = {
   // Aset yang ditandai "Hitung ke Zakat Maal" = aset produktif/investasi
   // (definisi sama dgn yang dipakai FI Settings "Cakupan Aset untuk Target
   // FI" di modules-calc.js, supaya konsisten satu app).
+  // S261 (Investment Ownership Sync): TAMBAH filter isAssetOwnershipSelf
+  // (guard typeof, pola sama AssetPortfolioAPI.portfolioComposition()) —
+  // SEBELUM sesi ini, rekomendasi diversifikasi/vs-preset di bawah bisa
+  // ikut menghitung aset ber-ownership INVESTOR/CUSTOMER/THIRD_PARTY/
+  // FAMILY, beda dari Aset.totalValue()/investmentPerformance() yang
+  // sudah SELF-only. 0 rumus baru — cuma nambah 1 filter di atas filter
+  // zakatable yang sudah ada.
   _investmentAssets() {
     if (typeof D === 'undefined' || !Array.isArray(D.assets)) return [];
-    return D.assets.filter((a) => a.zakatable);
+    const selfOnly = typeof isAssetOwnershipSelf === 'function' ? isAssetOwnershipSelf : () => true;
+    return D.assets.filter(selfOnly).filter((a) => a.zakatable);
   },
 
   // 1) Dana darurat harus lebih dulu beres sebelum alokasi ke instrumen lain.
@@ -117,12 +125,19 @@ const InvestAI = {
 
   // 4) Kalau modul portofolio (Investment, investasi.js) dipakai — ROI &
   // konsentrasi holding, terpisah dari Buku Aset di atas.
+  // S261 (Investment Ownership Sync): gate keberadaan holding sekarang
+  // pakai summary.holdingsCount (SUDAH difilter isHoldingOwnershipSelf
+  // sejak S193 di Investment.portfolioSummary()), BUKAN lagi
+  // Investment.getHoldings().length mentah — supaya widget ini tidak
+  // "kebuka" gate-nya hanya krn ada holding ber-ownership
+  // INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY (summary/roiPct yang dipakai di
+  // bawah sudah SELF-only, tapi gate-nya sendiri sebelumnya belum
+  // konsisten). 0 rumus baru.
   _checkPortofolio() {
     if (typeof Investment === 'undefined') return [];
-    const holdings = Investment.getHoldings ? Investment.getHoldings() : [];
-    if (!holdings.length) return [];
-    const out = [];
     const summary = Investment.portfolioSummary ? Investment.portfolioSummary() : null;
+    if (!summary || !summary.holdingsCount) return [];
+    const out = [];
     if (summary && summary.roiPct < 0) {
       out.push({
         icon: '📉',

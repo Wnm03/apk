@@ -167,15 +167,20 @@ function _aiContextFinance() {
 // tugas fitur proyeksi Aset sendiri, bukan context collector ini). Skip
 // kalau netWorthForecast belum di-load ATAU balikin {ok:false} (data
 // histori belum cukup, lihat komentar netWorthForecast di aset.js).
+// (Sesi 265, Ownership Sync — AI): assetCount SEKARANG hanya menghitung
+// aset ownership SELF, reuse isAssetOwnershipSelf() (aset.js, Sesi 193),
+// pola sama persis _aiContextVehicle() di bawah (Sesi 197). Guard typeof:
+// kalau helper belum dimuat, anggap semua SELF (tidak exclude apa pun).
 function _aiContextAsset() {
   if (typeof D === 'undefined' || !D || typeof netWorthForecast !== 'function') {
     return { available: false };
   }
   const fc = netWorthForecast({ monthsAhead: 1 });
   if (!fc.ok) return { available: false, reason: fc.reason };
+  const assetSelfFilter = typeof isAssetOwnershipSelf === 'function' ? isAssetOwnershipSelf : (() => true);
   return {
     available: true,
-    assetCount: Array.isArray(D.assets) ? D.assets.length : 0,
+    assetCount: Array.isArray(D.assets) ? D.assets.filter(assetSelfFilter).length : 0,
     netWorthNow: fc.netWorthNow,
     metode: fc.metode,
     trend: fc.projectedEnd >= fc.netWorthNow ? 'naik' : 'turun',
@@ -188,11 +193,18 @@ function _aiContextAsset() {
 // balikin {ok:false}) TETAP masuk daftar (rpPerKm/estMonthlyCost null),
 // TIDAK di-skip dari array, supaya vehicleCount tetap konsisten dgn
 // D.vehicles.length.
+// _aiContextVehicle() (Sesi 197, Ownership Sync — AI): TAMBAH 1 filter
+// isVehicleOwnershipSelf(v.id) di atas D.vehicles (0 logic lama diubah) —
+// kendaraan ber-ownership INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY dikecualikan
+// dari context AI Daily Briefing, pola sama persis isVehicleOwnershipSelf()
+// di vehicle-core.js (Sesi 196). Guard typeof: kalau helper belum dimuat,
+// anggap semua SELF (tidak exclude apa pun).
 function _aiContextVehicle() {
   if (typeof D === 'undefined' || !D || !Array.isArray(D.vehicles) || typeof fuelEfficiency !== 'function') {
     return { available: false };
   }
-  const vehicles = D.vehicles.map((v) => {
+  const selfVehicles = D.vehicles.filter((v) => typeof isVehicleOwnershipSelf !== 'function' || isVehicleOwnershipSelf(v.id));
+  const vehicles = selfVehicles.map((v) => {
     const eff = fuelEfficiency(v.id);
     return {
       id: v.id,
@@ -215,13 +227,22 @@ function _aiContextVehicle() {
 //    event 'delivery.created' di Order._saveInner() (cobek-order.js) —
 //    field profit/total SUDAH tersimpan di tiap entri D.cobek, di sini
 //    cuma dibaca ulang + dirata-rata, BUKAN rumus baru.
+// _aiContextShop() (Sesi 265, Ownership Sync — AI): TAMBAH filter
+// isProductOwnershipSelf/isCobekOwnershipSelf (0 logic lama diubah), pola
+// sama persis prodSelfFilter/cobSelfFilter di feature-insights.js (S260) —
+// produk/transaksi Cobek ber-ownership INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY
+// dikecualikan dari context AI Daily Briefing. Guard typeof: kalau helper
+// belum dimuat, anggap semua SELF (tidak exclude apa pun).
 function _aiContextShop() {
   if (typeof D === 'undefined' || !D || !Array.isArray(D.cobek) || !Array.isArray(D.products)) {
     return { available: false };
   }
+  const prodSelfFilter = typeof isProductOwnershipSelf === 'function' ? isProductOwnershipSelf : (() => true);
+  const cobSelfFilter = typeof isCobekOwnershipSelf === 'function' ? isCobekOwnershipSelf : (() => true);
   const lowStock = (typeof _deliveryLowStockCheck === 'function') ? _deliveryLowStockCheck() : null;
   const recent = D.cobek
     .filter((c) => typeof c.profit === 'number' && typeof c.total === 'number' && c.total > 0)
+    .filter(cobSelfFilter)
     .sort((a, b) => (b.id || 0) - (a.id || 0))
     .slice(0, 5);
   const recentAvgMarginPct = recent.length
@@ -229,7 +250,7 @@ function _aiContextShop() {
     : null;
   return {
     available: true,
-    productCount: D.products.length,
+    productCount: D.products.filter(prodSelfFilter).length,
     lowStockCount: lowStock ? lowStock.low.length : null,
     recentAvgMarginPct,
     recentOrdersConsidered: recent.length,

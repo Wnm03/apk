@@ -14,6 +14,29 @@
 // Dipanggil dari DashboardHub.render() & dari live-wiring renderDashboard()
 // (modules/shared/modules-render.js), TIDAK ada mekanisme render baru.
 // CSS TIDAK baru — reuse penuh class findash-grid/findash-card.
+//
+// ASSET_MAINTENANCE_CARD_NAV_TARGETS (Sesi 252 — Batch Asset Navigation
+// Consistency) — tujuan navigasi tiap kartu #assetMaintenanceGrid. MURNI
+// DATA (0 logic navigasi baru) — format {page,tab,goTo} SAMA PERSIS format
+// target FEATURE_REGISTRY (dashboard-hub-registry.js) / CARD_NAV_TARGETS
+// (business-flow-presenter.js, S250-251), dieksekusi lewat
+// dashHubNavigateToFeature() yang SUDAH ADA (dashboard-hub.js). Nama
+// disendirikan per-file (bukan CARD_NAV_TARGETS) supaya tidak bentrok
+// dengan const global yang sama persis di business-flow-presenter.js.
+// Kedua target menunjuk container yang TERVERIFIKASI ADA di
+// index.html/app_production.html (grep manual, 0 halaman/tab/container
+// baru dibuat) — persis lokasi yang sudah disebut di sub-text tiap kartu:
+//   overview       -> Aset > Buku Aset (assetList, "Tambahkan lewat menu
+//                      📦 Aset")
+//   needsAttention -> Aset > Analisis & Pajak > Penyusutan Aset
+//                      (assetPenyusutanDashboard, sinyal habisManfaat
+//                      berasal dari Penyusutan.hitung() yang tampil di
+//                      kartu ini)
+const ASSET_MAINTENANCE_CARD_NAV_TARGETS = Object.freeze({
+  overview: { page: 'aset', tab: 'buku', goTo: 'assetList' },
+  needsAttention: { page: 'aset', tab: 'analisis', goTo: 'assetPenyusutanDashboard' },
+});
+
 const AssetMaintenancePresenter = {
 
   render() {
@@ -36,8 +59,14 @@ const AssetMaintenancePresenter = {
       this._attentionCard(s.needsAttention),
     ];
 
+    // S252 (Batch Asset Navigation Consistency): SELURUH kartu clickable
+    // lewat mekanisme SAMA PERSIS FinanceDashboard.render()/
+    // BusinessFlowPresenter.render() (S251) — tiap kartu carry field
+    // onClick:{action,args} sendiri (ditempel di masing2 _xxxCard() di
+    // bawah), template di sini CUMA mengecek `c.onClick` (0 logic
+    // navigasi baru, 0 percabangan per-index).
     el.innerHTML = cards.map((c) => `
-      <div class="findash-card">
+      <div class="findash-card${c.onClick ? ' u-pointer' : ''}"${c.onClick ? ` data-action="${escapeHtml(c.onClick.action)}" data-args="${escapeHtml(JSON.stringify(c.onClick.args))}"` : ''} aria-label="Buka ${escapeHtml(c.label)}">
         <div class="findash-card-icon">${c.icon}</div>
         <div class="findash-card-body">
           <div class="findash-card-label">${escapeHtml(c.label)}</div>
@@ -52,11 +81,12 @@ const AssetMaintenancePresenter = {
   // APA ADANYA (totalAssets/trackedCount/untrackedCount/
   // needsAttentionCount — 0 recompute).
   _overviewCard(s) {
+    const onClick = { action: 'dashHubNavigateToFeature', args: [ASSET_MAINTENANCE_CARD_NAV_TARGETS.overview] };
     if (!s || !s.ok) {
-      return { icon: '🔧', label: 'Ringkasan Perawatan Aset', value: '—', cls: '', sub: s && s.reason };
+      return { icon: '🔧', label: 'Ringkasan Perawatan Aset', value: '—', cls: '', sub: s && s.reason, onClick };
     }
     if (s.totalAssets === 0) {
-      return { icon: '🔧', label: 'Ringkasan Perawatan Aset', value: 'Belum ada aset tercatat', cls: '', sub: 'Tambahkan lewat menu 📦 Aset.' };
+      return { icon: '🔧', label: 'Ringkasan Perawatan Aset', value: 'Belum ada aset tercatat', cls: '', sub: 'Tambahkan lewat menu 📦 Aset.', onClick };
     }
     return {
       icon: '🔧',
@@ -64,6 +94,7 @@ const AssetMaintenancePresenter = {
       value: `${s.trackedCount} dari ${s.totalAssets} dilacak`,
       cls: '',
       sub: `${s.untrackedCount} belum aktifkan penyusutan · lihat menu 📦 Aset`,
+      onClick,
     };
   },
 
@@ -71,11 +102,12 @@ const AssetMaintenancePresenter = {
   // dipakai APA ADANYA (count/items[].name — 0 recompute, sinyal
   // `habisManfaat` dari `Penyusutan.hitung()` yang SUDAH ADA).
   _attentionCard(a) {
+    const onClick = { action: 'dashHubNavigateToFeature', args: [ASSET_MAINTENANCE_CARD_NAV_TARGETS.needsAttention] };
     if (!a || !a.ok) {
-      return { icon: '⚠️', label: 'Perlu Ditinjau', value: '—', cls: '', sub: a && a.reason };
+      return { icon: '⚠️', label: 'Perlu Ditinjau', value: '—', cls: '', sub: a && a.reason, onClick };
     }
     if (a.count === 0) {
-      return { icon: '✅', label: 'Perlu Ditinjau', value: 'Tidak ada', cls: 'green', sub: 'Semua aset yang dilacak masih dalam umur manfaat.' };
+      return { icon: '✅', label: 'Perlu Ditinjau', value: 'Tidak ada', cls: 'green', sub: 'Semua aset yang dilacak masih dalam umur manfaat.', onClick };
     }
     const names = a.items.slice(0, 2).map((x) => x.name).join(', ');
     return {
@@ -84,6 +116,7 @@ const AssetMaintenancePresenter = {
       value: `${a.count} aset`,
       cls: 'red',
       sub: `${names}${a.count > 2 ? ', +' + (a.count - 2) + ' lainnya' : ''} · umur manfaat sudah habis`,
+      onClick,
     };
   },
 

@@ -137,8 +137,13 @@ const out=[];
 const now=new Date();
 if(typeof daysUntilDate!=='function')return out;
 // (1) Piutang jatuh tempo dekat (<=7 hari)/lewat, belum lunas — prioritas nagih.
+// (Sesi 265, Ownership Sync — AI): TAMBAH filter isPiutangOwnershipSelf (0
+// logic lama diubah), pola sama persis prodSelfFilter/cobSelfFilter di
+// bawah — piutang ber-ownership INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY
+// dikecualikan dari insight nagih. Guard typeof: fallback semua SELF.
 try{
-(D.piutang||[]).filter(p=>!p.lunas&&p.jatuhTempo).forEach(p=>{
+const piutangSelfFilter=typeof isPiutangOwnershipSelf==='function'?isPiutangOwnershipSelf:(()=>true);
+(D.piutang||[]).filter(p=>!p.lunas&&p.jatuhTempo).filter(piutangSelfFilter).forEach(p=>{
 const d=daysUntilDate(p.jatuhTempo);
 if(d===null||d>7)return;
 const late=d<0;
@@ -149,8 +154,12 @@ out.push({id:'piutang-due-'+p.id,level:late?'danger':'warning',icon:late?'🔴':
 // (2) Utang jatuh tempo dekat (<=7 hari)/lewat, belum lunas — sama seperti FinCoach lama #6.
 // KW-170: ikut cek cicilan barang aktif (Debt.billCicilanAktif(), sudah dianggap "utang beneran"
 // di Buku Utang), digabung & diambil yang paling dekat jatuh temponya dari kedua sumber.
+// (Sesi 265, Ownership Sync — AI): TAMBAH filter isDebtOwnershipSelf (0
+// logic lama diubah) — utang non-SELF dikecualikan dari insight jatuh
+// tempo. Guard typeof: fallback semua SELF.
 try{
-const soonDebt=(D.debts||[]).filter(d=>!d.lunas&&d.jatuhTempo).map(d=>({id:'debt-due-'+d.id,name:d.name,nilai:d.nilai,diff:daysUntilDate(d.jatuhTempo)}));
+const debtSelfFilter=typeof isDebtOwnershipSelf==='function'?isDebtOwnershipSelf:(()=>true);
+const soonDebt=(D.debts||[]).filter(d=>!d.lunas&&d.jatuhTempo).filter(debtSelfFilter).map(d=>({id:'debt-due-'+d.id,name:d.name,nilai:d.nilai,diff:daysUntilDate(d.jatuhTempo)}));
 const billCicilan=(typeof Debt!=='undefined'&&typeof Debt.billCicilanAktif==='function')?Debt.billCicilanAktif():[];
 const soonBill=billCicilan.filter(b=>b.nextDue).map(b=>({id:'debt-due-bill-'+b.id,name:b.name,nilai:b.amount,diff:daysUntilDate(b.nextDue)}));
 const soon=soonDebt.concat(soonBill).filter(x=>x.diff!==null&&x.diff<=7).sort((a,b)=>a.diff-b.diff);
@@ -182,7 +191,14 @@ const ShopInsight={
 MARGIN_DROP_RATIO:0.75,
 compute(){
 const out=[];
-const products=D.products||[];
+// S260 (Business AI Ownership Sync): Shop AI Insight HANYA menghitung produk
+// ownership SELF — reuse isProductOwnershipSelf() (SSOT, cobek-etalase.js),
+// guard typeof biar aman kalau file itu belum dimuat (fallback anggap semua
+// SELF), pola SAMA PERSIS cobSelfFilter/cobSelfFilter2 di bawah (S194, versi
+// transaksi) & selfFilter di InventoryEngine/StockRekoWidget/PriceRekoWidget
+// (S259/S260).
+const prodSelfFilter=typeof isProductOwnershipSelf==='function'?isProductOwnershipSelf:(()=>true);
+const products=(D.products||[]).filter(prodSelfFilter);
 // (1) Stok menipis (<=2, sama dgn ambang badge "Menipis" di Etalase.renderList()).
 const menipis=products.filter(p=>(p.stock||0)<=2);
 if(menipis.length){
@@ -191,11 +207,15 @@ out.push({id:'shop-stok-menipis',level:'warning',icon:'🟠',text:`${menipis.len
 }
 // (2) Margin profit bulan ini turun jauh dari bulan lalu (min. 3 transaksi biar tidak false-positive).
 try{
+// Sesi 194 (Ownership Sync Shop): AI Insight margin Shop HANYA hitung
+// transaksi ownership SELF (guard typeof biar aman kalau ownership-engine.js
+// belum dimuat — fallback isCobekOwnershipSelf true).
+const cobSelfFilter=typeof isCobekOwnershipSelf==='function'?isCobekOwnershipSelf:(()=>true);
 const now=new Date(),m=now.getMonth(),y=now.getFullYear();
 const cobek=D.cobek||[];
-const cobThis=cobek.filter(t=>{const d=new Date(t.date);return d.getMonth()===m&&d.getFullYear()===y;});
+const cobThis=cobek.filter(t=>{const d=new Date(t.date);return d.getMonth()===m&&d.getFullYear()===y;}).filter(cobSelfFilter);
 const prevD=new Date(y,m-1,1);
-const cobPrev=cobek.filter(t=>{const d=new Date(t.date);return d.getMonth()===prevD.getMonth()&&d.getFullYear()===prevD.getFullYear();});
+const cobPrev=cobek.filter(t=>{const d=new Date(t.date);return d.getMonth()===prevD.getMonth()&&d.getFullYear()===prevD.getFullYear();}).filter(cobSelfFilter);
 const marginOf=rows=>{const omzet=rows.reduce((s,t)=>s+(t.total||0),0);const profit=rows.reduce((s,t)=>s+(t.profit||0),0);return omzet>0?profit/omzet:null;};
 const mThis=marginOf(cobThis),mPrev=marginOf(cobPrev);
 if(mThis!=null&&mPrev!=null&&mPrev>0&&mThis<mPrev*ShopInsight.MARGIN_DROP_RATIO&&cobThis.length>=3){
@@ -205,7 +225,9 @@ out.push({id:'shop-margin',level:'warning',icon:'🟠',text:`Margin profit Shop 
 // (3) Produk terlaris bulan ini (penguat positif, bukan cuma peringatan).
 try{
 const now=new Date(),m=now.getMonth(),y=now.getFullYear();
-const cobThis=(D.cobek||[]).filter(t=>{const d=new Date(t.date);return d.getMonth()===m&&d.getFullYear()===y;});
+// Sesi 194 (Ownership Sync Shop): "Produk terlaris" HANYA hitung transaksi ownership SELF.
+const cobSelfFilter2=typeof isCobekOwnershipSelf==='function'?isCobekOwnershipSelf:(()=>true);
+const cobThis=(D.cobek||[]).filter(t=>{const d=new Date(t.date);return d.getMonth()===m&&d.getFullYear()===y;}).filter(cobSelfFilter2);
 if(cobThis.length>=3){
 const perProduk={};
 cobThis.forEach(t=>{(t.items||[]).forEach(it=>{const key=it.productId||it.name;if(!key)return;perProduk[key]=(perProduk[key]||{name:it.name,qty:0});perProduk[key].qty+=(it.qty||1);});});
@@ -215,6 +237,60 @@ out.push({id:'shop-terlaris',level:'good',icon:'🟢',text:`Produk terlaris bula
 }
 }
 }catch(e){console.warn('ShopInsight: gagal cek produk terlaris',e);}
+// (4) Estimasi modal restock (S199, Finalisasi Integrasi Shop) — 100%
+// reuse ShopBusinessEnginePresenter.summary().purchase (S198
+// InventoryEngine.restockScan()+PurchaseEngine.estimatedCost()), 0 rumus
+// baru di sini. Beda dari insight (1) di atas: (1) cuma menghitung JUMLAH
+// produk stok menipis (ambang stock<=2), item ini menambahkan ESTIMASI
+// MODAL (Rp) yang dibutuhkan utk restock semua produk yang direkomendasikan
+// StockRekoWidget.scan() (bisa beda produk/ambang dari (1), krn StockRekoWidget
+// juga mempertimbangkan histori penjualan/estimasi hari stok tersisa).
+try{
+if(typeof ShopBusinessEnginePresenter!=='undefined'){
+const s=ShopBusinessEnginePresenter.summary();
+if(s.purchase&&s.purchase.ok&&s.purchase.itemCount>0){
+const money=typeof fmt==='function'?fmt:(n=>'Rp '+Math.round(n||0));
+out.push({id:'shop-restock-modal',level:'warning',icon:'🟠',text:`${s.purchase.itemCount} produk direkomendasikan direstock — estimasi modal ${money(s.purchase.totalCost)}.`,action:{label:'Lihat Shop',page:'shop',navIdx:2}});
+}
+}
+}catch(e){console.warn('ShopInsight: gagal cek estimasi modal restock',e);}
+// (5) Rencana Pengiriman (S203, Delivery Plan UI) — 100% reuse
+// TripEngine.weight()/volume() (S198, delegasi PERSIS ke
+// weightCalculator()/volumeCalculator() cobek-etalase.js), TIDAK ada rumus
+// baru di sini. Murni deteksi: ada produk dgn data berat/dimensi terisi
+// (S203, field baru productModal) -> arahkan ke fitur baru itu.
+try{
+if(typeof TripEngine!=='undefined'){
+const withDims=products.filter(p=>(p.beratPerUnit>0)||(p.panjang>0&&p.lebar>0&&p.tinggi>0));
+if(withDims.length>0){
+out.push({id:'shop-delivery-plan',level:'info',icon:'🚚',text:`${withDims.length} produk sudah punya data berat/dimensi — pakai 🚚 Rencana Pengiriman di form Transaksi Baru buat cek ongkir & kapasitas kendaraan sebelum kirim pesanan besar.`,action:{label:'Lihat Shop',page:'shop',navIdx:2}});
+}
+}
+}catch(e){console.warn('ShopInsight: gagal cek rencana pengiriman',e);}
+// (6) Margin Tipis Pengiriman (S204-A, Trip Presenter) — 100% reuse
+// TripPresenter.summary() (agregasi field D.cobek yang sudah tersimpan:
+// delivered/ongkir/marginPct + getAIDeliveryThinMarginThreshold() S9),
+// TIDAK ada rumus baru di sini. Beda dari rule AI 'delivery-thin-margin'
+// (AIDecision, per-transaksi saat save()): item ini ringkasan BULANAN di
+// AI Insight Shop.
+try{
+if(typeof TripPresenter!=='undefined'){
+const s=TripPresenter.summary();
+if(s.ok&&s.thinMarginCount>0){
+out.push({id:'shop-trip-thin-margin',level:'warning',icon:'🟠',text:`${s.thinMarginCount} dari ${s.trips} pengiriman bulan ini bermargin tipis (di bawah ${s.thinThreshold}%).`,action:{label:'Lihat Shop',page:'shop',navIdx:2}});
+}
+}
+}catch(e){console.warn('ShopInsight: gagal cek margin tipis pengiriman',e);}
+// (7) Business KPI Recommendation (S211-212, Business Flow KPI) — 100%
+// reuse BusinessFlowPresenter.recommendation() (murni derived dari
+// businessKPI()/flow()/purchaseStatus() yang sudah ada, S205-S211), TIDAK
+// ada rumus baru di sini — cuma nyalurkan hasilnya ke feed AI Insight
+// Shop supaya satu sumber angka sama dgn kartu Dashboard KPI.
+try{
+if(typeof BusinessFlowPresenter!=='undefined'){
+BusinessFlowPresenter.recommendation().forEach(item=>out.push(item));
+}
+}catch(e){console.warn('ShopInsight: gagal cek business KPI recommendation',e);}
 return out;
 },
 render(){
@@ -226,7 +302,13 @@ FeatureInsightUI.renderInto('shopInsightCard','shopInsightBody',hasData,ShopInsi
 const MobilInsight={
 compute(){
 const out=[];
-const vehicles=D.vehicles||[];
+// Sesi 197 (Ownership Sync — Insight): TAMBAH 1 filter
+// isVehicleOwnershipSelf(v.id) di atas D.vehicles (0 logic lama diubah) —
+// kendaraan ber-ownership INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY dikecualikan
+// dari insight pajak kendaraan, pola sama persis isVehicleOwnershipSelf()
+// di vehicle-core.js (Sesi 196). SIM (D.simList) TIDAK difilter — bukan
+// entitas kendaraan, tidak punya konsep ownership.
+const vehicles=(D.vehicles||[]).filter(v=>typeof isVehicleOwnershipSelf!=='function'||isVehicleOwnershipSelf(v.id));
 if(typeof daysUntilDate!=='function')return out;
 // (1) Pajak Kendaraan (STNK Tahunan/Ganti Plat 5th/Uji Kelayakan) jatuh tempo dekat/lewat.
 vehicles.forEach(v=>{

@@ -18,6 +18,32 @@
 // (modules/shared/modules-render.js), TIDAK ada mekanisme render baru.
 // CSS TIDAK baru — reuse penuh class findash-grid/findash-card (grid
 // generik, sudah dipakai FinanceDashboard/DebtOptimizerPresenter/dst).
+//
+// PROPERTY_MGMT_CARD_NAV_TARGETS (Sesi 252 — Batch Asset Navigation
+// Consistency) — tujuan navigasi tiap kartu #propertyManagementGrid.
+// MURNI DATA (0 logic navigasi baru) — format {page,tab,goTo} SAMA PERSIS
+// format target FEATURE_REGISTRY (dashboard-hub-registry.js) /
+// CARD_NAV_TARGETS (business-flow-presenter.js, S250-251), dieksekusi
+// lewat dashHubNavigateToFeature() yang SUDAH ADA (dashboard-hub.js). Nama
+// disendirikan per-file (bukan CARD_NAV_TARGETS) supaya tidak bentrok
+// dengan const global yang sama persis di business-flow-presenter.js.
+// Ketiga target menunjuk container yang TERVERIFIKASI ADA di
+// index.html/app_production.html (grep manual, 0 halaman/tab/container
+// baru dibuat) — persis lokasi yang sudah disebut di sub-text tiap kartu:
+//   portfolio     -> Aset > Buku Aset (assetList, "Tambahkan lewat menu
+//                     📦 Aset")
+//   tax           -> Aset > Analisis & Pajak > Pajak Aset
+//                     (assetPajakDashboard, "lihat rincian di menu
+//                     🧾 Pajak Aset")
+//   depreciation  -> Aset > Analisis & Pajak > Penyusutan Aset
+//                     (assetPenyusutanDashboard, "Aktifkan penyusutan
+//                     lewat menu 📦 Aset")
+const PROPERTY_MGMT_CARD_NAV_TARGETS = Object.freeze({
+  portfolio: { page: 'aset', tab: 'buku', goTo: 'assetList' },
+  tax: { page: 'aset', tab: 'analisis', goTo: 'assetPajakDashboard' },
+  depreciation: { page: 'aset', tab: 'analisis', goTo: 'assetPenyusutanDashboard' },
+});
+
 const PropertyManagementPresenter = {
 
   render() {
@@ -41,8 +67,14 @@ const PropertyManagementPresenter = {
       this._depreciationCard(s.depreciation),
     ];
 
+    // S252 (Batch Asset Navigation Consistency): SELURUH kartu clickable
+    // lewat mekanisme SAMA PERSIS FinanceDashboard.render()/
+    // BusinessFlowPresenter.render() (S251) — tiap kartu carry field
+    // onClick:{action,args} sendiri (ditempel di masing2 _xxxCard() di
+    // bawah), template di sini CUMA mengecek `c.onClick` (0 logic
+    // navigasi baru, 0 percabangan per-index).
     el.innerHTML = cards.map((c) => `
-      <div class="findash-card">
+      <div class="findash-card${c.onClick ? ' u-pointer' : ''}"${c.onClick ? ` data-action="${escapeHtml(c.onClick.action)}" data-args="${escapeHtml(JSON.stringify(c.onClick.args))}"` : ''} aria-label="Buka ${escapeHtml(c.label)}">
         <div class="findash-card-icon">${c.icon}</div>
         <div class="findash-card-body">
           <div class="findash-card-label">${escapeHtml(c.label)}</div>
@@ -57,11 +89,12 @@ const PropertyManagementPresenter = {
   // dipakai APA ADANYA (count/totalValue/breakdown — 0 recompute).
   _portfolioCard(p) {
     const money = (n) => (typeof fmt === 'function') ? fmt(n) : ('Rp ' + Math.round(n || 0));
+    const onClick = { action: 'dashHubNavigateToFeature', args: [PROPERTY_MGMT_CARD_NAV_TARGETS.portfolio] };
     if (!p || !p.ok) {
-      return { icon: '🏠', label: 'Portofolio Properti', value: '—', cls: '', sub: p && p.reason };
+      return { icon: '🏠', label: 'Portofolio Properti', value: '—', cls: '', sub: p && p.reason, onClick };
     }
     if (p.count === 0) {
-      return { icon: '🏠', label: 'Portofolio Properti', value: 'Belum ada properti tercatat', cls: '', sub: 'Tambahkan lewat menu 📦 Aset (jenis Tanah/Rumah).' };
+      return { icon: '🏠', label: 'Portofolio Properti', value: 'Belum ada properti tercatat', cls: '', sub: 'Tambahkan lewat menu 📦 Aset (jenis Tanah/Rumah).', onClick };
     }
     const top = (p.breakdown || [])[0];
     return {
@@ -70,6 +103,7 @@ const PropertyManagementPresenter = {
       value: money(p.totalValue),
       cls: '',
       sub: `${p.count} properti${top ? ' · Terbesar ' + top.jenis + ' (' + top.pct.toFixed(0) + '%)' : ''}`,
+      onClick,
     };
   },
 
@@ -78,11 +112,12 @@ const PropertyManagementPresenter = {
   // `PajakAset.hitungPBB()`).
   _taxCard(t) {
     const money = (n) => (typeof fmt === 'function') ? fmt(n) : ('Rp ' + Math.round(n || 0));
+    const onClick = { action: 'dashHubNavigateToFeature', args: [PROPERTY_MGMT_CARD_NAV_TARGETS.tax] };
     if (!t || !t.ok) {
-      return { icon: '🧾', label: 'Estimasi PBB', value: '—', cls: '', sub: t && t.reason };
+      return { icon: '🧾', label: 'Estimasi PBB', value: '—', cls: '', sub: t && t.reason, onClick };
     }
     if (t.count === 0) {
-      return { icon: '🧾', label: 'Estimasi PBB', value: 'Belum ada properti', cls: '', sub: '' };
+      return { icon: '🧾', label: 'Estimasi PBB', value: 'Belum ada properti', cls: '', sub: '', onClick };
     }
     return {
       icon: '🧾',
@@ -90,6 +125,7 @@ const PropertyManagementPresenter = {
       value: money(t.totalPBB),
       cls: t.totalPBB > 0 ? 'red' : '',
       sub: `Dari ${t.count} properti · lihat rincian di menu 🧾 Pajak Aset`,
+      onClick,
     };
   },
 
@@ -98,11 +134,12 @@ const PropertyManagementPresenter = {
   // totalNilaiBuku/belumLengkap — 0 recompute, dari `Penyusutan.hitung()`).
   _depreciationCard(d) {
     const money = (n) => (typeof fmt === 'function') ? fmt(n) : ('Rp ' + Math.round(n || 0));
+    const onClick = { action: 'dashHubNavigateToFeature', args: [PROPERTY_MGMT_CARD_NAV_TARGETS.depreciation] };
     if (!d || !d.ok) {
-      return { icon: '📉', label: 'Penyusutan Properti', value: '—', cls: '', sub: d && d.reason };
+      return { icon: '📉', label: 'Penyusutan Properti', value: '—', cls: '', sub: d && d.reason, onClick };
     }
     if (d.jumlahAktif === 0) {
-      return { icon: '📉', label: 'Penyusutan Properti', value: 'Belum ada yang dilacak', cls: '', sub: 'Aktifkan penyusutan lewat menu 📦 Aset.' };
+      return { icon: '📉', label: 'Penyusutan Properti', value: 'Belum ada yang dilacak', cls: '', sub: 'Aktifkan penyusutan lewat menu 📦 Aset.', onClick };
     }
     return {
       icon: '📉',
@@ -110,6 +147,7 @@ const PropertyManagementPresenter = {
       value: money(d.totalNilaiBuku),
       cls: '',
       sub: `${d.jumlahAktif} properti dilacak · Akumulasi ${money(d.totalAkumulasi)}${d.belumLengkap ? ' · ' + d.belumLengkap + ' data belum lengkap' : ''}`,
+      onClick,
     };
   },
 
