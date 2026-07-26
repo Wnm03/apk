@@ -916,3 +916,36 @@ hanya `WorthIt.catFieldsHtml()` yang dites, bukan DOM/modal wiring).
 
 `kw_release_sesi165b_worthit_kategori_fields_v617.zip` — dibuat & dikirim
 ke user.
+
+## Checkpoint — Sesi 267 (2026-07-26): Kasir AI — parity Alamat/Delivered/DP dgn Order
+
+Audit ditemukan Kasir AI (`modules/business/kasir.js`) kirim 3 field lebih
+sedikit dari Order manual: `address` selalu hardcode `''`, `delivered`
+selalu hardcode `true`, dan tidak ada dukungan DP/Piutang. `recordShopSale()`
+sendiri sudah generik (terima ketiganya) — gapnya murni di layar Kasir.
+
+Fix (additif, 0 baris Order/`recordShopSale()` diubah):
+- Tambah field Alamat (`kasirCustAddr`), toggle "Sudah diserahkan"
+  (`kasirDelivered` + `Kasir.toggleDeliveredField()`), dan field DP
+  (`kasirDP`) di `index.html` (kasir-cart-fields).
+- `Kasir._checkoutInner()`: teruskan address & delivered ke
+  `recordShopSale()`; logic DP→Piutang (hitung sisa, `D.transactions.amount
+  = dp`, buat `D.piutang` kalau sisa>0) **diduplikasi** dari
+  `Order._saveInner()` (opsi A — user pilih ini di atas opsi ekstrak
+  helper bersama, krn Kasir tidak pernah edit entri lama jadi tidak perlu
+  logic reconciliation `piutangLinkId`).
+- `Kasir.reset()` ikut clear 3 field baru.
+
+## Test
+
+`node --test tests/*.test.js` -> **1369/1369 pass, 0 fail** (tidak ada test
+baru ditambahkan — perubahan murni wiring UI, dicek manual lewat build+lint).
+
+## Build
+
+`node scripts/build.js kasir-audit-address-delivered-dp` -> sukses, `?v=784`.
+
+## ZIP
+
+`kw_release_kasir-audit-address-delivered-dp_v784.zip` — dibuat & dikirim
+ke user.

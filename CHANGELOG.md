@@ -1,3 +1,109 @@
+# Changelog — Sesi 265 (Build 790): Audit navigasi Dashboard/Car Notes (lanjutan pola Sesi 263-264)
+
+## Konteks
+Permintaan user: cek apakah Dashboard py bug navigasi sama seperti
+Finance Dashboard (Sesi 263) & Shop Business Intelligence (Sesi 264).
+Audit menyeluruh: semua `*_NAV_TARGETS`/`CARD_NAV_TARGET(S)` di
+`modules/finance,shop,vehicle,asset/*.js` di-cross-check manual thd
+lokasi container asli di index.html, + `FEATURE_REGISTRY`
+(dashboard-hub-registry.js, dicek otomatis oleh
+`tests/dashboard-hub-registry.test.js`) di-cross-check ulang thd widget
+yang sudah dipindah (findashWrap/forecastWrap/dst, shopBusinessEngine*/
+tripPresenter*/businessFlow*) — TIDAK ADA referensi basi ditemukan di
+FEATURE_REGISTRY maupun di widget Dashboard/Dashboard Hub itu sendiri.
+
+## Bug ditemukan (1, di Car Notes bukan Dashboard Hub langsung)
+`VehicleAutomationPresenter` (`modules/vehicle/vehicle-automation-
+presenter.js`), kartu "Pajak/SIM" (`_taxCard()`,
+`VEHICLE_AUTOMATION_NAV_TARGETS.tax`): target TIDAK py `tab`, padahal
+`#vehTaxList` hidup di dalam `#cnTab-pajak`. Tanpa `tab`,
+`dashHubNavigateToFeature()` cuma pindah ke halaman Car Notes tanpa
+ganti sub-tab — kalau user sedang di sub-tab lain (Insight/BBM/Servis),
+klik kartu ini terlihat tidak melakukan apa-apa (elemen tujuan
+tersembunyi 'u-dnone' di sub-tab lain).
+
+## Fix
+`VEHICLE_AUTOMATION_NAV_TARGETS.tax` → tambah `tab: 'pajak'`. Test
+`vehicle-nav-consistency-s253.test.js` disamakan. 1387/1387 test lolos.
+Bundle di-rebuild ke Build 790.
+
+## Hasil cek lain (aman, tidak diubah)
+- Asset (`asset-portfolio/maintenance/property-management/rental-
+  management-presenter.js`): semua target sudah sesuai lokasi tab
+  aset (ringkasan/buku/analisis).
+- Vehicle lain (fuel-analytics, vehicle-analytics, vehicle-insight,
+  vehicle-dashboard): semua target sudah sesuai lokasi tab
+  Car Notes (bbm/servis/insight+subtab).
+- Dashboard Hub (`dashboard-hub-registry.js`): 0 entri menunjuk widget
+  yang sudah dipindah ke Keuangan/Shop (findashWrap dkk).
+
+# Changelog — Sesi 264 (Build 789): Fix navigasi kartu Business Intelligence Shop (pola sama Sesi 263)
+
+## Bug
+Sama pola persis Sesi 263 (Finance Dashboard), tapi di tab Shop >
+Business Intelligence:
+- Kartu KPI/Cost-Pricing/Load-Transport/Decision (`BusinessFlowPresenter`,
+  index 4-7) & tombol "🚚 Trip" (`openTripPage()`) target `tab:'riwayat'`,
+  padahal container `businessFlowBody`/`tripPresenterBody` yang jadi
+  landing-nya sebenarnya ada di `#shopTab-laporan`, bukan
+  `#shopTab-riwayat`.
+- Kartu Transfer (`_transferCard()`) target `page:'dashboard-hub'`,
+  padahal `businessFlowTransferList` sudah DIPINDAH ke `#shopTab-bi`
+  sejak migrasi Business Intelligence (Sesi 250).
+- Root cause tambahan: `SHOP_TAB_IDX` (dashboard-hub.js) TIDAK PERNAH
+  didaftarkan utk tab `'laporan'`/`'bi'` (cuma sampai `pelanggan`),
+  padahal #page-shop sudah py 8 tab. Efeknya kalau salah satu bug di
+  atas "dibetulkan" tanpa fix ini, `dashHubNavigateToFeature()` akan
+  crash (`tabs[undefined]` -> `setShopTab(t, undefined)` ->
+  `el.classList.add()` pada `undefined`).
+Efek gabungan ke user: klik kartu KPI/Cost-Pricing/Load-Transport/
+Decision/Trip/Transfer di tab Business Intelligence melempar ke tab/
+halaman yang salah (bukan ke ringkasan datanya).
+
+## Fix
+- `modules/dashboard-hub/dashboard-hub.js`: `SHOP_TAB_IDX` ditambah
+  `laporan:6, bi:7` (sesuai urutan tombol asli `#page-shop .cn-tab`).
+- `modules/shop/business-flow-presenter.js`: `CARD_NAV_TARGETS[4..7]`
+  → `tab:'laporan'`; `CARD_NAV_TARGETS[9]` (Transfer) →
+  `{page:'shop', tab:'bi', goTo:'businessFlowTransferList'}`;
+  `openTripPage()` → `tab:'laporan'`.
+- `modules/shop/trip-presenter.js`: `CARD_NAV_TARGET` → `tab:'laporan'`.
+- `tests/trip-navigation-s249.test.js` disamakan ke ekspektasi baru.
+- 100% reuse `dashHubNavigateToFeature()`/`setShopTab()` yang sudah ada,
+  0 mekanisme navigasi baru. 1387/1387 test lolos. Bundle di-rebuild ke
+  Build 789.
+
+# Changelog — Sesi 263 (Build 788): Fix navigasi kartu Finance Dashboard (S254A/B regresi)
+
+## Bug
+Kartu-kartu di 9 presenter finansial (Financial Forecast, Budget
+Recommendation, Cash Flow Projection, Financial Goal, Investment
+Planner, Debt Optimizer, Retirement Planner, Financial Health Score,
+Financial Risk Dashboard — semua tampil di tab 📊 Laporan halaman
+Keuangan) saat diklik navigasi ke `page: 'dashboard-hub'`, padahal
+section-nya (`forecastWrap`/`budgetRecoWrap`/dst) sudah DIPINDAH ke
+`#page-keuangan > #keuanganTab-laporan` sejak Sesi 133. Efeknya: user
+klik kartu data, malah dilempar ke halaman Dashboard Hub (section-nya
+tidak ada di sana), bukan discroll ke datanya sendiri di Laporan.
+
+Root cause: batch "Finance Navigation Consistency" (S254A/S254B) yang
+menambahkan onClick ke kartu-kartu ini memakai target lama
+`{page:'dashboard-hub', goTo:'...Wrap'}` — tidak disamakan dgn lokasi
+baru pasca migrasi Sesi 133. `DanaKelolaanPresenter` (dibuat belakangan)
+sudah benar (`{page:'keuangan', tab:'laporan', ...}`), jadi dipakai
+sebagai acuan pola fix.
+
+## Fix
+9 file `modules/finance/*-presenter.js` (financial-forecast,
+budget-recommendation, cashflow-projection, financial-goal,
+investment-planner, debt-optimizer, retirement-planner,
+financial-health-score, financial-risk-dashboard): `*_NAV_TARGETS.self`
+diganti ke `{page:'keuangan', tab:'laporan', goTo:'...Wrap'}` — 100%
+reuse `dashHubNavigateToFeature()`/`setKeuanganTab()` yang sudah ada,
+0 mekanisme navigasi baru. Test `finance-nav-consistency-s254a/b.test.js`
+disamakan ke ekspektasi baru (1387/1387 test lolos). Bundle
+(`app-bundle-a/b.min.js`) di-rebuild ke Build 788.
+
 # Changelog — Sesi 262: Selective Liquid Glass + M3 Expressive UI refresh
 
 ## Konteks

@@ -80,9 +80,9 @@
 <link rel="preconnect" href="https://accounts.google.com" crossorigin>
 <link rel="dns-prefetch" href="https://accounts.google.com">
 <title>Keluarga W</title>
-<link rel="stylesheet" href="styles.css?v=776">
-<link rel="stylesheet" href="modern-ui-layer.css?v=777">
-<script src="nav-scroll.js?v=1" defer></script>
+<link rel="stylesheet" href="styles.css?v=791">
+<link rel="stylesheet" href="modern-ui-layer.css?v=791">
+<script src="nav-scroll.js?v=791" defer></script>
 <script>
 /* Debug console (Eruda) — aktifkan sekali lewat ?debug=1 di URL, nempel via localStorage.
    Matikan lagi lewat ?debug=0. Tidak aktif buat user biasa. */
@@ -153,8 +153,8 @@ window.location.reload();
 }catch(e){}
 })();
 </script>
-<script src="app-bundle-a.min.js?v=776" onerror="window.__moduleLoadFail('app-bundle-a.min.js')"></script>
-<script src="modules/shared/smoke-test.js?v=776" defer></script>
+<script src="app-bundle-a.min.js?v=791" onerror="window.__moduleLoadFail('app-bundle-a.min.js')"></script>
+<script src="modules/shared/smoke-test.js?v=791" defer></script>
 <link rel="manifest" id="pwaManifestLink" href="manifest.json">
 </head>
 <body data-theme="fresh">
@@ -1077,7 +1077,16 @@ window.location.reload();
         </div>
         <div class="fg"><label class="fl">Nama Pembeli (opsional)</label><input type="text" class="fi" id="kasirCustName" placeholder="Bu Rina" autocomplete="off"></div>
         <div class="fg"><label class="fl">No. HP (opsional)</label><input type="text" class="fi" id="kasirCustPhone" placeholder="08xx" autocomplete="off"></div>
+        <!-- kw-kasir-audit-1: Alamat opsional — dulu Kasir selalu kirim address:'' kosong ke recordShopSale(), beda dari Order yang punya field ini (oCustAddr). Additive, tidak mengubah recordShopSale(). -->
+        <div class="fg"><label class="fl">Alamat (opsional)</label><input type="text" class="fi" id="kasirCustAddr" placeholder="Alamat kirim" autocomplete="off"></div>
         <div class="fg"><label class="fl">Uang Masuk ke Akun</label><select class="fs" id="kasirAcc"></select></div>
+        <!-- kw-kasir-audit-2: Toggle "sudah diserahkan" — dulu Kasir selalu hardcode delivered:true. Sama pola dgn oDelivered di orderModal. -->
+        <div class="setting-item" style="padding:10px 0">
+          <div id="kasirDeliveredLbl" style="font-size:12px;font-weight:600">✅ Sudah diserahkan ke pelanggan</div>
+          <label class="tgl-switch"><input type="checkbox" id="kasirDelivered" checked onchange="toggleKasirDeliveredField()"><span class="tgl-track"></span></label>
+        </div>
+        <!-- kw-kasir-audit-3: DP/Uang Diterima — dulu Kasir selalu dianggap lunas penuh, beda dari Order (oDP) yang sisa Total-DP-nya otomatis tercatat sbg Piutang. -->
+        <div class="fg"><label class="fl">Uang Diterima / DP (Rp) <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3)">(opsional, kosongkan kalau lunas penuh)</span></label><input type="number" class="fi" id="kasirDP" placeholder="Kosongkan = lunas penuh" inputmode="numeric"><div style="font-size:11px;color:var(--text2);margin-top:4px">Kalau diisi lebih kecil dari Total Tagihan, sisanya otomatis tercatat sbg Piutang.</div></div>
         <div class="fg u-mb0"><label class="fl">Catatan (opsional)</label><input type="text" class="fi" id="kasirNote" placeholder="Catatan tambahan..."></div>
       </div>
 
@@ -2076,14 +2085,14 @@ window.location.reload();
     
     <div class="card u-mb12 u-dnone" id="assetPajakDashboard">
       <div class="card-title">🧾 Pajak Aset</div>
-      <div class="u-hint10">Estimasi <b>PBB</b> (Pajak Bumi &amp; Bangunan) utk aset Tanah/Rumah-Bangunan &amp; <b>Zakat Maal</b> khusus aset yang ditandai "Hitung ke Zakat Maal" di Buku Aset — beda dari kalkulator Zakat Maal lengkap di tab 🕌 Pajak (yang juga menghitung aset cair &amp; utang). NJOP di sini didekati dari field "Nilai" aset (bukan NJOP resmi SPPT) — cek Perda/SPPT setempat utk angka pasti.</div>
+      <div class="u-hint10">Estimasi <b>PBB</b> (Pajak Bumi &amp; Bangunan) utk aset Tanah/Rumah-Bangunan &amp; <b>Zakat Maal per Aset</b> khusus aset yang ditandai "Hitung ke Zakat Maal" di Buku Aset — <b>BUKAN</b> kalkulator Zakat Maal lengkap. Angka di sini HANYA dari daftar aset (Saldo Akun, Piutang, &amp; Utang TIDAK ikut dihitung). Untuk kewajiban Zakat Maal yang sebenarnya (harta cair + aset + piutang − utang), pakai kartu 💰 Zakat Maal di tab 🕌 Pajak. NJOP di sini didekati dari field "Nilai" aset (bukan NJOP resmi SPPT) — cek Perda/SPPT setempat utk angka pasti.</div>
       <div class="u-grid2 u-gap8 u-mb10">
         <div><label class="fl">NJOPTKP (Rp)</label><input type="text" inputmode="numeric" class="fi" id="pajakAsetNjoptkp" placeholder="12000000" oninput="PajakAset.updateSetting('njoptkp',this.value)"></div>
         <div><label class="fl">Tarif PBB-P2 (%, cek Perda daerah)</label><input type="text" inputmode="decimal" class="fi" id="pajakAsetTarif" placeholder="0.5" oninput="PajakAset.updateSetting('tarifPersen',this.value)"></div>
       </div>
       <div class="budget-summary-grid u-mb10">
         <div class="budget-sum-box"><div class="budget-sum-val red" id="assetPajakTotalPBB">Rp 0</div><div class="budget-sum-lbl">Estimasi PBB/Tahun</div></div>
-        <div class="budget-sum-box"><div class="budget-sum-val orange" id="assetPajakTotalZakat">Rp 0</div><div class="budget-sum-lbl">Zakat Maal Aset (2,5%)</div></div>
+        <div class="budget-sum-box"><div class="budget-sum-val orange" id="assetPajakTotalZakat">Rp 0</div><div class="budget-sum-lbl">Zakat Maal per Aset (bukan Kekayaan Bersih)</div></div>
       </div>
       <div id="assetPajakList"></div>
       <div class="u-fs12 u-t2 u-mt10 u-lh15" id="assetPajakRingkasan"></div>
@@ -3646,6 +3655,6 @@ window.location.reload();
 <script>document.write(MODAL_HTML[80]);</script><!-- modal:hondaPdfImportModal -->
 <script>document.write(MODAL_HTML[82]);</script><!-- modal:inventoryTransferModal (S244) -->
 
-<script src="app-bundle-b.min.js?v=776" onerror="window.__moduleLoadFail('app-bundle-b.min.js')"></script>
+<script src="app-bundle-b.min.js?v=791" onerror="window.__moduleLoadFail('app-bundle-b.min.js')"></script>
 </body>
 </html>
