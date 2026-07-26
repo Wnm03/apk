@@ -80,8 +80,9 @@
 <link rel="preconnect" href="https://accounts.google.com" crossorigin>
 <link rel="dns-prefetch" href="https://accounts.google.com">
 <title>Keluarga W</title>
-<link rel="stylesheet" href="styles.css?v=771">
-<link rel="stylesheet" href="modern-ui-layer.css?v=771">
+<link rel="stylesheet" href="styles.css?v=776">
+<link rel="stylesheet" href="modern-ui-layer.css?v=777">
+<script src="nav-scroll.js?v=1" defer></script>
 <script>
 /* Debug console (Eruda) — aktifkan sekali lewat ?debug=1 di URL, nempel via localStorage.
    Matikan lagi lewat ?debug=0. Tidak aktif buat user biasa. */
@@ -152,8 +153,8 @@ window.location.reload();
 }catch(e){}
 })();
 </script>
-<script src="app-bundle-a.min.js?v=771" onerror="window.__moduleLoadFail('app-bundle-a.min.js')"></script>
-<script src="modules/shared/smoke-test.js?v=771" defer></script>
+<script src="app-bundle-a.min.js?v=776" onerror="window.__moduleLoadFail('app-bundle-a.min.js')"></script>
+<script src="modules/shared/smoke-test.js?v=776" defer></script>
 <link rel="manifest" id="pwaManifestLink" href="manifest.json">
 </head>
 <body data-theme="fresh">
@@ -1017,6 +1018,7 @@ window.location.reload();
     <button class="cn-tab tab-fixed-pad" data-action="setShopTab" data-args='["riwayat", "$el"]'>📋 Riwayat</button>
     <button class="cn-tab tab-fixed-pad" data-action="setShopTab" data-args='["pelanggan", "$el"]'>👤 Pelanggan</button>
     <button class="cn-tab tab-fixed-pad" data-action="setShopTab" data-args='["laporan", "$el"]'>📊 Laporan</button>
+    <button class="cn-tab tab-fixed-pad" data-action="setShopTab" data-args='["bi", "$el"]'>🧠 Business Intelligence</button>
   </div>
 
   <!-- Sprint 2 Tahap 2: FAB Shop, menyamakan standar UI dgn Finance 2.0
@@ -1301,6 +1303,58 @@ window.location.reload();
     <div class="card u-mt12" id="businessFlowCard">
       <div class="card-title">🔁 Alur Bisnis Shop</div>
       <div id="businessFlowBody"></div>
+    </div>
+  </div>
+
+  <!-- BUSINESS INTELLIGENCE (Sesi 250). Tab baru di Shop, isi = 3 section
+       yang DIPINDAH APA ADANYA dari Beranda (Dashboard Hub) — markup/id/
+       class TIDAK berubah, cuma lokasi (dulu #page-dashboard-hub, sekarang
+       di sini) + panggilan render()-nya (dulu dari DashboardHub.render()
+       via _safeRender, sekarang JUGA dipanggil dari setShopTab('bi', ...),
+       lihat cobek-io.js). Data TETAP 100% dari engine/presenter yang sudah
+       ada (read-only, 0 rumus baru, 0 field D baru, 0 duplikasi hitungan):
+         - Shop Business Engine -> ShopBusinessEnginePresenter.render()
+           (Purchase/Inventory/Profit, S198-199)
+         - Pengiriman Shop -> TripPresenter.render() (Trip/Transport, S204-A)
+         - Alur Bisnis Shop -> BusinessFlowPresenter.render() (Purchase/
+           Trip/Stock/Sale/KPI/Cost-Pricing/Load-Transport/Decision/
+           Inventory Transfer — mencakup "Business Health" lewat kartu KPI/
+           Decision di atas, S205 dst).
+       CSS `#shopBusinessEngineWrap,#tripPresenterWrap,#businessFlowWrap{
+       display:none!important}` yang dulu menyembunyikan ketiganya di
+       Beranda (lihat DASHBOARD-DEDUP.md fix #1) SUDAH DIHAPUS dari
+       styles.css supaya sekarang tampil normal di tab ini. -->
+  <div id="shopTab-bi" class="u-dnone">
+    <div class="dashhub-wrap card u-mb12" id="shopBusinessEngineWrap">
+      <div class="dashhub-cat-head">
+        <div class="dashhub-cat-icon">🪨</div>
+        <div>
+          <div class="dashhub-cat-label">Shop Business Engine</div>
+          <div class="dashhub-cat-desc">Nilai stok, rencana restock &amp; margin Shop bulan ini — dari data yang sudah ada</div>
+        </div>
+      </div>
+      <div class="findash-grid" id="shopBusinessEngineGrid"></div>
+    </div>
+    <div class="dashhub-wrap card u-mb12" id="tripPresenterWrap">
+      <div class="dashhub-cat-head">
+        <div class="dashhub-cat-icon">🚚</div>
+        <div>
+          <div class="dashhub-cat-label">Pengiriman Shop</div>
+          <div class="dashhub-cat-desc">Jumlah trip, ongkir &amp; margin pengiriman bulan ini — dari data yang sudah ada</div>
+        </div>
+      </div>
+      <div class="findash-grid" id="tripPresenterGrid"></div>
+    </div>
+    <div class="dashhub-wrap card u-mb12" id="businessFlowWrap">
+      <div class="dashhub-cat-head">
+        <div class="dashhub-cat-icon">🔁</div>
+        <div>
+          <div class="dashhub-cat-label">Alur Bisnis Shop</div>
+          <div class="dashhub-cat-desc">Purchase → Trip → Stock → Sale — dari data yang sudah ada</div>
+        </div>
+      </div>
+      <div class="findash-grid" id="businessFlowGrid"></div>
+      <div id="businessFlowTransferList" class="u-mt10"></div>
     </div>
   </div>
 </div>
@@ -3065,58 +3119,30 @@ window.location.reload();
       <div id="danaKelolaanInsightBody"></div>
     </div>
   </div>
-  <!-- SHOP BUSINESS ENGINE INTEGRATION (S199, Finalisasi Integrasi Shop).
-       Section di dalam Dashboard Hub, sama seperti #danaKelolaanWrap di
-       atas — diisi oleh ShopBusinessEnginePresenter.render() (dipanggil
-       dari DashboardHub.render() di dashboard-hub.js), 100% reuse
-       InventoryEngine/PurchaseEngine/ProfitEngine (S198, modules/shop/
-       *-engine.js). UI hanya presenter, tidak ada rumus baru di sini. CSS
-       TIDAK baru — reuse penuh class findash-grid/findash-card (grid
-       generik). Omzet/untung HANYA menghitung transaksi ownership SELF
-       (Sesi 194 pattern, reuse isCobekOwnershipSelf). -->
-  <div class="dashhub-wrap card u-mb12" id="shopBusinessEngineWrap">
+  <!-- SHOP MINI SUMMARY (Sesi 250, "Pindahkan Alur Bisnis Shop ke Shop >
+       Business Intelligence"). Beranda TIDAK LAGI menampilkan grid detail
+       Shop Business Engine/Pengiriman Shop/Alur Bisnis Shop — ketiganya
+       (id #shopBusinessEngineWrap/#tripPresenterWrap/#businessFlowWrap)
+       DIPINDAH APA ADANYA (markup/id/logic tidak berubah) ke tab baru
+       #shopTab-bi ("🧠 Business Intelligence") di #page-shop, lihat sana.
+       Sebagai gantinya, Beranda cukup menampilkan ringkasan tipis (Omzet/
+       Profit/Stok Menipis) + tombol "Buka Shop" — diisi oleh
+       ShopMiniSummary.render() (dashboard-hub.js), 100% reuse
+       ShopBusinessEnginePresenter.summary() (S199, sudah menghitung
+       omzet/untung dari ProfitEngine.summarize() + itemCount restock dari
+       InventoryEngine.restockScan()) — 0 rumus baru, 0 field D baru, 0
+       compute ulang. UI HANYA presenter + navigasi (showPage('shop')),
+       pola sama findash-grid/findash-card generik yang sudah ada. -->
+  <div class="dashhub-wrap card u-mb12" id="shopMiniSummaryWrap">
     <div class="dashhub-cat-head">
       <div class="dashhub-cat-icon">🪨</div>
       <div>
-        <div class="dashhub-cat-label">Shop Business Engine</div>
-        <div class="dashhub-cat-desc">Nilai stok, rencana restock &amp; margin Shop bulan ini — dari data yang sudah ada</div>
+        <div class="dashhub-cat-label">Shop</div>
+        <div class="dashhub-cat-desc">Ringkasan bisnis Shop bulan ini — detail lengkap ada di tab Business Intelligence</div>
       </div>
     </div>
-    <div class="findash-grid" id="shopBusinessEngineGrid"></div>
-  </div>
-  <!-- TRIP PRESENTER (S204-A). Section di dalam Dashboard Hub, sama
-       seperti #shopBusinessEngineWrap di atas — diisi oleh
-       TripPresenter.render() (dipanggil dari DashboardHub.render() di
-       dashboard-hub.js), 100% reuse field D.cobek yang sudah tersimpan
-       (ongkir/delivered/marginPct) + getAIDeliveryThinMarginThreshold()
-       (S9). UI hanya presenter, tidak ada rumus baru di sini. CSS TIDAK
-       baru — reuse penuh class findash-grid/findash-card. -->
-  <div class="dashhub-wrap card u-mb12" id="tripPresenterWrap">
-    <div class="dashhub-cat-head">
-      <div class="dashhub-cat-icon">🚚</div>
-      <div>
-        <div class="dashhub-cat-label">Pengiriman Shop</div>
-        <div class="dashhub-cat-desc">Jumlah trip, ongkir &amp; margin pengiriman bulan ini — dari data yang sudah ada</div>
-      </div>
-    </div>
-    <div class="findash-grid" id="tripPresenterGrid"></div>
-  </div>
-  <!-- BUSINESS FLOW PRESENTER (S205). WIRE ONLY: menyusun 4 tahap
-       Purchase->Trip->Stock->Sale dari ShopBusinessEnginePresenter/
-       TripPresenter di atas — diisi oleh BusinessFlowPresenter.render()
-       (dipanggil dari DashboardHub.render() di dashboard-hub.js). 0
-       engine/rumus baru. CSS TIDAK baru — reuse penuh class findash-grid/
-       findash-card. -->
-  <div class="dashhub-wrap card u-mb12" id="businessFlowWrap">
-    <div class="dashhub-cat-head">
-      <div class="dashhub-cat-icon">🔁</div>
-      <div>
-        <div class="dashhub-cat-label">Alur Bisnis Shop</div>
-        <div class="dashhub-cat-desc">Purchase → Trip → Stock → Sale — dari data yang sudah ada</div>
-      </div>
-    </div>
-    <div class="findash-grid" id="businessFlowGrid"></div>
-    <div id="businessFlowTransferList" class="u-mt10"></div>
+    <div class="findash-grid" id="shopMiniSummaryGrid"></div>
+    <button class="btn btn-ghost btn-full btn-sm u-mt10" data-action="showPage" data-args='["shop"]'>🪨 Buka Shop</button>
   </div>
   <!-- Rental Management/Asset Portfolio/Asset Maintenance — lihat catatan
        migrasi di atas (#propertyManagementWrap), ketiganya ikut pindah
@@ -3620,6 +3646,6 @@ window.location.reload();
 <script>document.write(MODAL_HTML[80]);</script><!-- modal:hondaPdfImportModal -->
 <script>document.write(MODAL_HTML[82]);</script><!-- modal:inventoryTransferModal (S244) -->
 
-<script src="app-bundle-b.min.js?v=771" onerror="window.__moduleLoadFail('app-bundle-b.min.js')"></script>
+<script src="app-bundle-b.min.js?v=776" onerror="window.__moduleLoadFail('app-bundle-b.min.js')"></script>
 </body>
 </html>

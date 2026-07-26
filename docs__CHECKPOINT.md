@@ -5,6 +5,28 @@ JANGAN audit/implement/test/build ulang bagian yang sudah **Completed**.
 
 ## Current Session
 
+Sesi 262 (2026-07-26) — Selective Liquid Glass + M3 Expressive UI refresh
+(floating nav, glass chrome, kontras badge stok). SELESAI PENUH. Detail
+lengkap: `CHANGELOG.md` § Sesi 262.
+
+**Target eksplisit user**: implementasi arah UI Material 3 Expressive +
+Selective Liquid Glass yang sudah disepakati lewat preview interaktif
+(floating bottom nav, tanpa FAB, nav 6 item asli, palet netral kalem) ke
+file project nyata, plus buat preview HTML implementasi, plus doc-sync.
+
+**Implementasi**: lihat `CHANGELOG.md` § Sesi 262 untuk detail penuh
+(`modern-ui-layer.css`, `nav-scroll.js` baru, `preview-m3-liquidglass.html`
+baru, 1 bug token mati + 1 fix kontras WCAG AA ditemukan & diperbaiki).
+
+**Scope**: CSS-only + 1 file JS mandiri baru. TIDAK menyentuh
+`app-bundle-a/b.min.js` atau modul bisnis apa pun — 0 resiko ke 1228 test
+JS yang ada (test suite tidak dijalankan ulang sesi ini karena tidak ada
+perubahan logic bisnis untuk diverifikasi).
+
+---
+
+## Sesi sebelumnya (arsip singkat)
+
 Sesi 203 (Continue, 2026-07-25) — Delivery Plan UI: hubungkan TripEngine
 (S198) ke Order/Kasir. SELESAI PENUH.
 

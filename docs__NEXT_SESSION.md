@@ -1,5 +1,22 @@
 # NEXT_SESSION.md — Target sesi berikutnya (update setiap sesi)
 
+> **Catatan Sync (S262, di luar batch tracking, permintaan eksplisit user
+> "Material 3 Expressive + Selective Liquid Glass" → disepakati lewat
+> preview interaktif sebelum implementasi):** `modern-ui-layer.css`
+> di-refresh: bottom nav jadi floating (margin + `env(safe-area-inset-
+> bottom)`), auto-hide saat scroll (file baru `nav-scroll.js`, mandiri,
+> tidak sentuh bundle), tanpa FAB. Audit ketemu 1 token mati
+> (`--surface1` tidak pernah ada, fallback `--bg` diam-diam aktif di
+> semua tema — fix ke `--header-bg`) dan 1 gap kontras WCAG AA di badge
+> status stok pada 6 dari 10 tema bersurface terang (fix via
+> `color-mix` scoped per tema, worst-case sekarang 4.72:1). File preview
+> baru `preview-m3-liquidglass.html` (load CSS/JS project asli + theme
+> switcher). CSS-only + 1 JS mandiri baru — 0 perubahan ke
+> `app-bundle-a/b.min.js`, test suite tidak perlu dijalankan ulang.
+> Detail: `CHANGELOG.md` § Sesi 262. Kandidat lanjutan: tambah animasi
+> masuk/keluar kartu (M3 spring easing), audit shape/radius token lebih
+> luas di luar `.nav`/`.card`.
+
 > **Catatan Sync (S203, di luar batch tracking — permintaan eksplisit user
 > "hubungkan TripEngine ke UI", build `kw201-finalisasi-sinkronisasi-lintas-
 > modul-717`, `?v=717`):** `TripEngine`/`LogisticsEngine`/

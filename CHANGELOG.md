@@ -1,3 +1,59 @@
+# Changelog — Sesi 262: Selective Liquid Glass + M3 Expressive UI refresh
+
+## Konteks
+Permintaan eksplisit user: eksplorasi arah UI ringan/modern untuk PWA →
+disepakati **Material 3 Expressive (struktur/shape) + Selective Liquid
+Glass (aksen blur di chrome saja, bukan full-glass)**, palet netral kalem,
+bottom nav diubah jadi **floating**, tanpa FAB, nav pakai 6 item asli app
+(Beranda/Uang/Shop/Aset/Mobil/Pajak). Scope: CSS-only + 1 file JS baru
+mandiri — TIDAK mengubah `app-bundle-a/b.min.js` atau modul bisnis apa pun.
+
+## Perubahan
+
+- **`modern-ui-layer.css`**:
+  - `.nav` di-override jadi floating (margin 12px, `border-radius:
+    var(--r-2xl)`, `env(safe-area-inset-bottom)` untuk PWA standalone,
+    `#mainApp`/`#scrollRoot` padding-bottom disesuaikan).
+  - Nav auto-hide saat scroll ke bawah (`.nav.nav-hidden`), auto-show
+    saat scroll ke atas/dekat top-bottom — state class di-toggle dari
+    `nav-scroll.js` baru. `prefers-reduced-motion` mematikan perilaku
+    hide sepenuhnya (bukan cuma transisinya).
+  - **Bug ditemukan & diperbaiki**: rule glass header/nav (bagian 2)
+    memakai `var(--surface1, var(--bg))` — token `--surface1` TIDAK
+    PERNAH ada di `styles.css` (yang ada `--surface`/`--surface2/3/4`),
+    jadi fallback `var(--bg)` diam-diam selalu aktif di ke-10 tema sejak
+    ditambahkan. Diganti ke `var(--header-bg)` yang memang sudah
+    di-tuning opacity per tema (0.82–0.92) khusus untuk chrome ini.
+  - **Fix kontras WCAG AA** badge status stok (`.shop-stock-pill`,
+    `.trs-tag-btn.stok-*`, `.kasir-tile-stock`): audit kontras terukur
+    menemukan teks `--accentN` di atas `--accentN-soft` cuma 1.5–3.5:1 di
+    6 tema bersurface terang (`light`/`stone`/`mono`/`sand`/`sage`/
+    `fresh`) — di bawah ambang 4.5:1 untuk teks kecil. Tambah
+    `--accent2/3/4-onlight` (`color-mix(in srgb, var(--accentN) 55%,
+    black)`), diterapkan scoped per `[data-theme]` HANYA ke 6 tema itu;
+    4 tema gelap (`dark`/`ocean`/`slate`/`ink`, sudah 6–9.5:1) tidak
+    disentuh. Worst-case sesudah fix: 4.72:1 (lolos AA).
+- **File baru `nav-scroll.js`**: berdiri sendiri, tidak import modul lain,
+  toggle class `nav-hidden` di `#mainNav` berdasar arah scroll
+  `#scrollRoot` (rAF-throttled). Di-link via `<script defer>` setelah
+  `modern-ui-layer.css` di `app_production.html`/`index.html`.
+- **File baru `preview-m3-liquidglass.html`**: preview statis yang
+  langsung load `styles.css`/`modern-ui-layer.css`/`nav-scroll.js` project
+  (bukan mockup terpisah), markup pakai class asli (`.nav`, `.card`,
+  `.shop-stock-pill`, dst) + theme switcher 10 tema untuk verifikasi
+  visual manual.
+- Cache-bust: `modern-ui-layer.css?v=776→777`.
+
+## Known limitation / lanjutan
+- Perilaku scroll-aware nav belum ada test otomatis (murni CSS+vanilla
+  JS di luar test harness `vm` sandbox yang ada) — verifikasi manual via
+  `preview-m3-liquidglass.html`.
+- Radius token `--r-2xl` dipakai apa adanya (sudah 20px, cukup dekat
+  bahasa M3 Expressive) — TIDAK menambah token radius baru, sesuai
+  prinsip reuse token yang sudah ada.
+
+---
+
 # Changelog — Sesi 261: Investment Ownership Sync
 
 ## Konteks

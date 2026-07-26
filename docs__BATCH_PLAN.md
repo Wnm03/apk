@@ -330,3 +330,13 @@ sinkronisasi dokumentasi terpisah, bukan implementasi fitur).
   baru.
 - Sesi Batch Review (akhir tiap Batch) TIDAK menambah fitur baru — murni
   regression test + build + ZIP gabungan + sinkronisasi dokumentasi.
+
+---
+
+## Sesi 262 (2026-07-26, di luar batch tracking) — UI refresh, bukan fitur
+
+Selective Liquid Glass + M3 Expressive (floating nav, kontras badge,
+fix token mati `--surface1`). CSS-only + 1 JS mandiri baru. Detail:
+`CHANGELOG.md` § Sesi 262. Tidak masuk penomoran Batch karena murni
+polish visual atas permintaan eksplisit user, bukan implementasi fitur
+baru — mengikuti pola S201/S203 (sync note di luar batch).

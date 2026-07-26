@@ -10369,3 +10369,26 @@ lint-guard bawaan lolos, kedua bundle lolos `node --check` sintaks,
 `index.html`/`app_production.html` identik, `FILE-MAP.md` diregenerasi.
 
 **Known Issue:** esbuild tetap tidak terpasang, bundle belum diminify.
+
+---
+
+## Catatan kerja — Sesi 262 (2026-07-26): Selective Liquid Glass + M3 Expressive UI refresh
+
+**Target:** Implementasi arah UI (M3 Expressive + Selective Liquid Glass,
+floating nav tanpa FAB, palet netral kalem) yang sudah disepakati lewat
+preview interaktif di percakapan sebelumnya, ke file project nyata.
+
+**Perubahan:** `modern-ui-layer.css` (floating `.nav` + safe-area, fix
+token mati `--surface1`→`--header-bg`, fix kontras WCAG AA badge stok di
+6 tema terang via `color-mix`), file baru `nav-scroll.js` (auto-hide nav
+saat scroll, mandiri), file baru `preview-m3-liquidglass.html` (preview
+pakai CSS/JS project asli + theme switcher 10 tema).
+
+**Scope:** CSS-only + 1 JS berdiri sendiri. TIDAK menyentuh
+`app-bundle-a/b.min.js`/modul bisnis — 0 resiko regresi ke test suite
+JS yang ada. Test suite tidak dijalankan ulang sesi ini (tidak ada logic
+bisnis yang berubah untuk diverifikasi).
+
+**Known Issue:** perilaku scroll-aware nav belum punya test otomatis
+(di luar cakupan harness `vm` sandbox yang ada, murni DOM+scroll
+browser) — verifikasi manual via `preview-m3-liquidglass.html`.
