@@ -123,3 +123,88 @@ test('commitRows() — array kosong menghasilkan ringkasan nol tanpa error', asy
   assert.equal(result.imported, 0);
   assert.equal(result.skipped, 0);
 });
+
+test('commitRows() — baris dengan oemCode/barcode yang sudah ada di katalog dilewati sebagai duplikat, TIDAK panggil create()', async () => {
+  const created = [];
+  const stub = {
+    findByCode: async (code) => (code === 'CPR8EA-9' ? { id: 'existing' } : null),
+    create: async (data) => { created.push(data); return { success: true, item: Object.assign({ id: 'x' }, data) }; },
+  };
+  const ctx = makeCtx(stub);
+  const result = await ctx.VehicleCatalogImport.commitRows([
+    { partName: 'Busi NGK', oemCode: 'CPR8EA-9' },
+    { partName: 'Kampas Rem', oemCode: '' },
+  ]);
+  assert.equal(created.length, 1);
+  assert.equal(result.imported, 1);
+  assert.equal(result.duplicates, 1);
+  assert.equal(result.skipped, 1);
+});
+
+// ------------------------------------------------------------------------
+// extractPdfText() — edge case PDF kosong/rusak
+// ------------------------------------------------------------------------
+function makeCtxWithPdfjs(pdfjsStub) {
+  return loadSource(
+    ['modules/vehicle/vehicle-catalog-import.js'],
+    {
+      _loadScriptOnce: () => Promise.resolve(),
+      pdfjsLib: pdfjsStub,
+      VehicleCatalog: { parseLabelText: () => ({ oemCode: '', barcode: '' }) },
+    },
+    ['VehicleCatalogImport']
+  );
+}
+
+test('extractPdfText() — file kosong (size 0) langsung ditolak tanpa panggil pdf.js', async () => {
+  const ctx = makeCtxWithPdfjs({ getDocument: () => { throw new Error('tidak boleh dipanggil'); } });
+  await assert.rejects(
+    () => ctx.VehicleCatalogImport.extractPdfText({ size: 0, arrayBuffer: async () => new ArrayBuffer(0) }),
+    /kosong/i
+  );
+});
+
+test('extractPdfText() — file PDF rusak (pdf.js gagal parse) menghasilkan error pesan jelas', async () => {
+  const ctx = makeCtxWithPdfjs({
+    getDocument: () => ({ promise: Promise.reject(new Error('Invalid PDF structure')) }),
+  });
+  await assert.rejects(
+    () => ctx.VehicleCatalogImport.extractPdfText({ size: 10, arrayBuffer: async () => new ArrayBuffer(10) }),
+    /rusak|tidak valid/i
+  );
+});
+
+test('extractPdfText() — PDF valid tanpa halaman (numPages 0) menghasilkan string kosong, tidak error', async () => {
+  const ctx = makeCtxWithPdfjs({
+    getDocument: () => ({ promise: Promise.resolve({ numPages: 0 }) }),
+  });
+  const text = await ctx.VehicleCatalogImport.extractPdfText({ size: 10, arrayBuffer: async () => new ArrayBuffer(10) });
+  assert.equal(text, '');
+});
+
+test('filterCompleteRows() — default (requirePrice tidak diisi) tetap wajibkan kode+harga, sama perilaku lama', () => {
+  const ctx = makeCtx();
+  const rows = [
+    { partName: 'Kampas Rem', oemCode: '12310-KZR-701', price: 50000 }, // lengkap
+    { partName: 'Filter Oli', oemCode: '15410-KFF-701', price: null }, // kode ada, harga kosong -> buang
+    { partName: 'Tanpa Kode', oemCode: '', barcode: '', price: 50000 }, // harga ada, kode kosong -> buang
+  ];
+  const result = ctx.VehicleCatalogImport.filterCompleteRows(rows);
+  assert.equal(result.length, 1);
+  assert.equal(result[0].partName, 'Kampas Rem');
+});
+
+test('filterCompleteRows() — requirePrice:false, cukup kode part (oemCode ATAU barcode), harga boleh kosong/null/0', () => {
+  const ctx = makeCtx();
+  const rows = [
+    { partName: 'Kampas Rem', oemCode: '12310-KZR-701', price: 50000 }, // kode+harga
+    { partName: 'Filter Oli', oemCode: '15410-KFF-701', price: null }, // kode saja, harga null -> tetap lolos
+    { partName: 'Busi', oemCode: '', barcode: '31916847740', price: 0 }, // barcode + harga 0 -> tetap lolos (barcode ada)
+    { partName: 'Tanpa Kode', oemCode: '', barcode: '', price: 50000 }, // tidak ada kode sama sekali -> tetap dibuang
+  ];
+  const result = ctx.VehicleCatalogImport.filterCompleteRows(rows, { requirePrice: false });
+  assert.equal(result.length, 3);
+  assert.ok(result.some((r) => r.partName === 'Filter Oli'));
+  assert.ok(result.some((r) => r.partName === 'Busi'));
+  assert.ok(!result.some((r) => r.partName === 'Tanpa Kode'));
+});
