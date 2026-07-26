@@ -19,7 +19,7 @@
 // .cn-tab & toggle 'u-dnone' di panel yg cocok data-tab. toggleStgGroup() di bawah TETAP ada &
 // TIDAK diubah -- masih dipakai apa adanya utk accordion lain (dashSecondaryGroup di Beranda,
 // pzPiutangUtangGroup di Pajak & Zakat), cuma sudah tidak dipakai lagi utk stgGroup1..6.
-const SETTINGS_TAB_ORDER=['profil','keuangan','pengingat','notifbackup','keamanan','diagnostik'];
+const SETTINGS_TAB_ORDER=['profil','keuangan','pengingat','notifbackup','keamanan','kepemilikan','diagnostik'];
 function setSettingsTab(tab,el){
 document.querySelectorAll('#page-settings .cn-tabs .cn-tab').forEach(b=>b.classList.remove('active'));
 if(el) el.classList.add('active');

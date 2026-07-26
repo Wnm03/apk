@@ -43,15 +43,15 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1')return true;
 }catch(e){ /* anggap bukan dev mode kalau gagal deteksi */ }
 return false;
 }
-const APP_BUILD_VERSION = 'kw184-vehicle-catalog-servis-link-646';
-const PRODUCTION_BUILD_SYNCED_VERSION = 'kw184-vehicle-catalog-servis-link-646';
+const APP_BUILD_VERSION = 'kw269-finance-engine-validation-1';
+const PRODUCTION_BUILD_SYNCED_VERSION = 'kw269-finance-engine-validation-1';
 let D = {
 schemaVersion:SCHEMA_VERSION,
-transactions:[],cobek:[],products:[],produsen:[],cobekKategori:JSON.parse(JSON.stringify(DEFAULT_COBEK_KATEGORI)),targets:[],eduFunds:[],reminders:[],bills:[],billsArchive:[],
+transactions:[],cobek:[],products:[],produsen:[],cobekKategori:JSON.parse(JSON.stringify(DEFAULT_COBEK_KATEGORI)),targets:[],eduFunds:[],reminders:[],bills:[],billsArchive:[],inventoryTransfers:[],
 catatan:{anak:[]},
 milestones:[false,false,false,false,false],
 nextPulang:'',lastBackup:null,lastResetPromptDate:null,
-profile:{nama:'W',gajiPokok:65000,kiriman:500000,theme:'dark',lemburMultiplier:1.5,tarifMinggu:139000,tanggalLahir:null,statusKawin:false,tanggungan:0,statusPekerjaan:null,targetGajiBulanan:null},
+profile:{nama:'W',gajiPokok:65000,kiriman:500000,theme:'dark',lemburMultiplier:1.5,tarifMinggu:139000,tanggalLahir:null,statusKawin:false,tanggungan:0,statusPekerjaan:null,targetGajiBulanan:null,insightMingguanAktif:true},
 categories:{income:JSON.parse(JSON.stringify(DEFAULT_CATS.income)),expense:JSON.parse(JSON.stringify(DEFAULT_CATS.expense))},
 accounts:JSON.parse(JSON.stringify(DEFAULT_ACCOUNTS)),
 vehicles:[{id:'veh_1',name:'Vario 125',emoji:'🏍️',serviceIntervalKm:3000}],
@@ -211,6 +211,13 @@ console.error('Gagal menyimpan data:',e);
 }
 }
 function save(){
+// KW perf fix: save() adalah titik tunggal yang selalu dipanggil SEBELUM burst render
+// (renderAccGrid/renderDashAccList/renderLapAccList/dll) tiap ada mutasi data akun/transaksi.
+// Invalidate cache saldo akun di sini supaya burst render sesudahnya baca data akun terbaru,
+// tapi tiap fungsi di dalam burst yang sama tidak hitung ulang dari nol. Lihat akun.js.
+if(typeof invalidateAccBalCache==='function')invalidateAccBalCache();
+if(typeof invalidateCashflowForecastCache==='function')invalidateCashflowForecastCache();
+if(typeof FinanceIntelligence!=='undefined'&&typeof FinanceIntelligence.invalidateCache==='function')FinanceIntelligence.invalidateCache();
 if(_saveDebounceTimer)clearTimeout(_saveDebounceTimer);
 _saveDebounceTimer=setTimeout(()=>{_saveDebounceTimer=null;_saveImmediate();},400);
 }
@@ -227,10 +234,10 @@ let _lastUid=0;
 function uid(){let n=Date.now();if(n<=_lastUid)n=_lastUid+1;_lastUid=n;return n;}
 function sameId(a,b){return String(a)===String(b);}
 document.addEventListener('click', function(e){
-const el = e.target.closest('[data-action],[data-onclick]');
+const el = e.target.closest('[data-action]');
 if(!el) return;
 if(el.dataset.stop) e.stopPropagation();
-if(el.dataset.action){
+{
 const path = el.dataset.action.split('.');
 let owner = window, fn = window;
 for(const p of path){ owner = fn; fn = fn ? fn[p] : undefined; }
@@ -254,15 +261,6 @@ return navItems[Number(a.slice(5))]||null;
 return a;
 });
 fn.apply(owner, args);
-return;
-}
-const code = el.getAttribute('data-onclick');
-if(!code) return;
-try{
-new Function('event', code).call(el, e);
-}catch(err){
-console.error('data-onclick error:', code, err);
-if(typeof toast==='function') toast('⚠️ Terjadi error saat menjalankan aksi ini. Tolong laporkan ke pengembang.',5000);
 }
 });
 function migrateShopCategory(){
@@ -325,6 +323,7 @@ if(D.pajakZakat.refCheckedAt===undefined) D.pajakZakat.refCheckedAt=null;
 if(!D.pajakZakat.refSources) D.pajakZakat.refSources={};
 if(!D.assets) D.assets=[];
 if(!D.piutang) D.piutang=[];
+if(!D.inventoryTransfers) D.inventoryTransfers=[];
 if(!D.debts) D.debts=[];
 D.debts.forEach(d=>{try{if(typeof Debt!=='undefined')Debt.syncBill(d);}catch(e){}});
 if(!D.renovProjects) D.renovProjects=[];

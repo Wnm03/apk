@@ -1,6 +1,6 @@
 
 // Dipindah ke modules/shared/modules-calc.js (Sesi 17-18 restrukturisasi folder — lihat docs/FILE-MAP.md & RENCANA-SESI.md; isi & nama file TIDAK berubah, cuma lokasi folder).
-const MODULE_CALC_VERSION='kw184-vehicle-catalog-servis-link-646';
+const MODULE_CALC_VERSION='kw269-finance-engine-validation-1';
 const FI={
 assetScopeState:'zakatable',
 investmentAssetValue(){
@@ -657,9 +657,13 @@ out.push({id:'fi-surplus-neg',level:'warning',icon:'🟠',text:`Rata-rata surplu
 }catch(e){console.warn('FinCoach: gagal cek surplus FI',e);}
 // 8. Bisnis Shop (Shop): margin profit bulan ini turun jauh (<=75%) dari bulan lalu, min. 3 transaksi biar tidak false-positive dari data sedikit
 try{
-const cobThis=D.cobek.filter(t=>{const d=new Date(t.date);return d.getMonth()===m&&d.getFullYear()===y;});
+// Sesi 194 (Ownership Sync Shop): insight margin Shop di Dashboard HANYA
+// hitung transaksi ownership SELF (guard typeof biar aman kalau
+// ownership-engine.js belum dimuat — fallback isCobekOwnershipSelf true).
+const cobSelfFilter=typeof isCobekOwnershipSelf==='function'?isCobekOwnershipSelf:(()=>true);
+const cobThis=D.cobek.filter(t=>{const d=new Date(t.date);return d.getMonth()===m&&d.getFullYear()===y;}).filter(cobSelfFilter);
 const prevD=new Date(y,m-1,1);
-const cobPrev=D.cobek.filter(t=>{const d=new Date(t.date);return d.getMonth()===prevD.getMonth()&&d.getFullYear()===prevD.getFullYear();});
+const cobPrev=D.cobek.filter(t=>{const d=new Date(t.date);return d.getMonth()===prevD.getMonth()&&d.getFullYear()===prevD.getFullYear();}).filter(cobSelfFilter);
 const marginOf=rows=>{const omzet=rows.reduce((s,t)=>s+(t.total||0),0);const profit=rows.reduce((s,t)=>s+(t.profit||0),0);return omzet>0?profit/omzet:null;};
 const mThis=marginOf(cobThis),mPrev=marginOf(cobPrev);
 if(mThis!=null&&mPrev!=null&&mPrev>0&&mThis<mPrev*0.75&&cobThis.length>=3){
@@ -769,8 +773,22 @@ showAlertModal(insights.map(x=>x.icon+' '+x.text).join('\n\n'),{title:'🩺 Semu
 }
 };
 const Kekayaan={
+// currentNetWorth() — SSOT Net Worth (dipakai AssetPortfolioAPI/Dashboard/
+// wealth snapshot/actualCAGR/dst). Utang dihitung lewat FI.totalDebt()
+// (SUDAH SSOT "total utang" project ini — utangJT+sisaCicilan+bukuUtang,
+// lihat komentar totalCicilanOutstanding() di pajak-aset-ui-wrappers.js:
+// "Dipakai bareng totalDebtValue() di semua tempat yg hitung 'total utang'
+// (Kekayaan Bersih, Zakat Maal, AI widget, FI.totalDebt()) supaya
+// konsisten"). BUG FIX (S268): baris ini sebelumnya menghitung ulang utang
+// sendiri (utangJT + totalDebtValue() saja, TANPA sisaCicilan /
+// totalCicilanOutstanding()) — beda dari renderBersih() (Dashboard,
+// modules-render.js) yang SUDAH menyertakan totalCicilanOutstanding(),
+// sehingga Net Worth Dashboard bisa beda angka dari Net Worth di
+// AssetPortfolioAPI/snapshot/CAGR/Financial Freedom. Sekarang reuse
+// FI.totalDebt() (0 rumus baru) supaya SEMUA konsumen Net Worth
+// (Dashboard/Report/Home) pakai 1 sumber utang yang sama (SSOT).
 currentNetWorth(){
-return totalSaldoAkun()+totalAssetValue()+totalInventoriBisnisValue()+totalPiutangValue()-((D.pajakZakat&&D.pajakZakat.utangJT)||0)-totalDebtValue();
+return totalSaldoAkun()+totalAssetValue()+totalInventoriBisnisValue()+totalPiutangValue()-FI.totalDebt();
 },
 saveSnapshot(manual){
 const today=todayStr();

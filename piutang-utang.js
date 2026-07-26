@@ -7,6 +7,15 @@
 // PENTING: DebtStrategy.computeDSR() memanggil WorthIt (di worthit.js, guarded typeof check, aman krn runtime call — walau worthit.js sekarang dimuat SETELAH piutang-utang.js di urutan GROUP_A, tetap aman krn guard & dipanggil runtime setelah semua file ter-load, bukan saat load).
 // PENTING: Bill.openLinkTxModal() memakai curBillHistoryId (dideklarasikan di tagihan-kalender.js) & LinkTx (di linktx.js) — dipanggil saat runtime (dari klik tombol), bukan saat load, jadi aman walau dideklarasikan di file lain asalkan semua file ikut ter-load (selalu, lewat build.js).
 
+// isPiutangOwnershipSelf(p) — helper REUSE dari OwnershipEngine (Sesi 255,
+// Ownership Sync Piutang & Utang), pola SAMA PERSIS isAssetOwnershipSelf()
+// (Sesi 193, modules/asset/aset.js). Guard typeof OwnershipEngine: kalau
+// engine belum dimuat, SEMUA piutang dianggap SELF (regresi lama tetap
+// jalan, tidak pernah dikecualikan).
+function isPiutangOwnershipSelf(p){
+if(typeof OwnershipEngine==='undefined')return true;
+return OwnershipEngine.resolve(p).type==='SELF';
+}
 const Piutang={
 editId:null,
 _lunasState:false,
@@ -56,7 +65,14 @@ D.piutang=D.piutang.filter(p=>!sameId(p.id,id));
 save();
 Piutang.renderList();renderKekayaanBersih();hitungZakatMaal();
 },
-totalValue(){return(D.piutang||[]).filter(p=>!p.lunas).reduce((s,p)=>s+(p.nilai||0),0);},
+// totalValue() — Sesi 255 (Ownership Sync): TAMBAH 1 filter
+// isPiutangOwnershipSelf(p) di atas filter lunas yang sudah ada (pola
+// SAMA PERSIS Aset.totalValue(), Sesi 193) — piutang ber-ownership
+// INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY DIKECUALIKAN dari Total Piutang
+// (yang mengalir ke Net Worth/Dashboard/Report/AI lewat totalPiutangValue()),
+// TAPI TIDAK dihapus dari D.piutang (histori tetap tersimpan, masih
+// tampil di Piutang.renderList()). 0 rumus diubah.
+totalValue(){return(D.piutang||[]).filter(isPiutangOwnershipSelf).filter(p=>!p.lunas).reduce((s,p)=>s+(p.nilai||0),0);},
 overdueDays(p){
 if(p.lunas||!p.jatuhTempo)return 0;
 const jt=new Date(p.jatuhTempo);
@@ -107,6 +123,14 @@ return `<div class="tx-item u-pointer" data-action="openPiutangModal" data-args=
 }).join('');
 }
 };
+// isDebtOwnershipSelf(d) — helper REUSE dari OwnershipEngine (Sesi 255,
+// Ownership Sync Piutang & Utang), pola SAMA PERSIS isAssetOwnershipSelf()/
+// isPiutangOwnershipSelf() di atas. Guard typeof OwnershipEngine: kalau
+// engine belum dimuat, SEMUA utang dianggap SELF (regresi lama tetap jalan).
+function isDebtOwnershipSelf(d){
+if(typeof OwnershipEngine==='undefined')return true;
+return OwnershipEngine.resolve(d).type==='SELF';
+}
 const Debt={
 editId:null,
 _lunasState:false,
@@ -213,8 +237,15 @@ D.debts=D.debts.filter(d=>!sameId(d.id,id));
 save();
 Debt.renderList();renderKekayaanBersih();hitungZakatMaal();renderBillList();checkBills();
 },
-totalValue(){return(D.debts||[]).filter(d=>!d.lunas).reduce((s,d)=>s+(d.nilai||0),0);},
-totalCicilanBulanan(){return(D.debts||[]).filter(d=>!d.lunas).reduce((s,d)=>s+(d.cicilanBulanan||0),0);},
+// totalValue()/totalCicilanBulanan() — Sesi 255 (Ownership Sync): TAMBAH 1
+// filter isDebtOwnershipSelf(d) di atas filter lunas yang sudah ada (pola
+// SAMA PERSIS Aset.totalValue(), Sesi 193) — utang ber-ownership INVESTOR/
+// CUSTOMER/THIRD_PARTY/FAMILY DIKECUALIKAN dari Total Utang & DSR (yang
+// mengalir ke Net Worth/Dashboard/Report/AI lewat totalDebtValue()/
+// DebtStrategy.computeDSR()), TAPI TIDAK dihapus dari D.debts (histori
+// tetap tersimpan, masih tampil di Debt.renderList()). 0 rumus diubah.
+totalValue(){return(D.debts||[]).filter(isDebtOwnershipSelf).filter(d=>!d.lunas).reduce((s,d)=>s+(d.nilai||0),0);},
+totalCicilanBulanan(){return(D.debts||[]).filter(isDebtOwnershipSelf).filter(d=>!d.lunas).reduce((s,d)=>s+(d.cicilanBulanan||0),0);},
 // billCicilanAktif() — KW-170: cicilan barang aktif dari Buku Tagihan
 // (D.bills kind:'cicilan', sisaTenor>0) — dianggap "utang beneran": ikut
 // tampil sbg baris di Buku Utang & ikut disimulasikan pelunasannya di

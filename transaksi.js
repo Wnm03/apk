@@ -532,6 +532,15 @@ delete existingTx.stockProductId;delete existingTx.stockQty;delete existingTx.st
 renderProductList();
 }
 }
+if(existingTx&&existingTx.partStockId){
+const stillChecked=document.getElementById('txAddStock')&&document.getElementById('txAddStock').checked;
+const panelVisible=document.getElementById('txStockPanel')&&document.getElementById('txStockPanel').style.display!=='none';
+if(!stillChecked||!panelVisible){
+revertStockPurchase(existingTx.partStockId,existingTx.partStockQty);
+delete existingTx.partStockId;delete existingTx.partStockQty;delete existingTx.partStockUnit;
+renderStockList();
+}
+}
 if(existingTx&&existingTx.cobekLinkId){
 const stillChecked=document.getElementById('txAddShopSale')&&document.getElementById('txAddShopSale').checked;
 const panelVisible=document.getElementById('txShopSalePanel')&&document.getElementById('txShopSalePanel').style.display!=='none';
@@ -624,7 +633,7 @@ const isKprNew=txCicilanIsKprNewEl?txCicilanIsKprNewEl.checked:false;
 D.bills.push({id:billId,name:nama,amount:perBulanMine,nextDue,freq:'bulanan',sisaTenor,category:cat,subcategory:subCat,accountId:accId,note:note,kind:'cicilan',totalHarga:total,tenor,bunga,shared:cicilanShared,sharedPct:cicilanSharedPct,totalAmount:cicilanShared?total:null,isKpr:isKprNew});
 }
 D.transactions.push({id:billId+1,type:'expense',amount:perBulanMine,category:cat,subcategory:subCat,accountId:accId,payMethod:'cicilan',billLinkId:sisaTenor>0?billId:null,note:nama+(note?' - '+note:''),date});
-applyTxStockFromTx(nama);
+applyTxStockFromTx(nama,billId+1,date,total,existingTx);
 applyTxShopStockFromTx(billId+1,nama,null);
 WorthIt.applyBuyLink(billId+1);
 txEditId=null;
@@ -650,7 +659,7 @@ if(!alreadyExists){
 D.bills.push({id:billId,name:nama,amount:amt,nextDue:dueNext.toISOString().split('T')[0],freq,sisaTenor:null,category:cat,subcategory:subCat,accountId:accId,note:note,kind:'langganan'});
 }
 D.transactions.push({id:billId+1,type:'expense',amount:amt,category:cat,subcategory:subCat,accountId:accId,payMethod:'langganan',note:nama+(note?' - '+note:''),date});
-applyTxStockFromTx(nama);
+applyTxStockFromTx(nama,billId+1,date,amt,existingTx);
 applyTxShopStockFromTx(billId+1,nama,null);
 WorthIt.applyBuyLink(billId+1);
 txEditId=null;
@@ -706,7 +715,7 @@ WorthIt.applyBuyLink(savedTxId);
 SewaKios.applyPaymentLink(savedTxId);
 Tukang.applyPendingPayment(savedTxId);
 }
-applyTxStockFromTx(note);
+applyTxStockFromTx(note,savedTxId,date,amt,existingTx);
 applyTxBbmFromTx(savedTxId,amt,date,accId,note,existingTx);
 applyTxShopStockFromTx(savedTxId,note,existingTx);
 applyTxShopSaleFromTx(savedTxId,date,accId,note,existingTx);

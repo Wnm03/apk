@@ -23,12 +23,41 @@
 // ini — TIDAK ada UI/wiring baru sesi ini, murni fondasi data/service).
 const FinanceIntelligence = {
 
-// _resolveRange(range) — helper internal: kalau range.from/range.to
-// dioper eksplisit, dipakai apa adanya. Kalau tidak, default ke bulan
-// berjalan (curMonth/curYear kalau ada — konsisten dgn pola getUsed()/
-// getEffectiveLimit() di budget.js — kalau tidak ada/headless, fallback ke
-// bulan kalender Date() sekarang). Guard ini yang bikin fungsi di atasnya
-// bisa dites/dipakai headless (tanpa DOM aktif set curMonth/curYear).
+// KW perf fix lanjutan: incomeVsExpense()/budgetSummary() (tanpa argumen = rentang/bulan
+// default) dipanggil BERULANG dalam 1 siklus render yang sama -- summary()/healthScore()/
+// insights() saling manggil salah satu/​ketiganya lagi dari dalam (lihat komentar di method
+// masing2 di bawah), DITAMBAH dipanggil independen oleh banyak presenter lain
+// (FinanceDashboard/BudgetRecommendationPresenter/FinancialHealthScorePresenter/
+// FinancialRiskDashboardPresenter/CrossDashboardCard dst) di render burst yang sama. Cache di
+// sini HANYA utk panggilan tanpa argumen eksplisit (kasus paling sering) -- kalau range/month/
+// year eksplisit dioper (mis. lihat bulan lain), SELALU dihitung fresh, tidak pernah cache (0
+// risiko data periode salah). Invalidate lewat invalidateCache() di bawah, dipanggil dari hook
+// yang sama dgn cache saldo akun (save()/renderPageContent()).
+_ivxCache: undefined,
+_budgetSummaryCache: undefined,
+invalidateCache() {
+  this._ivxCache = undefined;
+  this._budgetSummaryCache = undefined;
+},
+
+// _isTxAccountSelf(t) — Sesi 192 (Ownership Sync Akun & Keuangan): helper
+// REUSE OwnershipEngine, dipakai HANYA utk exclude transaksi dari akun
+// ber-ownership INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY di agregat "Total
+// Keuangan" (incomeVsExpense, yang jadi dasar cashflowSummary/healthScore/
+// insights di bawah). D.transactions itu sendiri TIDAK disentuh/dihapus —
+// transaksi & histori akun tetap tersimpan apa adanya, cuma tidak ikut
+// dijumlah ke total income/expense.
+// Toleran: transaksi tanpa accountId, atau accountId yg akunnya sudah
+// tidak ada di D.accounts, tetap dihitung (fallback dianggap SELF) —
+// SAMA prinsip toleran dgn OwnershipEngine.resolve() thd data lama.
+_isTxAccountSelf(t) {
+  if (typeof OwnershipEngine === 'undefined') return true;
+  if (!t || !t.accountId) return true;
+  const acc = (D.accounts || []).find((a) => a.id === t.accountId);
+  if (!acc) return true;
+  return OwnershipEngine.resolve(acc).type === 'SELF';
+},
+
 _resolveRange(range) {
   if (range && range.from && range.to) {
     return { from: new Date(range.from), to: new Date(range.to) };
@@ -46,16 +75,19 @@ _resolveRange(range) {
 // [from,to] (default bulan berjalan lewat _resolveRange di atas). Baca
 // D.transactions apa adanya, TIDAK mengubah/menambah field apa pun.
 incomeVsExpense(range) {
+  if (!range && this._ivxCache !== undefined) return this._ivxCache;
   const { from, to } = this._resolveRange(range);
   const txs = (D.transactions || []).filter((t) => {
     const d = new Date(t.date);
-    return d >= from && d <= to;
+    return d >= from && d <= to && this._isTxAccountSelf(t);
   });
   const income = txs.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const expense = txs.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const net = income - expense;
   const savingsRate = income > 0 ? net / income : 0;
-  return { from, to, income, expense, net, savingsRate, txCount: txs.length };
+  const result = { from, to, income, expense, net, savingsRate, txCount: txs.length };
+  if (!range) this._ivxCache = result;
+  return result;
 },
 
 // cashflowSummary() — wrapper TIPIS atas computeCashflowForecast() yang
@@ -77,6 +109,7 @@ cashflowSummary() {
 // (budget.js) atas D.budgets apa adanya (0 duplikasi rumus rollover/
 // matchesPeriod/matchesTx). {ok:false} kalau Budget/D.budgets belum ada.
 budgetSummary(month, year) {
+  if (month == null && year == null && this._budgetSummaryCache !== undefined) return this._budgetSummaryCache;
   if (typeof Budget === 'undefined' || !D.budgets) {
     return { ok: false, reason: 'Budget belum dimuat' };
   }
@@ -92,7 +125,7 @@ budgetSummary(month, year) {
   const totalLimit = items.reduce((s, b) => s + b.limit, 0);
   const totalUsed = items.reduce((s, b) => s + b.used, 0);
   const overCount = items.filter((b) => b.over).length;
-  return {
+  const result = {
     ok: true,
     month: m,
     year: y,
@@ -103,6 +136,8 @@ budgetSummary(month, year) {
     overallPct: totalLimit > 0 ? totalUsed / totalLimit : 0,
     overCount,
   };
+  if (month == null && year == null) this._budgetSummaryCache = result;
+  return result;
 },
 
 // healthScore() — skor 0-100, komposit dari komponen yang TERSEDIA (bukan
@@ -129,9 +164,17 @@ healthScore() {
     const bs = this.budgetSummary();
     parts.push({ key: 'budget', weight: 25, score: Math.max(0, Math.min(1, 1 - bs.overallPct)) * 25 });
   }
-  if (typeof totalSaldoAkun === 'function' && typeof totalDebtValue === 'function') {
+  // BUG FIX (S269, Finance Engine Validation): sebelumnya komponen "debt" di
+  // sini pakai totalDebtValue() SAJA sbg "total utang" -> TIDAK menyertakan
+  // sisa cicilan/paylater (totalCicilanOutstanding()), beda dari SSOT
+  // resmi "total utang" project ini (`FI.totalDebt()`, sudah dipakai
+  // Kekayaan.currentNetWorth() sejak S268 & DebtOptimizerAPI.dsr()) ->
+  // Skor Kesehatan Finansial/Financial Risk Dashboard bisa meremehkan
+  // beban utang kalau user punya cicilan aktif. Sekarang reuse
+  // FI.totalDebt() (0 rumus baru) supaya konsisten dgn engine lain.
+  if (typeof totalSaldoAkun === 'function' && typeof FI !== 'undefined' && typeof FI.totalDebt === 'function') {
     const saldo = totalSaldoAkun();
-    const debt = totalDebtValue();
+    const debt = FI.totalDebt();
     const debtRatio = saldo > 0 ? Math.min(1, debt / saldo) : (debt > 0 ? 1 : 0);
     parts.push({ key: 'debt', weight: 25, score: Math.max(0, 1 - debtRatio) * 25 });
   }

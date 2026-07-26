@@ -5,6 +5,23 @@
 // (data & riwayat pelanggan). Bagian ke-3 dari 5 hasil pemecahan cobek.js — lihat catatan
 // urutan load di cobek-etalase.js.
 
+// syncPiutangFinanceViews() — Sesi 225-226 (dedup side-effect payment): satu
+// helper bersama utk fan-out render/refresh finance yang SAMA PERSIS dipicu
+// tiap status piutang berubah (lunas/refund) — sebelumnya dituliskan ulang
+// di 2 tempat terpisah dgn urutan+guard typeof yang identik: Laporan.delete()
+// (di file ini) & BusinessFlowPresenter.markPaymentReceived()
+// (business-flow-presenter.js, S209-210/S213-214). TIDAK ADA guard/fungsi
+// yang dihapus atau ditambah, 0 logic baru — murni dipindah ke 1 tempat
+// supaya tidak dobel-tulis 2x di 2 file.
+function syncPiutangFinanceViews(){
+if(typeof renderKeuangan==='function')renderKeuangan();
+if(typeof PiutangUtangInsight!=='undefined'&&PiutangUtangInsight.render)PiutangUtangInsight.render();
+if(typeof renderDashboard==='function')renderDashboard();
+if(typeof renderKekayaanBersih==='function')renderKekayaanBersih();
+if(typeof hitungZakatMaal==='function')hitungZakatMaal();
+if(typeof Piutang!=='undefined'&&Piutang.renderList)Piutang.renderList();
+}
+
 const Produsen={
 editId:null,
 hargaEditId:null,
@@ -98,7 +115,11 @@ markDelivered(id){
 const t=D.cobek.find(x=>x.id===id);
 if(!t)return;
 t.delivered=true;
-save();this.render();renderShop();renderShopRecent();toast('✅ Ditandai sudah diserahkan');
+save();this.render();renderShop();renderShopRecent();
+if(typeof renderDashboard==='function')renderDashboard();
+if(typeof BusinessFlowPresenter!=='undefined'){BusinessFlowPresenter.renderTab();BusinessFlowPresenter.markRealized(id);}
+if(typeof ShopInsight!=='undefined')ShopInsight.render();
+toast('✅ Ditandai sudah diserahkan');
 },
 render(){
 const wrap=document.getElementById('siapPulangCard');
@@ -153,6 +174,9 @@ Order.populateProductSelect();
 Order.renderItems();
 const titleEl=document.getElementById('orderModalTitle');if(titleEl)titleEl.textContent='Transaksi Baru';
 const delBtn=document.getElementById('orderDelBtn');if(delBtn)delBtn.style.display='none';
+// S237: transaksi baru belum punya cobekId -> tampilkan chain kosong (tidak ada status
+// aktif yang di-highlight), reuse BusinessFlowPresenter.renderLifecycle() apa adanya.
+if(typeof BusinessFlowPresenter!=='undefined'){BusinessFlowPresenter.renderLifecycle(null);BusinessFlowPresenter.renderProfitSummary(null);}
 openModal('orderModal');
 },
 // kw-shop-edit: buka modal orderModal dalam mode edit (isi ulang form dari data D.cobek yang
@@ -189,6 +213,9 @@ Order.populateProductSelect();
 Order.renderItems();
 const titleEl=document.getElementById('orderModalTitle');if(titleEl)titleEl.textContent='Edit Transaksi';
 const delBtn=document.getElementById('orderDelBtn');if(delBtn)delBtn.style.display='flex';
+// S237: reuse BusinessFlowPresenter.renderLifecycle() apa adanya — status aktif
+// diturunkan dari orderStatus(id) (delivered/paid, S209-210), 0 field D baru.
+if(typeof BusinessFlowPresenter!=='undefined'){BusinessFlowPresenter.renderLifecycle(id);BusinessFlowPresenter.renderProfitSummary(id);}
 openModal('orderModal');
 },
 async deleteFromModal(){
@@ -331,6 +358,11 @@ const marginPct=total>0?(profit/total)*100:0;
 if(typeof AIBus!=="undefined")AIBus.emit("delivery.created",{orderId:txId,total,ongkir,delivered,date,marginPct});
 Order.editId=null;
 closeModal('orderModal');renderProductList();renderShop();Order.renderRecent();renderDashboard();renderKeuangan();renderSiapPulang();if(typeof renderKekayaanBersih==='function')renderKekayaanBersih();
+if(typeof hitungZakatMaal==='function')hitungZakatMaal();
+if(typeof Piutang!=='undefined'&&Piutang.renderList)Piutang.renderList();
+if(typeof ShopInsight!=='undefined')ShopInsight.render();
+if(typeof PiutangUtangInsight!=='undefined')PiutangUtangInsight.render();
+if(typeof BusinessFlowPresenter!=='undefined')BusinessFlowPresenter.renderTab();
 toast(isEdit?'✅ Transaksi diperbarui':(sisa>0?`✅ Tersimpan — DP ${fmtFull(dp)}, sisa ${fmtFull(sisa)} otomatis masuk Piutang`:'✅ Transaksi tersimpan & tersinkron ke Keuangan'));
 },
 renderRecent(){
@@ -359,6 +391,24 @@ return`<div class="tx-item">
 }
 };
 
+// isCobekOwnershipSelf(t) — helper REUSE dari OwnershipEngine (Sesi 194,
+// Ownership Sync Shop). Balikin true kalau kepemilikan EFEKTIF transaksi
+// Shop ini SELF (termasuk transaksi lama yg belum punya field `ownership`
+// sama sekali — via OwnershipEngine.resolve() otomatis fallback ke SELF/
+// DEFAULT, 100% backward compatible, TIDAK ada transaksi existing yang
+// tiba-tiba ke-exclude). Balikin false kalau ownership-nya salah satu dari
+// INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY (transaksi2 tipe ini WAJIB
+// dikecualikan dari agregat Shop/Laporan/Grafik/Dashboard/AI Insight/
+// Statistik — tapi TIDAK dari D.cobek/daftar riwayat, transaksi tersebut
+// tetap tampil & tersimpan apa adanya di daftar, cuma tidak ikut dijumlah).
+// Guard typeof OwnershipEngine: kalau engine belum dimuat, fallback true
+// (anggap SELF/tidak exclude apa pun) — pola sama persis
+// isAssetOwnershipSelf() (modules/asset/aset.js, Sesi 193).
+function isCobekOwnershipSelf(t){
+if(typeof OwnershipEngine==='undefined')return true;
+return OwnershipEngine.resolve(t).type==='SELF';
+}
+
 const Laporan={
 periode:'selamanya',
 setPeriode(p,el){
@@ -381,10 +431,14 @@ return{from,to:now};
 render(){
 const {from,to}=this.getRange();
 const inRange=D.cobek.filter(t=>{const d=new Date(t.date);return d>=from&&d<=to;});
-document.getElementById('cTrip').textContent=inRange.length;
-const omzet=inRange.reduce((s,t)=>s+(t.total||0),0);
+// Sesi 194 (Ownership Sync Shop): kartu ringkasan (cTrip/cSet/cUntung) HANYA
+// hitung transaksi ownership SELF — shopList di bawah TETAP tampilkan semua
+// transaksi di periode ini apa adanya (pola sama Aset.renderList()/Buku Aset).
+const inRangeSelf=inRange.filter(isCobekOwnershipSelf);
+document.getElementById('cTrip').textContent=inRangeSelf.length;
+const omzet=inRangeSelf.reduce((s,t)=>s+(t.total||0),0);
 document.getElementById('cSet').textContent=fmt(omzet);
-document.getElementById('cUntung').textContent=fmt(inRange.reduce((s,t)=>s+(t.profit||0),0));
+document.getElementById('cUntung').textContent=fmt(inRangeSelf.reduce((s,t)=>s+(t.profit||0),0));
 Etalase.renderModalStat();
 const sorted=[...inRange].sort((a,b)=>(b.id||0)-(a.id||0));
 const el=document.getElementById('shopList');
@@ -395,8 +449,26 @@ if(!await askConfirm('Hapus transaksi ini? Stok produk akan dikembalikan & catat
 const t=D.cobek.find(x=>x.id===id);
 if(t&&t.items){t.items.forEach(it=>{const p=D.products.find(x=>x.id===it.productId);if(p)p.stock+=it.qty;});}
 if(t&&t.txLinkId)D.transactions=D.transactions.filter(tx=>tx.id!==t.txLinkId);
+// S209-210 (Wire Return->Refund): piutang terhubung (sisa tagihan yg belum
+// dibayar dari order ini) ikut dibersihkan saat order-nya diretur, reuse
+// PERSIS pola filter yg sudah ada di Order._saveInner() (bukan rumus baru).
+if(t&&t.piutangLinkId)D.piutang=D.piutang.filter(p=>p.id!==t.piutangLinkId);
 D.cobek=D.cobek.filter(t=>t.id!==id);
-save();this.render();renderShopRecent();renderProductList();renderDashboard();renderKeuangan();toast('🗑 Dihapus, stok & catatan keuangan dikembalikan');
+save();this.render();renderShopRecent();renderProductList();
+if(typeof ShopInsight!=='undefined')ShopInsight.render();
+if(typeof BusinessFlowPresenter!=='undefined')BusinessFlowPresenter.renderTab();
+// S213-214 (Audit fix): stok dikembalikan & piutang bisa terhapus di atas —
+// kekayaan bersih & zakat maal harus ikut disinkron, sama persis pola yg
+// sudah dipakai Aset.delete()/Piutang.save() (aset.js/piutang-utang.js) tiap
+// piutang/stok berubah. Sebelumnya TIDAK dipanggil di sini (gap S209-210).
+// S225-226 (dedup side-effect payment): fan-out renderDashboard/
+// renderKeuangan/PiutangUtangInsight.render/renderKekayaanBersih/
+// hitungZakatMaal/Piutang.renderList SEKARANG lewat syncPiutangFinanceViews()
+// (1 helper bersama, didefinisikan di atas file ini) — dipakai sama persis
+// oleh BusinessFlowPresenter.markPaymentReceived(). 0 fungsi dihapus/
+// ditambah, cuma dipindah ke 1 tempat.
+syncPiutangFinanceViews();
+toast('🗑 Dihapus — stok, catatan keuangan & piutang terkait ikut dikembalikan/dibersihkan');
 },
 // ------ Tab "📊 Laporan" (kw-shop-laporan-tab) ------
 // Analisa terpisah dari tab Riwayat: filter periode SENDIRI (periodeLap, tidak
@@ -423,15 +495,41 @@ return{from,to:now};
 renderTab(){
 const {from,to}=this.getRangeLap();
 const inRange=(D.cobek||[]).filter(t=>{const d=new Date(t.date);return d>=from&&d<=to;});
-const omzet=inRange.reduce((s,t)=>s+(t.total||0),0);
-const untung=inRange.reduce((s,t)=>s+(t.profit||0),0);
-const elTrip=document.getElementById('lapTrip');if(elTrip)elTrip.textContent=inRange.length;
+// Sesi 194 (Ownership Sync Shop): tab Laporan (ringkasan lapTrip/lapOmzet/
+// lapUntung/lapMargin) & Statistik (Top Produk/Top Pelanggan) HANYA hitung
+// transaksi ownership SELF.
+const inRangeSelf=inRange.filter(isCobekOwnershipSelf);
+const omzet=inRangeSelf.reduce((s,t)=>s+(t.total||0),0);
+const untung=inRangeSelf.reduce((s,t)=>s+(t.profit||0),0);
+const elTrip=document.getElementById('lapTrip');if(elTrip)elTrip.textContent=inRangeSelf.length;
 const elOmzet=document.getElementById('lapOmzet');if(elOmzet)elOmzet.textContent=fmt(omzet);
 const elUntung=document.getElementById('lapUntung');if(elUntung)elUntung.textContent=fmt(untung);
 const elMargin=document.getElementById('lapMargin');if(elMargin)elMargin.textContent=(omzet>0?Math.round((untung/omzet)*100):0)+'%';
 this.renderGrafik('lapGrafikBars');
-this.renderTopProduk(inRange);
-this.renderTopPelanggan(inRange);
+this.renderTopProduk(inRangeSelf);
+this.renderTopPelanggan(inRangeSelf);
+// S195 (Dana Kelolaan / Managed Funds): tambahan murni, pola sama
+// pemanggilan renderTopPelanggan() di atas — 100% reuse
+// DanaKelolaan.summary().dpCustomer, tidak mengubah baris manapun sebelum
+// ini (Top Produk/Top Pelanggan tetap SELF-only, tidak disentuh).
+if(typeof DanaKelolaanPresenter!=='undefined')DanaKelolaanPresenter.renderStatistik();
+// S199 (Finalisasi Integrasi Shop): ringkasan Business Engine (Purchase/
+// Inventory/Profit, S198) di tab Laporan/Statistik Shop — tambahan murni,
+// pola sama pemanggilan DanaKelolaanPresenter.renderStatistik() di atas.
+// 100% reuse ShopBusinessEnginePresenter.renderTab(), tidak mengubah baris
+// manapun sebelum ini (Top Produk/Top Pelanggan/Dana Kelolaan tetap sama).
+if(typeof ShopBusinessEnginePresenter!=='undefined')ShopBusinessEnginePresenter.renderTab();
+// S204-A (Trip Presenter): ringkasan pengiriman bulan berjalan (trips/
+// ongkir/margin) di tab Laporan/Statistik Shop — tambahan murni, pola
+// sama pemanggilan ShopBusinessEnginePresenter.renderTab() di atas. 100%
+// reuse field D.cobek yang sudah tersimpan, tidak mengubah baris manapun
+// sebelum ini.
+if(typeof TripPresenter!=='undefined')TripPresenter.renderTab();
+// S205 (Business Flow Presenter): ringkasan alur Purchase->Trip->Stock->
+// Sale di tab Laporan/Statistik Shop — WIRE ONLY, 100% reuse
+// ShopBusinessEnginePresenter.summary()+TripPresenter.summary() yang
+// sudah ada. Tambahan murni, tidak mengubah baris manapun sebelum ini.
+if(typeof BusinessFlowPresenter!=='undefined')BusinessFlowPresenter.renderTab();
 },
 topProdukAgg(inRange){
 const map={};
@@ -485,7 +583,8 @@ if(!el)return;
 const now=new Date();const bars=[];
 for(let i=5;i>=0;i--){
 const m=(now.getMonth()-i+12)%12,y=now.getFullYear()+(now.getMonth()-i<0?-1:0);
-const cobM=D.cobek.filter(c=>{const d=new Date(c.date);return d.getMonth()===m&&d.getFullYear()===y;});
+// Sesi 194 (Ownership Sync Shop): Grafik (bar bulanan) HANYA hitung transaksi ownership SELF.
+const cobM=D.cobek.filter(c=>{const d=new Date(c.date);return d.getMonth()===m&&d.getFullYear()===y;}).filter(isCobekOwnershipSelf);
 const setQty=cobM.reduce((s,c)=>s+(c.items?c.items.reduce((s2,i)=>s2+i.qty,0):(c.sets||0)),0);
 const omzet=cobM.reduce((s,c)=>s+(c.total||0),0);
 const profit=cobM.reduce((s,c)=>s+(c.profit||0),0);
