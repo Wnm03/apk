@@ -90,6 +90,11 @@ function loadSource(files, extraGlobals = {}, expose = []) {
     localStorage: makePermissiveStub('localStorage'),
     location: makePermissiveStub('location'),
     URLSearchParams: URLSearchParams,
+    crypto: globalThis.crypto,
+    TextEncoder: globalThis.TextEncoder,
+    TextDecoder: globalThis.TextDecoder,
+    btoa: globalThis.btoa,
+    atob: globalThis.atob,
     ...extraGlobals,
   };
   const context = vm.createContext(sandbox);

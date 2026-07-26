@@ -10,9 +10,9 @@ const { loadSource } = require('./helpers/loadSource');
 
 function makeCtx(D) {
   return loadSource(
-    ['modules/shop/cobek-etalase.js', 'modules/shop/cobek-pricing.js', 'modules/shop/inventory-engine.js'],
+    ['modules/shared/ownership-engine.js', 'modules/shop/cobek-etalase.js', 'modules/shop/cobek-pricing.js', 'modules/shop/inventory-engine.js'],
     { D: D || { products: [], cobekKategori: [] } },
-    ['InventoryEngine'],
+    ['InventoryEngine', 'Etalase'],
   );
 }
 
@@ -58,6 +58,53 @@ test('totalModalStok() — tanpa parameter, fallback ke Etalase.totalModalStok()
   const ctx = makeCtx(D);
   assert.equal(ctx.InventoryEngine.totalModalStok(), 4000);
   assert.equal(ctx.InventoryEngine.totalNilaiJualStok(), 8000);
+});
+
+// --- S259 (Inventory Ownership Sync) regression -------------------------
+// Sebelum S259: jalur `products` eksplisit TIDAK filter ownership, jalur
+// tanpa parameter (-> Etalase.*) SELALU filter SELF-only -> dua caller beda
+// input yang sama (D.products) bisa hasilkan angka BEDA. Test di bawah
+// memastikan SEMUA jalur (dgn/tanpa parameter, langsung ke Etalase, atau
+// lewat InventoryEngine) selalu menghasilkan angka SAMA untuk data yang
+// sama, termasuk saat ada produk non-SELF (INVESTOR/CUSTOMER/THIRD_PARTY/
+// FAMILY) yang harus dikecualikan.
+
+test('totalModalStok()/totalNilaiJualStok() — produk non-SELF dikecualikan walau `products` dikasih eksplisit', () => {
+  const ctx = makeCtx();
+  const products = [
+    { stock: 2, hargaBeli: 1000, hargaJual: 3000, ownership: 'SELF' },
+    { stock: 3, hargaBeli: 500, hargaJual: 1500, ownership: 'INVESTOR' },
+    { stock: 1, hargaBeli: 2000, hargaJual: 4000 }, // tanpa field ownership -> fallback SELF
+  ];
+  // Hanya baris SELF (idx 0) + tanpa-field (idx 2) yang ikut dihitung:
+  // modal = 2*1000 + 1*2000 = 4000; jual = 2*3000 + 1*4000 = 10000.
+  assert.equal(ctx.InventoryEngine.totalModalStok(products), 4000);
+  assert.equal(ctx.InventoryEngine.totalNilaiJualStok(products), 10000);
+});
+
+test('totalModalStok()/totalNilaiJualStok() — SSOT: hasil InventoryEngine(D.products) == InventoryEngine() == Etalase() untuk D yang sama', () => {
+  const D = {
+    products: [
+      { stock: 5, hargaBeli: 1000, hargaJual: 2000, ownership: 'SELF' },
+      { stock: 4, hargaBeli: 800, hargaJual: 1600, ownership: 'CUSTOMER' },
+      { stock: 2, hargaBeli: 500, hargaJual: 900, ownership: 'FAMILY' },
+    ],
+    cobekKategori: [],
+  };
+  const ctx = makeCtx(D);
+  const withParam = ctx.InventoryEngine.totalModalStok(D.products);
+  const noParam = ctx.InventoryEngine.totalModalStok();
+  const viaEtalase = ctx.Etalase.totalModalStok();
+  assert.equal(withParam, noParam);
+  assert.equal(withParam, viaEtalase);
+  assert.equal(withParam, 5000); // hanya baris SELF: 5*1000
+
+  const withParamJual = ctx.InventoryEngine.totalNilaiJualStok(D.products);
+  const noParamJual = ctx.InventoryEngine.totalNilaiJualStok();
+  const viaEtalaseJual = ctx.Etalase.totalNilaiJualStok();
+  assert.equal(withParamJual, noParamJual);
+  assert.equal(withParamJual, viaEtalaseJual);
+  assert.equal(withParamJual, 10000); // hanya baris SELF: 5*2000
 });
 
 // --- pairKey / bracketRange / linkedSiblings — delegasi ke Etalase --------
