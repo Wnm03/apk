@@ -32,7 +32,7 @@
 // VEHICLE_ANALYTICS_NAV_TARGETS.total/trend (self-scroll utk kartu
 // komposit).
 const FINHEALTH_NAV_TARGETS = Object.freeze({
-  self: { page: 'dashboard-hub', goTo: 'financialHealthScoreWrap' },
+  self: { page: 'keuangan', tab: 'laporan', goTo: 'financialHealthScoreWrap' },
 });
 const FinancialHealthScorePresenter = {
 

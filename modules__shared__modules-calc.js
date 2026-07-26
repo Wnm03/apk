@@ -1,6 +1,6 @@
 
 // Dipindah ke modules/shared/modules-calc.js (Sesi 17-18 restrukturisasi folder — lihat docs/FILE-MAP.md & RENCANA-SESI.md; isi & nama file TIDAK berubah, cuma lokasi folder).
-const MODULE_CALC_VERSION='kw269-finance-engine-validation-6';
+const MODULE_CALC_VERSION='dashboard-settings-tests-6';
 const FI={
 assetScopeState:'zakatable',
 investmentAssetValue(){

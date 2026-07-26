@@ -186,7 +186,7 @@ if(t==='tagihan'){renderBillList();}
 if(t==='budget'){renderBudgets();if(typeof BudgetReko!=='undefined')BudgetReko.init();}
 if(t==='utangpiutang'){if(typeof Piutang!=='undefined')Piutang.renderList();if(typeof Debt!=='undefined')Debt.renderList();}
 if(t==='asetproyek'){if(typeof Pensiun!=='undefined')Pensiun.render();if(typeof Renov!=='undefined')Renov.render();if(typeof SewaKios!=='undefined')SewaKios.render();}
-if(t==='laporan'){populateCatFilter();populateAccFilters();renderLaporan();}
+if(t==='laporan'){populateCatFilter();populateAccFilters();renderLaporan();renderKeuangan();}
 }
 
 // 2026-07-17: split tab 📊 Laporan jadi 3 sub-tab (Ringkasan / Arus Kas &

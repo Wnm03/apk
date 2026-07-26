@@ -32,7 +32,7 @@
 // VEHICLE_ANALYTICS_NAV_TARGETS.total/trend (self-scroll utk kartu
 // komposit).
 const FINRISK_NAV_TARGETS = Object.freeze({
-  self: { page: 'dashboard-hub', goTo: 'financialRiskDashboardWrap' },
+  self: { page: 'keuangan', tab: 'laporan', goTo: 'financialRiskDashboardWrap' },
 });
 const FinancialRiskDashboardPresenter = {
 

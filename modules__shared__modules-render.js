@@ -2,7 +2,7 @@
 // Dipindah ke modules/shared/modules-render.js (Sesi 17-18 restrukturisasi folder — lihat docs/FILE-MAP.md & RENCANA-SESI.md; isi & nama file TIDAK berubah, cuma lokasi folder).
 // Semua fungsi ini murni definisi function global (bukan module), jadi tetap bisa dipanggil dari file manapun
 // yang loadnya belakangan (sama seperti modules-calc.js/features-*.js).
-const MODULE_RENDER_VERSION='kw269-finance-engine-validation-6';
+const MODULE_RENDER_VERSION='dashboard-settings-tests-6';
 
 function renderPageContent(name){
 // KW perf fix: jaring pengaman selain hook di save() -- pastikan cache saldo akun juga fresh
@@ -92,7 +92,8 @@ const jenisBadge=jenisLabel?` <span class="u-fs12t2">${escapeHtml(jenisLabel)}</
 const ownResolved=(typeof OwnershipEngine!=='undefined')?OwnershipEngine.resolve(a):null;
 const ownText=ownResolved?` <span class="acc-chip">${escapeHtml(OwnershipEngine.label(ownResolved.type))}</span>`:'';
 const ownDetail=ownResolved?`<div class="u-fs10 u-t2">Ownership<br>${escapeHtml(ownResolved.type)}</div>`:'';
-return`<div class="acc-card" style="${off||linked?'opacity:.55':''}" data-action="openAccModal" data-args="${escapeHtml(JSON.stringify([i]))}">
+return`<div class="acc-card" style="${off||linked?'opacity:.55':''}" data-action="openAccTxHistory" data-args="${escapeHtml(JSON.stringify([a.id]))}">
+      <button class="acc-card-edit" data-stop="1" data-action="openAccModal" data-args="${escapeHtml(JSON.stringify([i]))}" title="Edit" aria-label="Edit">✏️</button>
       <button class="acc-card-del" data-stop="1" data-action="delAcc" data-args="${escapeHtml(JSON.stringify([i]))}" aria-label="Hapus">🗑</button>
       <div class="acc-card-icon">${a.emoji}</div>
       <div class="acc-card-name">${escapeHtml(a.name)}${badge}${jenisBadge}${ownText}</div>
