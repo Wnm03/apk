@@ -1,5 +1,13 @@
 # NEXT_SESSION.md — Target sesi berikutnya (update setiap sesi)
 
+> **Catatan Sync (S312, lanjutan S311 — item ringan yang ditunda):** Item
+> (b) dari 2 temuan S311 SUDAH DIKERJAKAN — akun auto-buat dari opsi "➕ Buat
+> Akun Baru dari Aset Ini" sekarang mewarisi `ownership` aset sumbernya
+> (`Aset.save()`, resolusi `ownership` dipindah ke sebelum blok `__new__`).
+> Item (a) — blur kartu akun tertaut walau toggle "Aktif" — TETAP BY DESIGN,
+> bukan bug, tidak perlu dikerjakan. Baseline regression **1600/1600 PASS**
+> (2x). Detail: `CHANGELOG.md` § S312.
+
 > **Catatan Sync (S273-S274, lanjutan S272):** (S273) Rekomendasi audit
 > S272 DIKERJAKAN — `Servis._saveInner()` (`car-notes.js`) sekarang cek
 > `Servis.findMatchingStockByCatalogId()` (baru, match presisi via ID)

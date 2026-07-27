@@ -27,10 +27,22 @@ default:return JSON.stringify(data);
 }
 function _repairLooseJson(raw){
 let s=raw.trim();
+// BUGFIX (sesi ini — perbaikan parsing blok ACTION dari AI): sebelumnya
+// hanya 4 perbaikan dasar (smart-quotes, trailing comma, unquoted key,
+// single-quote), TIDAK cukup utk pola yang SERING muncul dari balasan AI:
+// pagar kode markdown (```json ... ```) yang ikut tertangkap regex
+// [[ACTION]]...[[/ACTION]], newline mentah di dalam nilai string (valid
+// di mata AI, TIDAK valid di JSON.parse), & komentar // atau /* */ yang
+// kadang disisipkan AI. Ditambah di sini, TIDAK mengubah urutan perbaikan
+// lama supaya kompatibel dgn kasus yang sudah pernah berhasil.
+s=s.replace(/^```[a-zA-Z]*\s*/,'').replace(/```\s*$/,'').trim();
 s=s.replace(/[\u2018\u2019]/g,"'").replace(/[\u201C\u201D]/g,'"');
+s=s.replace(/\/\*[\s\S]*?\*\//g,'');
+s=s.replace(/(^|[^:"])\/\/[^\n]*/g,'$1');
 s=s.replace(/,(\s*[}\]])/g,'$1');
 s=s.replace(/([{,]\s*)([A-Za-z_][A-Za-z0-9_]*)(\s*:)/g,'$1"$2"$3');
 s=s.replace(/'([^'"\\]*)'/g,'"$1"');
+s=s.replace(/"([^"\\]*(?:\\.[^"\\]*)*)"/g,(m,inner)=>'"'+inner.replace(/\r\n|\r|\n/g,'\\n').replace(/\t/g,'\\t')+'"');
 return s;
 }
 function extractChatAction(reply){
@@ -43,7 +55,16 @@ try{
 obj=JSON.parse(m[1]);
 }catch(e1){
 try{ obj=JSON.parse(_repairLooseJson(m[1])); console.warn('Blok ACTION dari AI awalnya rusak tapi berhasil diperbaiki otomatis:',e1); }
-catch(e2){ console.warn('Gagal parsing blok ACTION dari AI:',e2); actionError=true; }
+catch(e2){
+// Percobaan terakhir: kadang AI menambahkan teks sebelum/sesudah objek JSON
+// di dalam [[ACTION]]...[[/ACTION]] (mis. "Berikut datanya: {...}") — ambil
+// cuma substring dari "{" pertama sampai "}" terakhir, lalu ulangi perbaikan.
+try{
+const first=m[1].indexOf('{'), last=m[1].lastIndexOf('}');
+if(first>=0&&last>first){ obj=JSON.parse(_repairLooseJson(m[1].slice(first,last+1))); console.warn('Blok ACTION dari AI diperbaiki lewat ekstraksi objek {...}:',e2); }
+else throw e2;
+}catch(e3){ console.warn('Gagal parsing blok ACTION dari AI:',e3); actionError=true; }
+}
 }
 if(obj){
 if(typeof obj.type==='string'&&CHAT_ACTION_HANDLERS[obj.type]&&obj.data&&typeof obj.data==='object')parsed=obj;
