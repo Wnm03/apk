@@ -69,8 +69,9 @@ test('BudgetRecommendationPresenter._overCard()/_underusedCard()/_topSuggestionC
     ctx.BudgetRecommendationPresenter._topSuggestionCard(bsg),
   ].forEach((c) => {
     assert.equal(c.onClick.action, 'dashHubNavigateToFeature');
-    assert.equal(c.onClick.args[0].page, 'dashboard-hub');
+    assert.equal(c.onClick.args[0].page, 'keuangan');
     assert.equal(c.onClick.args[0].goTo, 'budgetRecoWrap');
+    assert.equal(c.onClick.args[0].tab, 'laporan');
   });
 });
 
@@ -102,8 +103,9 @@ test('InvestmentPlannerPresenter._overviewCard()/_allocationCard()/_recommendati
     ctx.InvestmentPlannerPresenter._recommendationCard(r),
   ].forEach((c) => {
     assert.equal(c.onClick.action, 'dashHubNavigateToFeature');
-    assert.equal(c.onClick.args[0].page, 'dashboard-hub');
+    assert.equal(c.onClick.args[0].page, 'keuangan');
     assert.equal(c.onClick.args[0].goTo, 'investPlannerWrap');
+    assert.equal(c.onClick.args[0].tab, 'laporan');
   });
 });
 
@@ -136,8 +138,9 @@ test('CashFlowProjectionPresenter._incomeCard()/_expenseCard()/_cashBalanceCard(
     ctx.CashFlowProjectionPresenter._cashBalanceCard(cashBalance),
   ].forEach((c) => {
     assert.equal(c.onClick.action, 'dashHubNavigateToFeature');
-    assert.equal(c.onClick.args[0].page, 'dashboard-hub');
+    assert.equal(c.onClick.args[0].page, 'keuangan');
     assert.equal(c.onClick.args[0].goTo, 'cashflowProjWrap');
+    assert.equal(c.onClick.args[0].tab, 'laporan');
   });
 });
 
@@ -170,8 +173,9 @@ test('FinancialForecastPresenter._incomeCard()/_expenseCard()/_cashflowCard() â€
     ctx.FinancialForecastPresenter._cashflowCard(cashflowProjection),
   ].forEach((c) => {
     assert.equal(c.onClick.action, 'dashHubNavigateToFeature');
-    assert.equal(c.onClick.args[0].page, 'dashboard-hub');
+    assert.equal(c.onClick.args[0].page, 'keuangan');
     assert.equal(c.onClick.args[0].goTo, 'forecastWrap');
+    assert.equal(c.onClick.args[0].tab, 'laporan');
   });
 });
 
@@ -204,8 +208,9 @@ test('DebtOptimizerPresenter._overviewCard()/_dsrCard()/_recommendationCard() â€
     ctx.DebtOptimizerPresenter._recommendationCard(r),
   ].forEach((c) => {
     assert.equal(c.onClick.action, 'dashHubNavigateToFeature');
-    assert.equal(c.onClick.args[0].page, 'dashboard-hub');
+    assert.equal(c.onClick.args[0].page, 'keuangan');
     assert.equal(c.onClick.args[0].goTo, 'debtOptimizerWrap');
+    assert.equal(c.onClick.args[0].tab, 'laporan');
   });
 });
 
