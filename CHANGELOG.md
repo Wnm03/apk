@@ -1,3 +1,227 @@
+# Changelog — S306: Chip prioritas + overflow menu "⋮" — kartu Aset (Buku Aset)
+
+## Konteks (lanjutan audit tab lain, kandidat paling mirip kasus Tagihan)
+Kartu Aset (`Aset.renderList()`, `modules/asset/aset.js`) punya 2 masalah
+sekaligus — lebih padat dari kasus chip Tagihan (S299/S304):
+1. Baris `tx-meta` menggabung jenis · label/extraLabel · lokasi ·
+   akun tertaut · kepemilikan · dana titipan · %untung jadi 1 kalimat
+   panjang tanpa jarak visual.
+2. 3 tombol sejajar per kartu (📜 Riwayat Transaksi — cuma kalau ada
+   akun tertaut, ⚡ Scan cepat, 🗑 Hapus) + tap kartu buka Edit — pola
+   sama persis kasus Tagihan (S300) & Produsen (S305) sebelum dirapikan.
+
+## Perubahan
+- Baris `tx-meta` sekarang HANYA 2 chip prioritas — jenis & 📍 lokasi
+  (reuse class `.acc-chip` yang SUDAH ADA, 0 style baru). %untung
+  dipindah ke sebelah nominal (`tx-amount`) biar tetap kelihatan tanpa
+  bikin baris chip tambah panjang.
+- Detail lain yang sebelumnya nempel di `tx-meta` (label tambahan/
+  extraLabel, akun tertaut, kepemilikan, dana titipan) TIDAK dihapus —
+  dipindah jadi baris teks di dalam overflow menu baru (di bawah judul
+  aset), cuma tampil kalau memang ada datanya.
+- Kartu Aset sekarang cuma tampil tombol "⋮" (tap kartu TETAP buka
+  Edit lewat `data-action="openAssetModal"` di wrapper div, tidak
+  berubah).
+- Modal overflow baru `qsAssetActions` (HTML, di `app_production.html`
+  & `index.html`) — 100% reuse struktur `qsBillActions`/
+  `qsProdusenActions` & class `.qs-modal-overlay`/`.bill-action-row`/
+  `.bar-icon` yang SUDAH ADA, 0 CSS baru. Tambah 1 div
+  `#assetActionsMeta` (baru, dipakai utk baris detail di atas, reuse
+  `.u-fs12`/`.u-t2` yang sudah ada).
+- `Aset.openActionsMenu(id)` (baru, `aset.js`) isi baris 📜 Riwayat
+  Transaksi (cuma kalau `accountId` tertaut), ⚡ Update Cepat via Scan,
+  🗑 Hapus. 3 wrapper baru di `action-wrappers.js`
+  (`assetActionHistory`/`assetActionScan`/`assetActionDelete`) — REUSE
+  penuh fungsi global `Aset.openTxHistory()`/`quickScanAsset()`/
+  `delAsset()` yang sudah ada, cuma nambah `closeQS('qsAssetActions')`
+  sebelum manggil, pola sama persis `billActionShareWA()`/
+  `produsenActionHarga()` dkk.
+
+## Audit ulang (sebelum rilis)
+Ditemukan & diperbaiki 3 hal dari draf pertama:
+1. `renderList()` masih menghitung `linkedAcc`/`linkMeta`/`titipanLabel`
+   padahal SUDAH TIDAK dipakai di template kartu (dead code sisa refactor
+   — `openActionsMenu()` menghitung ulang sendiri versinya, tidak berbagi
+   closure dgn `renderList()`). Dihapus.
+2. `pctBadge` (%untung) sempat tetap tampil di `tx-amount` KARTU *dan*
+   di overflow menu sekaligus (duplikat) — padahal maksud awal "sisanya
+   masuk overflow" mencakup %untung juga. Sekarang %untung HANYA di
+   overflow menu.
+3. `ownDetail` (teks mentah "Ownership SELF" dst, fitur lama S234, SELALU
+   tampil di kartu krn `OwnershipEngine.resolve()` tidak pernah null)
+   jadi duplikat kasar dgn `ownMeta` versi rapi Bahasa Indonesia yang
+   baru dipindah ke overflow menu. Dihapus dari kartu (info lengkapnya
+   tetap ada, di overflow, format yang lebih rapi).
+Tambahan: `#assetActionsMeta` di-`display:none`-kan (bukan cuma
+`innerHTML=''`) kalau kebetulan tidak ada baris meta sama sekali —
+jaga-jaga celah kosong dari padding bawaan div.
+
+## Test
+Regression penuh **1593/1593 PASS** (re-run setelah audit).
+
+
+
+## Konteks (lanjutan audit tab lain, poin ke-2)
+Kartu Produsen (`Produsen.renderList()`, `modules/shop/cobek-order.js`)
+punya 3 tombol sejajar (💰 Atur Harga, ✏️ Edit, 🗑 Hapus) — pola sama
+persis kasus kartu Tagihan sebelum S300.
+
+## Perubahan
+- Kartu Produsen sekarang cuma tampil ✏️ Edit langsung (aksi paling
+  sering dipakai) + tombol "⋮" baru.
+- Modal overflow baru `qsProdusenActions` (HTML, di `app_production.html`
+  & `index.html`) — 100% reuse struktur `qsBillActions` (S300) & class
+  `.qs-modal-overlay`/`.bill-action-row`/`.bar-icon` yang SUDAH ADA, 0
+  CSS baru.
+- `Produsen.openProdusenActionsMenu(id)` (baru, `cobek-order.js`) isi
+  baris 💰 Atur Harga & 🗑 Hapus. 2 wrapper baru di `action-wrappers.js`
+  (`produsenActionHarga`/`produsenActionDelete`) — REUSE penuh fungsi
+  global `openProdusenHargaModal()`/`delProdusen()` yang sudah ada
+  (`cobek-io.js`), cuma nambah `closeQS('qsProdusenActions')` sebelum
+  manggil, pola sama persis `billActionShareWA()` dkk.
+
+## Test
+Regression penuh **1593/1593 PASS**.
+
+# Changelog — S304: Konsistensi badge status — Piutang & Buku Utang
+
+## Konteks (lanjutan audit tab lain, poin paling ringan)
+Badge status "Lunas"/"Jatuh Tempo" di list Piutang (`Piutang.renderList()`)
+& Buku Utang (`Debt.renderList()`), keduanya di `modules/finance/
+piutang-utang.js`, masih pakai inline `style="..."` hardcoded (border-1px
+warna manual) — padahal maksud & warnanya PERSIS sama dengan class
+`.bill-due-ok`/`.bill-due-urgent` yang sudah dibuat utk tab Tagihan
+(S300). Bukan bug, cuma tidak konsisten/tidak reuse.
+
+## Perubahan
+Ganti span badge inline-style di 2 tempat itu jadi reuse
+`.bill-due-badge .bill-due-ok` (Lunas) / `.bill-due-badge .bill-due-urgent`
+(Jatuh Tempo) + `.u-ml4` (utility spacing yg sudah ada). Badge "🔥
+Prioritas" di Piutang (solid merah, beda tujuan — highlight item
+teratas) SENGAJA tidak disentuh, tidak ada padanan class yang pas &
+bukan sumber ketidak-konsistenan. 0 HTML struktur baru, 0 CSS baru.
+
+## Test
+Regression penuh **1593/1593 PASS**.
+
+# Changelog — S302: UI Polish (lanjutan) — accordion kartu Tagihan pt.5
+
+## Perubahan
+Poin 5 dari S300 (yg sebelumnya ditunda) sekarang dikerjakan: progress
+bar cicilan + catatan anomali (⚠️ Naik X%) dibungkus `.bill-card-detail`
+(collapsed default, CSS `max-height` transition, 0 JS berat). Dibuka via
+chevron ▾ terpisah (`toggleBillCardDetail()`, `action-wrappers.js`) —
+BUKAN dengan mengganti tap kartu, krn tap kartu (`data-action=
+"openBillModal"` di `.bill-item`) sudah dipakai buka Edit; chevron pakai
+`data-stop="1"` jadi kliknya tidak ikut trigger Edit.
+
+Chevron cuma dirender kalau kartu punya detail (tagihan biasa tanpa
+cicilan/anomali tidak dapat chevron kosong). Chip kategori/urgensi di
+baris atas TETAP selalu terlihat (tidak ikut collapse) — sesuai
+permintaan: "nama+jumlah+urgensi" tetap tampil, cuma progress bar &
+detail tambahan yang disembunyikan.
+
+## Test
+Regression penuh **1593/1593 PASS**.
+
+# Changelog — S300: UI Polish — kartu Tagihan & Cicilan (keuanganTab-tagihan)
+
+## Konteks (permintaan user, 5 poin polish visual)
+Kartu tagihan di tab "Tagihan & Cicilan" (renderBillList(), `modules/
+shared/modules-render.js`) berat secara visual: 5 ikon aksi sejajar per
+kartu, chip kategori & urgensi sama-sama netral (tidak ada hierarki),
+3 stat-box kotak makan tempat vertikal, progress bar cicilan selalu 1
+warna. Semua perubahan CSS-only/reuse — TIDAK ada dependency baru.
+
+## Perubahan
+- **Ringkas baris ikon aksi**: kartu aktif sekarang cuma tampil ✅ Bayar
+  + ✏️ Edit langsung; 💬 WA/📋 Riwayat/🗑 Hapus dipindah ke menu overflow
+  "⋮" — REUSE penuh `openBillActionsMenu()`/modal `qsBillActions` yang
+  SUDAH ADA di `tagihan-kalender.js` tapi sebelumnya tidak pernah
+  dipanggil dari renderBillList() (kode "yatim"). Ditambah param `lunas`
+  ke `openBillActionsMenu(id,lunas)` supaya baris & routing hapus benar
+  utk kartu arsip (lunas) — wrapper baru `billActionDeleteArchive()` di
+  `action-wrappers.js` (panggil `delBillArchive()`, bukan `delBill()`).
+- **Hierarki chip**: badge urgensi jatuh tempo sekarang 3-tier warna —
+  `bill-due-urgent` (≤3 hari/lewat, merah), `bill-due-soon` (4-7 hari,
+  oranye — direpurpose dari merah), `bill-due-far` (>7 hari, abu-abu
+  netral, kelas baru). Chip kategori/subkategori/shared/sisaTenor TETAP
+  `.acc-chip` abu-abu netral seperti sebelumnya — jadi sekarang ada
+  urutan jelas kategori vs urgensi.
+- **Stat grid → pill row**: 3 `.stat-box` kotak (`grid3`) diganti 1 baris
+  `.bill-stat-pills` horizontal-scroll (CSS baru, class baru, TIDAK ada
+  JS baru) — id elemen di dalamnya (`keuBillMonthTotal` dkk) TIDAK
+  berubah jadi `updateBillStatGrid()` 0 perubahan logic.
+- **Progress bar cicilan berwarna**: `prog-fill` ikut sisa tenor — hijau
+  kalau masih jauh, oranye kalau `sisaTenor<=2` (mepet akhir tenor).
+  Reuse class `.prog-fill.green`/`.orange` yang SUDAH ADA (var warna
+  tema `--accent`/`--accent3`/`--accent4`), 0 warna hardcode baru.
+- Poin "kepadatan list keseluruhan" (accordion per-kartu, collapse
+  default) BELUM dikerjakan — tap kartu saat ini membuka modal Edit
+  (`data-action="openBillModal"` di elemen pembungkus), jadi accordion
+  butuh keputusan UX dulu (chevron terpisah vs ganti semantik tap kartu)
+  supaya tidak tabrakan sama alur edit yang sudah ada.
+
+## Test
+Regression penuh **1593/1593 PASS** (tidak ada test baru — perubahan
+murni template string HTML/CSS, kategori sama seperti render function
+lain yang di luar cakupan harness `loadSource`/`fakeDom`).
+
+# Changelog — Sesi 294: Bugfix — Scanner kamera masih terhalang #mainNav (tab bawah "Uang" dkk) di mode browser tab
+
+## Konteks (laporan user, 2 screenshot)
+Buka scanner kamera (Sparepart) di mode browser tab biasa (bukan PWA
+terinstall, `wnm03.github.io/apk/`) — overlay fullscreen scanner
+(`.vehicle-scanner-fullscreen`, `z-index:var(--z-scanner)=970`) SEHARUSNYA
+di atas segalanya, tapi `#mainNav` (bottom nav app: Beranda/Uang/Shop/Aset/
+Mobil/Pajak, `z-index:var(--z-chrome)=100`) tetap kepaint DI ATAS overlay
+scanner — teks hint "Arahkan kamera ke..." & area scan ketutup sebagian
+oleh nav, padahal angka z-index-nya lebih rendah. Root cause pasti
+platform/compositing-dependent (kemungkinan terkait elemen `<video>` +
+`backdrop-filter` di `.nav`, bukan murni salah 1 aturan CSS statis) — tidak
+bisa dipastikan 100% tanpa reproduksi manual di device yang sama, jadi FIX
+dipilih yang PORTABLE terlepas dari penyebab pastinya.
+
+## Perubahan (minimal, pola reuse, 0 CSS baru)
+- **`modules/vehicle/vehicle-scanner.js`**: 2 fungsi baru
+  `vehicleScannerHideChrome()`/`vehicleScannerRestoreChrome(prev)` —
+  simpan `style.display` asli `#mainNav`/`#mainHeader`, set `display:none`
+  selama scanner terbuka, kembalikan persis seperti semula saat ditutup.
+  Dipanggil dari `vehicleScannerBuildOverlay()` (simpan hasil di
+  `overlay._prevChrome`) & `vehicleScannerTeardown()`. Pola SAMA seperti
+  `showMain()` yang sudah toggle elemen ini manual (bukan mengandalkan
+  z-index murni) — jadi konsisten dengan konvensi existing, bukan
+  pendekatan baru.
+- **`modules/vehicle/sparepart-scanner.js`**: `sparepartScannerBuildOverlay()`/
+  `sparepartScannerTeardownOverlay()` REUSE PENUH 2 fungsi di atas (guard
+  `typeof`, dependency load-order `vehicle-scanner.js` sebelum
+  `sparepart-scanner.js` sudah terjamin di `scripts/build.js`) — TIDAK
+  duplikasi logic.
+- Efeknya: scanner kamera (baik Vehicle Catalog maupun Sparepart) sekarang
+  benar-benar fullscreen tanpa elemen chrome app lain menutupinya, di
+  browser tab maupun PWA.
+
+## Test
+TIDAK ada test `node:vm` baru — 2 fungsi baru murni baca/tulis DOM
+(`getElementById`/`style.display`), termasuk kategori yang SUDAH
+didokumentasikan di luar cakupan harness `loadSource` (lihat header
+`tests/vehicle-scanner.test.js`: bagian kamera/overlay butuh browser
+nyata). Konsisten dengan konvensi existing, bukan lubang baru.
+
+## Hasil verifikasi
+```
+node --check modules/vehicle/vehicle-scanner.js modules/vehicle/sparepart-scanner.js
+# OK
+
+node --test tests/*.test.js
+# tests 1577 / pass 1577 / fail 0 (0 regresi)
+
+node scripts/build.js s294-camera-scanner-nav-overlap-fix
+# ✅ Build selesai, index.html & app_production.html identik, sintaks bundle valid
+```
+
+---
+
 # Changelog — Sesi 293: Audit tindak lanjut — orphan check Target Tabungan di runDataHealthCheck()
 
 ## Konteks

@@ -372,8 +372,8 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1')return true;
 }catch(e){ /* anggap bukan dev mode kalau gagal deteksi */ }
 return false;
 }
-const APP_BUILD_VERSION = 's308-bibit-detail-scan-invest-detail';
-const PRODUCTION_BUILD_SYNCED_VERSION = 's308-bibit-detail-scan-invest-detail';
+const APP_BUILD_VERSION = 'sesi306-aset-overflow-menu-fix';
+const PRODUCTION_BUILD_SYNCED_VERSION = 'sesi306-aset-overflow-menu-fix';
 let D = {
 schemaVersion:SCHEMA_VERSION,
 transactions:[],cobek:[],products:[],produsen:[],cobekKategori:JSON.parse(JSON.stringify(DEFAULT_COBEK_KATEGORI)),targets:[],eduFunds:[],reminders:[],bills:[],billsArchive:[],inventoryTransfers:[],
@@ -997,23 +997,6 @@ function backToSettingsPage(){ showPage('settings'); }
 
 function dashHubQaTambahTransaksi(){ openTxModal('expense'); }
 function dashHubQaBackup(){ openBackupModal(); }
-// dashHubQaBackupHistory() — pengganti quick action "Backup" (Sesi ini):
-// tombol "Backup" di header (#backupBadge, runFullBackup) & tombol Backup di
-// grid quick action tadinya memanggil aksi backup yang sama persis (terasa
-// duplikat). Quick action ini sekarang membuka Riwayat Backup (bukan
-// menjalankan backup lagi) lewat dashHubNavigateToFeature() yang SUDAH ADA
-// (dashboard-hub.js) -> Pengaturan > tab Notif&Backup > #backupHistoryList
-// (diisi BackupHistoryPresenter, sudah ada). 0 logic backup baru, 0 field D
-// baru — murni navigasi ke UI yang sudah ada. Fallback ke openBackupModal()
-// kalau dashHubNavigateToFeature belum ke-load (mis. dipanggil sebelum
-// dashboard-hub.js), supaya tombol tetap aman dipakai.
-function dashHubQaBackupHistory(){
-  if (typeof dashHubNavigateToFeature === 'function') {
-    dashHubNavigateToFeature({ page: 'settings', group: 'stgGroup4', goTo: 'backupHistoryList' });
-  } else {
-    openBackupModal();
-  }
-}
 function dashHubQaFocusSearch(){ document.getElementById('dashHubSearchInput').focus(); }
 function dashHubQaOpenAI(){ showPage('ai'); }
 
@@ -3649,16 +3632,6 @@ const scores={bank:0,wallet:0,bibit:0,jago_pocket:0};
 if(/kantong\s*utama|kantong\s*bayar|kantong\s*berbagi|cari\s*kantong/.test(t))scores.jago_pocket+=3;
 if(/aset\s*saya/.test(t))scores.jago_pocket+=2;
 if(/\bbibit\b|reksa\s*dana\s*pasar\s*uang|portofolio\s*saya|top\s*gainer|imbal\s*hasil/.test(t))scores.bibit+=3;
-// BUGFIX (laporan user): layar "Detail Portofolio" per-instrumen Bibit (dibuka lewat
-// tap 1 reksa dana/saham dari halaman lain, mis. dari hasil cari) TIDAK PUNYA banner
-// ringkasan atas ("Nilai Portofolio .../Imbal Hasil") yang jadi sumber kata kunci di
-// atas -- cuma kartu detail 1 instrumen (Nilai Sekarang/Modal Investasi/Jumlah Unit
-// atau Total Unit). Akibatnya detectScreenType() return null sama sekali -> scan
-// gagal total ("Nominal tidak ditemukan"), bukan cuma parseBibitScreen() yang gagal.
-// Fingerprint kombinasi 3 label ini spesifik ke kartu instrumen Bibit (tidak overlap
-// dgn layar bank/wallet/jago_pocket) -- aman ditambahkan ke skor bibit yang sudah ada,
-// TIDAK mengubah/mengurangi skor screen lain.
-if(/modal\s*investasi/.test(t)&&/nilai\s*(sekarang|saat\s*ini)/.test(t)&&/(jumlah|total)\s*unit/.test(t))scores.bibit+=3;
 if(/gopay|\bdana\s*aktif\b|shopeepay|\bovo\b/.test(t))scores.wallet+=3;
 if(/tarik\s*tunai|top\s*up\b/.test(t))scores.wallet+=1;
 if(/no\.?\s*rekening|nomor\s*rekening|total\s*saldo|\btabungan\b|\bdeposito\b/.test(t))scores.bank+=3;
@@ -3798,68 +3771,15 @@ let confidence=(brandMatched?0.7:0.4)+((chosen&&chosen.endsLine&&!chosen.isSpend
 confidence=Math.max(0,confidence);
 return{nama,nominal:Math.round(nominalRaw),confidence:Math.round(Math.min(1,confidence)*100)/100};
 }
-// BIBIT_DETAIL_LABELS -- label per-instrumen di kartu "Detail Portofolio"/halaman jenis
-// reksa dana Bibit (Nilai Sekarang, Modal Investasi, Keuntungan, Harga Beli, Jumlah Unit
-// ATAU Total Unit -- dua nama beda dipakai Bibit utk field yang sama tergantung halaman,
-// lihat laporan user). Dipakai fallback parseBibitScreen() (di bawah) DAN dieksport lewat
-// hasil parse sbg `detail` -- field dinamis per akun (Modal Investasi/Keuntungan/Harga
-// Beli/Jumlah Unit) yang HANYA terisi kalau discan (bukan field wajib akun biasa).
-const BIBIT_DETAIL_LABELS={
-nilai:/nilai\s*(sekarang|saat\s*ini)/i,
-modal:/modal\s*investasi/i,
-keuntungan:/\bkeuntungan\b/i,
-hargaBeli:/harga\s*(beli|perolehan)/i,
-jumlahUnit:/(?:jumlah|total)\s*unit/i,
-};
-// extractBibitKeuntungan(text) -- terpisah dari extractLabeledAmount() generik krn
-// "Keuntungan" bisa NEGATIF (rugi, mis. "-Rp24,883" di layar Saham) -- extractLabeledAmount()/
-// normalizeOcrNumber() dipakai field lain di atas TIDAK menangani tanda minus (dirancang utk
-// nominal yang selalu positif, mis. saldo/modal/harga beli). Cari angka bertanda persis di
-// baris label atau baris berikutnya (pola window sama dgn extractLabeledAmount()).
-function extractBibitKeuntungan(text){
-const lines=String(text).split('\n');
-for(let i=0;i<lines.length;i++){
-if(!BIBIT_DETAIL_LABELS.keuntungan.test(lines[i]))continue;
-for(const cl of[lines[i],lines[i+1]||'']){
-const m=cl.match(/-?\s*rp?\s*-?\d[\d.,]*/i);
-if(!m)continue;
-const neg=/-/.test(m[0]);
-const numPart=m[0].replace(/[^\d.,]/g,'');
-const n=normalizeOcrNumber(numPart);
-if(!isNaN(n))return neg?-Math.abs(n):n;
-}
-}
-return null;
-}
 // parseBibitScreen(text) -- 1 akun: nominal dari "Total Investasi"/"Portofolio"/"Total
-// Aset" (banner ringkasan atas). FALLBACK (laporan user): layar "Detail Portofolio"
-// per-instrumen TIDAK PUNYA banner itu -- cuma kartu "Nilai Sekarang" 1 instrumen. Kalau
-// pola banner tidak ketemu, coba baca "Nilai Sekarang" sbg nominal (nilai investasi
-// instrumen ybs), plus tangkap detail Modal Investasi/Keuntungan/Harga Beli/Jumlah Unit
-// sbg field TAMBAHAN (bukan pengganti nominal) -- ini yang bikin field dinamis (Modal
-// Investasi, Keuntungan, dll) bisa ikut kebawa ke akun tujuan saat diimpor (lihat
-// UniversalScan.importSelected()), TANPA mengubah kontrak lama (nominal tetap 1 angka).
+// Aset".
 function parseBibitScreen(text){
 if(!text)return null;
 const mPrimary=text.match(/total\s*(?:investasi|portofolio|aset)[^\d]{0,20}(\d[\d.,]*)/i);
 const m=mPrimary||text.match(/portofolio[^\d]{0,20}(\d[\d.,]*)/i);
-let nominalRaw=m?normalizeOcrNumber(m[1]):NaN;
-let confidence=mPrimary?0.9:(m?0.6:0);
-let viaDetail=false;
-if(isNaN(nominalRaw)){
-const nilaiDetail=extractLabeledAmount(text,BIBIT_DETAIL_LABELS.nilai);
-if(nilaiDetail!=null){nominalRaw=nilaiDetail;confidence=0.6;viaDetail=true;}
-}
-const detail={
-modal:extractLabeledAmount(text,BIBIT_DETAIL_LABELS.modal),
-keuntungan:extractBibitKeuntungan(text),
-hargaBeli:extractLabeledAmount(text,BIBIT_DETAIL_LABELS.hargaBeli),
-jumlahUnit:extractLabeledAmount(text,BIBIT_DETAIL_LABELS.jumlahUnit),
-};
-const hasDetail=Object.values(detail).some(v=>v!=null);
-if(isNaN(nominalRaw))return{nama:'Bibit',nominal:null,confidence:0,detail:hasDetail?detail:null};
-if(viaDetail&&hasDetail)confidence=Math.min(1,confidence+0.1);
-return{nama:'Bibit',nominal:Math.round(nominalRaw),confidence:Math.round(confidence*100)/100,detail:hasDetail?detail:null};
+const nominalRaw=m?normalizeOcrNumber(m[1]):NaN;
+if(isNaN(nominalRaw))return{nama:'Bibit',nominal:null,confidence:0};
+return{nama:'Bibit',nominal:Math.round(nominalRaw),confidence:mPrimary?0.9:0.6};
 }
 // parseJagoPocketScreen(text) -- BANYAK akun sekaligus (1 per "Kantong"): cari tiap baris
 // nominal "Rp...", lalu cari nama kantong mundur 1-2 baris (skip label umum "Aset Saya"/
@@ -4061,12 +3981,6 @@ valid:validation.valid,
 issues:validation.issues,
 checked:it.nominal>0&&validation.valid,
 targetAccId:fuzzy?fuzzy.id:'__new__',
-// detail (Modal Investasi/Keuntungan/Harga Beli/Jumlah Unit) -- field DINAMIS,
-// cuma ada kalau parser (parseBibitScreen()) berhasil membacanya dari layar detail
-// per-instrumen. null kalau screenType lain (bank/wallet/jago_pocket) atau tidak
-// kebaca -- TIDAK mengubah kontrak item lama, murni tambahan opsional yang dibaca
-// importSelected() (di bawah) untuk disimpan ke akun tujuan kalau ada.
-detail:it.detail||null,
 };
 });
 this.render();
@@ -4106,13 +4020,6 @@ const warn=(!it.valid&&it.issues&&it.issues.length)?`<div class="u-t2" style="co
 // mana saja, importSelected() ikut baca targetAccId ini (bukan cocok-nama lagi).
 const accOptions=`<option value="__new__" ${it.targetAccId==='__new__'?'selected':''}>➕ Buat Akun Baru</option>`+
 D.accounts.map(a=>`<option value="${escapeHtml(a.id)}" ${it.targetAccId===a.id?'selected':''}>🔄 Update: ${escapeHtml(a.name)}</option>`).join('');
-// detailPreview -- tampilkan field dinamis (Modal Investasi/Keuntungan/Harga Beli/
-// Jumlah Unit) yang berhasil kebaca dari layar detail Bibit, supaya user tahu field
-// tambahan ini juga ikut disimpan ke akun tujuan (bukan cuma nominal/nama). Read-only
-// di preview ini (koreksi lewat Edit Akun kalau ada yang salah baca) -- fokus editable
-// tetap di nama/nominal seperti sebelumnya.
-const detailLabels={modal:'Modal Investasi',keuntungan:'Keuntungan',hargaBeli:'Harga Beli',jumlahUnit:'Jumlah Unit'};
-const detailPreview=it.detail?`<div class="u-t2" style="margin-top:2px">${Object.keys(detailLabels).filter(k=>it.detail[k]!=null).map(k=>detailLabels[k]+': '+fmtFull(it.detail[k])).join(' · ')}</div>`:'';
 // Batch 19 item 3 (Editable Preview): nama & nominal jadi <input> (data-action
 // UniversalScan.updateItem), bukan teks statis lagi -- user bisa koreksi hasil OCR yang
 // salah baca langsung di preview, sebelum importSelected() (tidak berubah kontraknya:
@@ -4123,7 +4030,6 @@ return`<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;bor
 <div style="flex:1;font-size:12px">
 <div style="font-weight:700;display:flex;align-items:center;gap:4px">${emoji} <input type="text" value="${escapeHtml(it.nama)}" style="font-weight:700;border:1px solid var(--border);border-radius:4px;padding:2px 4px;flex:1;min-width:0" onchange="UniversalScan.updateItemField(${i},'nama',this.value)"></div>
 <div class="u-t2" style="display:flex;align-items:center;gap:4px;margin-top:2px">Rp <input type="number" value="${it.nominal}" style="border:1px solid var(--border);border-radius:4px;padding:2px 4px;width:110px" onchange="UniversalScan.updateItemField(${i},'nominal',this.value)">${confBadge}</div>
-${detailPreview}
 <div style="margin-top:4px"><select class="fs" style="font-size:11px;padding:4px 6px" onchange="UniversalScan.setTarget(${i},this.value)">${accOptions}</select></div>
 ${warn}
 </div>
@@ -4181,18 +4087,9 @@ if(existing){
 const txDelta=recalcAccBalance(existing.id)-(existing.baseBalance!==undefined?existing.baseBalance:(existing.balance||0));
 existing.baseBalance=it.nominal-txDelta;
 existing.balance=it.nominal;
-// investDetail -- field DINAMIS (Modal Investasi/Keuntungan/Harga Beli/Jumlah Unit),
-// cuma ditulis kalau scan berhasil membacanya (it.detail, lihat parseBibitScreen()) --
-// akun bank/e-wallet/kantong biasa (it.detail null) TIDAK dapat field ini sama sekali,
-// jadi 0 perubahan tampilan/perilaku utk akun yang bukan hasil scan investasi. Akun
-// yang SUDAH punya investDetail dari scan sebelumnya & discan ulang tanpa detail (mis.
-// dari layar bank biasa) sengaja TIDAK dihapus -- cuma di-update kalau ada data baru.
-if(it.detail)existing.investDetail=Object.assign({},existing.investDetail||{},it.detail,{updatedAt:Date.now()});
 updated++;
 } else {
-const acc={id:'acc_'+Date.now()+'_'+created,name:it.nama,emoji,baseBalance:it.nominal,balance:it.nominal,includeInBalance:true,jenis:'kas_bebas'};
-if(it.detail)acc.investDetail=Object.assign({},it.detail,{updatedAt:Date.now()});
-D.accounts.push(acc);
+D.accounts.push({id:'acc_'+Date.now()+'_'+created,name:it.nama,emoji,baseBalance:it.nominal,balance:it.nominal,includeInBalance:true,jenis:'kas_bebas'});
 created++;
 }
 });
@@ -32818,36 +32715,18 @@ const DashboardHubAnalytics = {
     const incPct = total > 0 ? Math.round((inc / total) * 100) : null;
     const expPct = total > 0 ? Math.round((exp / total) * 100) : null;
 
-    // BUGFIX/UX (sesi ini): Saldo Bersih negatif (pengeluaran > pemasukan
-    // bulan berjalan) tadinya cuma dibedakan lewat warna teks (.red), sama
-    // rata secara visual dgn kartu netral lain -> mudah kelewat pas scroll.
-    // Ditambah 2 penanda, keduanya 100% REUSE pola yang SUDAH ADA di app:
-    // (1) varian background/border ".dashhub-analytics-card--warn" (pola
-    //     sama dgn .bill-banner: var(--accent2-soft)/var(--accent2), lihat
-    //     styles.css) supaya kartu ini menonjol tanpa warna baru;
-    // (2) 1 baris saran singkat dari cashflowActionSuggestion() yang SUDAH
-    //     ADA (modules/finance/tagihan-kalender.js, dipakai jg di
-    //     Proyeksi Arus Kas) -- 0 rumus/saran baru ditulis di sini. Guard
-    //     typeof supaya aman kalau tagihan-kalender.js belum di-load
-    //     (mis. tests/dashboard-hub.test.js yang me-load file ini sendirian).
-    const netNegatif = net < 0;
-    const netSaran = netNegatif && typeof cashflowActionSuggestion === 'function'
-      ? cashflowActionSuggestion(Math.abs(net), new Date().getDate())
-      : '';
-
     const cards = [
       { label: 'Transaksi Bulan Ini', value: String(count), cls: '' },
       { label: 'Total Pemasukan', value: money(inc), cls: 'green' },
       { label: 'Total Pengeluaran', value: money(exp), cls: 'red' },
-      { label: 'Saldo Bersih', value: (net < 0 ? '-' : '') + money(Math.abs(net)), cls: net < 0 ? 'red' : 'green', warn: netNegatif, sub: netSaran },
+      { label: 'Saldo Bersih', value: (net < 0 ? '-' : '') + money(Math.abs(net)), cls: net < 0 ? 'red' : 'green' },
       { label: 'Pemasukan vs Pengeluaran', value: incPct === null ? '—' : (incPct + '% : ' + expPct + '%'), cls: '' },
     ];
 
     el.innerHTML = cards.map((c) => `
-      <div class="dashhub-analytics-card${c.warn ? ' dashhub-analytics-card--warn' : ''}">
+      <div class="dashhub-analytics-card">
         <div class="dashhub-analytics-label">${escapeHtml(c.label)}</div>
         <div class="dashhub-analytics-val${c.cls ? ' ' + c.cls : ''}">${escapeHtml(c.value)}</div>
-        ${c.sub ? '<div class="dashhub-analytics-sub">⚠️ ' + escapeHtml(c.sub) + '</div>' : ''}
       </div>
     `).join('');
   },
@@ -32883,38 +32762,12 @@ const DashboardHubOwnershipSummary = {
       return;
     }
     const esc = typeof escapeHtml === 'function' ? escapeHtml : String;
-    const row = (t) => {
+    el.innerHTML = DASHHUB_OWNERSHIP_SUMMARY_ORDER.map((t) => {
       const label = (typeof OwnershipEngine !== 'undefined') ? OwnershipEngine.label(t) : t;
       const count = s.counts[t] || 0;
       return '<div class="setting-item"><div><div class="setting-label">' + esc(label) + '</div></div>'
         + '<div class="u-fs14 u-fw600">' + count + '</div></div>';
-    };
-
-    // UX (sesi ini): kategori bernilai 0 (mis. Investor/Pelanggan/Keluarga
-    // semua 0) makan tempat scroll tanpa info baru. Kategori >0 SELALU
-    // tampil langsung; kategori 0 disembunyikan di balik toggle "Lihat
-    // semua kategori", pola collapse yang SUDAH ADA (sama persis dgn
-    // card-collapse-toggle/toggleCardCollapse() dipakai ~40+ kartu lain di
-    // app ini, lihat modal-navigasi.js) -- 0 mekanisme collapse baru.
-    // Kalau semua kategori kebetulan 0 atau semua kebetulan >0, toggle
-    // tidak ada gunanya (tidak ada yg perlu disembunyikan) -> tampilkan
-    // semua apa adanya, tanpa toggle.
-    const filled = DASHHUB_OWNERSHIP_SUMMARY_ORDER.filter((t) => (s.counts[t] || 0) > 0);
-    const zero = DASHHUB_OWNERSHIP_SUMMARY_ORDER.filter((t) => (s.counts[t] || 0) === 0);
-
-    if (!filled.length || !zero.length) {
-      el.innerHTML = DASHHUB_OWNERSHIP_SUMMARY_ORDER.map(row).join('');
-      return;
-    }
-
-    el.innerHTML = filled.map(row).join('')
-      + '<div class="setting-item">'
-      + '<div class="setting-label u-t2">Lihat semua kategori</div>'
-      + '<span class="card-collapse-toggle collapsed" id="dashHubOwnershipZero-chev" data-action="toggleCardCollapse" data-args=\'["dashHubOwnershipZero","$event"]\' aria-label="Buka/tutup bagian">▾</span>'
-      + '</div>'
-      + '<div class="card-collapse-body collapsed" id="dashHubOwnershipZero-cbody">'
-      + zero.map(row).join('')
-      + '</div>';
+    }).join('');
   },
 };
 

@@ -370,7 +370,86 @@ if(intervalEl&&intervalEl.dataset.manual!=='1'){
 const matched=item?D.sparepartCats.find(c=>c.name.toLowerCase()===item.toLowerCase()):null;
 intervalEl.value=matched?matched.intervalKm:'';
 }
+Servis.tryAutoLinkCatalogPart(item);
 Servis.renderCatalogRecommendations();
+},
+/** Sesi 297 (permintaan eksplisit user, sinkron "Jenis Servis/Item" <-> Katalog Suku
+ * Cadang supaya stok otomatis kepotong tanpa perlu pilih dua kali): kalau user
+ * mengetik/pilih teks di "Jenis Servis/Item" yang PERSIS (case-insensitive) cocok
+ * dengan SATU nama part di dropdown `servisCatalogPartId` (yang sudah dimuat via
+ * populateCatalogPartSelect() saat modal dibuka), otomatis pilihkan part itu &
+ * tampilkan field qty (reuse onCatalogPartChange() apa adanya) -- sama seperti user
+ * pilih manual dari "Pilih dari Katalog" / chip rekomendasi, cukup lebih cepat.
+ * Exact match tetap auto-pilih LANGSUNG tanpa konfirmasi (aman, tidak ambigu).
+ * TIDAK menimpa pilihan yang sudah ada (kalau `servisCatalogPartId` sudah ada
+ * value, dibiarkan -- user yang pegang kendali penuh begitu sudah pernah pilih/
+ * ganti manual). Ambigu (2+ part nama sama persis) -> tidak auto-pilih, biar user
+ * pilih sendiri lewat dropdown/chip (juga tidak dilanjutkan ke partial match,
+ * supaya tidak makin salah pilih dari nama yang sudah ambigu duluan).
+ *
+ * Sesi berikutnya (permintaan eksplisit user): kalau TIDAK ada exact match tunggal,
+ * coba cari partial match (nama part memuat teks item, atau sebaliknya) sebagai
+ * SARAN -- TIDAK auto-pilih langsung seperti exact match, karena partial match bisa
+ * salah tebak part & stok bisa kepotong tidak diinginkan. Sebagai gantinya
+ * ditampilkan lewat renderPartialCatalogMatch() (area konfirmasi terpisah, chip per
+ * kandidat) -- part katalog HANYA terpilih (dan stok HANYA kepotong saat simpan)
+ * setelah user tap salah satu chip confirmPartialCatalogMatch(). */
+tryAutoLinkCatalogPart(item){
+const sel=document.getElementById('servisCatalogPartId');
+Servis.dismissPartialCatalogMatch();
+if(!sel||!item)return;
+if(sel.value)return;
+const target=item.toLowerCase();
+const opts=Array.from(sel.options||[]).filter(o=>o.value);
+const exact=opts.filter(o=>(o.dataset.name||'').toLowerCase()===target);
+if(exact.length===1){
+sel.value=exact[0].value;
+Servis.onCatalogPartChange();
+return;
+}
+if(exact.length>1)return;
+const partial=opts.filter(o=>{
+const name=(o.dataset.name||'').toLowerCase();
+if(!name)return false;
+return name.includes(target)||target.includes(name);
+});
+if(partial.length)Servis.renderPartialCatalogMatch(partial);
+},
+/** Tampilkan chip konfirmasi untuk tiap kandidat partial match (lihat
+ * tryAutoLinkCatalogPart()) di area `servisCatalogPartialWrap`. Murni render,
+ * TIDAK mengubah `servisCatalogPartId` -- part baru terpilih setelah user tap
+ * salah satu chip (lihat confirmPartialCatalogMatch()). */
+renderPartialCatalogMatch(matches){
+const wrap=document.getElementById('servisCatalogPartialWrap');
+const list=document.getElementById('servisCatalogPartialList');
+if(!wrap||!list)return;
+list.innerHTML=matches.map(o=>`<button type="button" class="chip-btn" style="font-size:11px" data-action="Servis.confirmPartialCatalogMatch" data-args="${escapeHtml(JSON.stringify([o.value]))}">${escapeHtml(o.dataset.name||'(Tanpa nama)')}${o.dataset.oem?' · '+escapeHtml(o.dataset.oem):''}</button>`).join('');
+wrap.classList.remove('u-dnone');
+wrap.style.display='block';
+},
+/** User tap 1 chip kandidat partial match -> BARU di sini part katalog beneran
+ * dipilihkan ke `servisCatalogPartId` (reuse onCatalogPartChange() apa adanya,
+ * sama seperti exact match/chip rekomendasi) & area konfirmasi ditutup. Sebelum
+ * ini dipanggil, TIDAK ada apa pun yang berubah di dropdown/stok -- exactly kenapa
+ * partial match butuh langkah konfirmasi tambahan ini (beda dari exact match yang
+ * auto-pilih langsung), supaya stok tidak salah kepotong dari tebakan yang keliru. */
+confirmPartialCatalogMatch(catalogId){
+const sel=document.getElementById('servisCatalogPartId');
+if(!sel)return;
+const hasOption=Array.from(sel.options||[]).some(o=>o.value===String(catalogId));
+if(!hasOption)return;
+sel.value=String(catalogId);
+Servis.onCatalogPartChange();
+Servis.dismissPartialCatalogMatch();
+},
+/** Tutup/kosongkan area konfirmasi partial match (dipanggil saat user tap
+ * "Bukan ini, abaikan", saat re-run tryAutoLinkCatalogPart() dgn item baru, atau
+ * kapan pun modal servis dibuka ulang) -- TIDAK menyentuh `servisCatalogPartId`. */
+dismissPartialCatalogMatch(){
+const wrap=document.getElementById('servisCatalogPartialWrap');
+const list=document.getElementById('servisCatalogPartialList');
+if(list)list.innerHTML='';
+if(wrap){wrap.classList.add('u-dnone');wrap.style.display='none';}
 },
 openModal(editId,prefillItem){
 Sparepart.populateDatalist();
@@ -382,6 +461,7 @@ const servisAccEl=document.getElementById('servisAcc');
 if(servisAccEl) servisAccEl.innerHTML=D.accounts.map(a=>`<option value="${a.id}">${a.emoji} ${escapeHtml(a.name)}</option>`).join('');
 const intervalEl=document.getElementById('servisInterval');
 if(intervalEl)intervalEl.dataset.manual='0';
+Servis.dismissPartialCatalogMatch();
 if(isEdit){
 const s=D.servisLogs.find(x=>x.id===Servis.editId);
 if(!s)return;
@@ -619,8 +699,22 @@ const card=document.getElementById('servisReminderCard');
 if(!card)return;
 const curKm=getVehicleKm(curVehicleId);
 const kmPerDay=estimateKmPerDay(curVehicleId);
-if(!D.sparepartCats.length){card.innerHTML='<div class="card-title">🔔 Pengingat Servis</div><div class="empty"><div class="empty-text">Belum ada kategori sparepart. Atur di Pengaturan.</div></div>';return;}
-const rows=D.sparepartCats.map(cat=>{
+// Sesi 295 (bugfix "Pengingat Servis" kebanjiran kategori sampah): dulu SEMUA
+// D.sparepartCats ditampilkan tanpa filter -- termasuk kategori yg auto-dibuat
+// syncPartsStockFromCatalog() (tx-stok-sparepart.js) saat scan Katalog Suku
+// Cadang, yg sengaja diberi intervalKm:0 & showInReminder:false karena itu
+// cuma kategori PENGELOMPOKAN STOK, bukan jadwal servis. Tanpa filter ini,
+// kategori spt "E-2 Cylinder Head Cover" (dari scan torsi/katalog) numpuk di
+// Pengingat dgn "Interval 0 km" & selalu "Lewat" (0-jarakTempuh selalu <=0).
+// Filter: hanya kategori dgn interval valid (>0) DAN belum ditandai
+// disembunyikan manual dari 🔧 Kelola Kategori (lihat renderCatList()).
+const remindableCats=D.sparepartCats.filter(c=>c.intervalKm>0&&c.showInReminder!==false);
+if(!remindableCats.length){
+const hiddenCount=D.sparepartCats.length-remindableCats.length;
+card.innerHTML='<div class="card-title">🔔 Pengingat Servis</div><div class="empty"><div class="empty-text">'+(hiddenCount?'Belum ada kategori dgn interval servis aktif. '+hiddenCount+' kategori lain disembunyikan/belum diatur intervalnya — atur di 🔧 Kelola Kategori Sparepart.':'Belum ada kategori sparepart. Atur di Pengaturan.')+'</div></div>';
+return;
+}
+const rows=remindableCats.map(cat=>{
 const lastKm=Servis.getLastServiceKmForCat(curVehicleId,cat);
 const intervalKm=getEffectiveIntervalKm(curVehicleId,cat);
 const overridden=hasIntervalOverride(curVehicleId,cat);

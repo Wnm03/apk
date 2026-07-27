@@ -80,9 +80,9 @@
 <link rel="preconnect" href="https://accounts.google.com" crossorigin>
 <link rel="dns-prefetch" href="https://accounts.google.com">
 <title>Keluarga W</title>
-<link rel="stylesheet" href="styles.css?v=804">
-<link rel="stylesheet" href="modern-ui-layer.css?v=804">
-<script src="nav-scroll.js?v=804" defer></script>
+<link rel="stylesheet" href="styles.css?v=821">
+<link rel="stylesheet" href="modern-ui-layer.css?v=821">
+<script src="nav-scroll.js?v=821" defer></script>
 <script>
 /* Debug console (Eruda) — aktifkan sekali lewat ?debug=1 di URL, nempel via localStorage.
    Matikan lagi lewat ?debug=0. Tidak aktif buat user biasa. */
@@ -153,8 +153,8 @@ window.location.reload();
 }catch(e){}
 })();
 </script>
-<script src="app-bundle-a.min.js?v=804" onerror="window.__moduleLoadFail('app-bundle-a.min.js')"></script>
-<script src="modules/shared/smoke-test.js?v=804" defer></script>
+<script src="app-bundle-a.min.js?v=821" onerror="window.__moduleLoadFail('app-bundle-a.min.js')"></script>
+<script src="modules/shared/smoke-test.js?v=821" defer></script>
 <link rel="manifest" id="pwaManifestLink" href="manifest.json">
 </head>
 <body data-theme="fresh">
@@ -424,10 +424,10 @@ window.location.reload();
       <div class="month-nav-label" id="keuBillMonthLabel">-</div>
       <button class="month-nav-btn" data-action="changeBillStatMonth" data-args='[1]' aria-label="Berikutnya">›</button>
     </div>
-    <div class="grid3 u-mb10" id="keuBillStatGrid">
-      <div class="stat-box"><div class="stat-label">Bulan Ini</div><div class="stat-val red" id="keuBillMonthTotal">Rp 0</div></div>
-      <div class="stat-box"><div class="stat-label">Jatuh Tempo ≤7 Hari</div><div class="stat-val orange" id="keuBillSoonCount">0</div></div>
-      <div class="stat-box"><div class="stat-label">Sisa Cicilan</div><div class="stat-val purple" id="keuBillOutstanding">Rp 0</div></div>
+    <div class="bill-stat-pills" id="keuBillStatGrid">
+      <div class="bill-stat-pill"><span class="stat-label">Bulan Ini</span><span class="stat-val red" id="keuBillMonthTotal">Rp 0</span></div>
+      <div class="bill-stat-pill"><span class="stat-label">≤7 Hari</span><span class="stat-val orange" id="keuBillSoonCount">0</span></div>
+      <div class="bill-stat-pill"><span class="stat-label">Sisa Cicilan</span><span class="stat-val purple" id="keuBillOutstanding">Rp 0</span></div>
     </div>
     <div class="u-dnone u-mb6" id="billFilterPanel" style="padding-top:2px">
       <div class="u-gap8 u-mb6 u-grid2-nogap">
@@ -2746,6 +2746,24 @@ window.location.reload();
   </div>
 </div>
 
+<div class="qs-modal-overlay" id="qsProdusenActions" role="dialog" aria-modal="true" aria-labelledby="qsProdusenActions-title">
+  <div class="qs-modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="qsProdusenActions-title"><span id="produsenActionsTitle">🏭 Aksi Produsen</span><button class="modal-close" data-action="closeQS" data-args='["qsProdusenActions"]' aria-label="Tutup">✕</button></div>
+    <div id="produsenActionsList"></div>
+  </div>
+</div>
+
+<!-- MORE OPTIONS: item Aset (dipanggil dari tombol ⋮ di Aset.renderList(), aset.js) -->
+<div class="qs-modal-overlay" id="qsAssetActions" role="dialog" aria-modal="true" aria-labelledby="qsAssetActions-title">
+  <div class="qs-modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="qsAssetActions-title"><span id="assetActionsTitle">📦 Aksi Aset</span><button class="modal-close" data-action="closeQS" data-args='["qsAssetActions"]' aria-label="Tutup">✕</button></div>
+    <div id="assetActionsMeta" class="u-fs12 u-t2" style="padding:0 2px 10px"></div>
+    <div id="assetActionsList"></div>
+  </div>
+</div>
+
 <!-- QUICK SETTINGS: SHOP -->
 <div class="qs-modal-overlay" id="qsShop" role="dialog" aria-modal="true" aria-labelledby="qsShop-title">
   <div class="qs-modal">
@@ -2878,7 +2896,7 @@ window.location.reload();
        tambahan murni, tidak mengubah baris lain yang sudah ada. -->
   <div class="dashhub-hero" id="dashHubHeroCard">
     <div class="dashhub-hero-greet" id="dashHubHeroGreet">Halo 👋</div>
-    <div class="dashhub-hero-date" id="dashHubHeroDate">-</div>
+    <div class="dashhub-hero-date u-dnone" id="dashHubHeroDate">-</div>
     <div class="dashhub-hero-balance">
       <div class="dashhub-hero-balance-label">Saldo Semua Akun</div>
       <div class="dashhub-hero-balance-val" id="dashHubHeroSaldo">Rp 0</div>
@@ -2905,11 +2923,11 @@ window.location.reload();
     <button type="button" class="dashhub-qa-btn" data-action="dashHubQaTambahTransaksi" aria-label="Tambah Transaksi">
       <span class="dashhub-qa-icon">💰</span><span class="dashhub-qa-label">Transaksi</span>
     </button>
-    <button type="button" class="dashhub-qa-btn" data-action="dashHubQaBackup" aria-label="Backup">
-      <span class="dashhub-qa-icon">💾</span><span class="dashhub-qa-label">Backup</span>
+    <button type="button" class="dashhub-qa-btn" data-action="dashHubQaBackupHistory" aria-label="Riwayat Backup">
+      <span class="dashhub-qa-icon">🕘</span><span class="dashhub-qa-label">Riwayat</span>
     </button>
-    <button type="button" class="dashhub-qa-btn" data-action="dashHubQaFocusSearch" aria-label="Cari">
-      <span class="dashhub-qa-icon">🔍</span><span class="dashhub-qa-label">Cari</span>
+    <button type="button" class="dashhub-qa-btn" data-action="dashHubQaFocusSearch" aria-label="Cari Fitur">
+      <span class="dashhub-qa-icon">🔍</span><span class="dashhub-qa-label">Cari Fitur</span>
     </button>
     <button type="button" class="dashhub-qa-btn" data-action="dashHubQaOpenAI" aria-label="Buka AI">
       <span class="dashhub-qa-icon">🤖</span><span class="dashhub-qa-label">AI</span>
@@ -3655,6 +3673,6 @@ window.location.reload();
 <script>document.write(MODAL_HTML[80]);</script><!-- modal:hondaPdfImportModal -->
 <script>document.write(MODAL_HTML[82]);</script><!-- modal:inventoryTransferModal (S244) -->
 
-<script src="app-bundle-b.min.js?v=804" onerror="window.__moduleLoadFail('app-bundle-b.min.js')"></script>
+<script src="app-bundle-b.min.js?v=821" onerror="window.__moduleLoadFail('app-bundle-b.min.js')"></script>
 </body>
 </html>

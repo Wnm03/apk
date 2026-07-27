@@ -202,6 +202,16 @@ implementasi fake IndexedDB untuk pengujian `IDBStore`. Jalankan dengan:
 npm test
 ```
 
+**PENTING — jangan jalankan `node --test` tanpa argumen di root folder.**
+Skrip `npm test` di atas sengaja membatasi pencarian ke `tests/*.test.js`
+saja. `self-test.js` di root adalah file runtime UTAMA aplikasi (bukan file
+test Node), tapi namanya kebetulan cocok pola default `node --test`
+(`*-test.js`) — kalau dijalankan tanpa argumen, Node akan ikut memuatnya
+sebagai file test dan melaporkannya "gagal" (karena isinya kode browser,
+bukan test case `node:test`). Ini bukan bug aplikasi; selalu pakai
+`npm test` / `npm run test:watch`, atau kalau perlu manual: `node --test
+tests/*.test.js`.
+
 ---
 
 ## Lisensi
