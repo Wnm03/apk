@@ -36,10 +36,17 @@ function ensureZXing() {
 }
 
 function vehicleScannerErrorMessage(err) {
-  const raw = (err && err.message) || (typeof err === 'string' ? err : '');
+  // BUGFIX (sesi ini): ZXing melempar kelas exception (NotFoundException,
+  // ChecksumException, FormatException, dll) yang seringkali punya
+  // `.message` KOSONG ('') — sebelumnya raw jadi '' (falsy) & fungsi ini
+  // jatuh ke pesan generik "error tidak diketahui", padahal `err.name`
+  // sebenarnya sudah cukup informatif (mis. kamera tidak ketemu/kode tidak
+  // terbaca). Sekarang `.name` dipakai sbg fallback sebelum menyerah.
+  const raw = (err && err.message) || (err && err.name) || (typeof err === 'string' ? err : '');
   if (raw && /fetch|network|load/i.test(raw)) return 'gagal mengunduh modul scanner, cek koneksi internet & coba lagi';
-  if (raw && /notfound/i.test(raw)) return 'kode tidak terdeteksi di foto — coba foto lebih dekat, lebih jelas, & pencahayaan lebih terang';
-  if (raw && /notallowed|permission/i.test(raw)) return 'izin kamera ditolak — aktifkan izin kamera di pengaturan browser lalu coba lagi';
+  if (raw && /notfound/i.test(raw)) return 'kode tidak terdeteksi — coba lebih dekat, lebih jelas, & pencahayaan lebih terang';
+  if (raw && /notallowed|permission|security/i.test(raw)) return 'izin kamera ditolak — aktifkan izin kamera di pengaturan browser lalu coba lagi';
+  if (raw && /notreadable|overconstrained|constraint/i.test(raw)) return 'kamera tidak bisa diakses (mungkin dipakai app lain) — tutup app lain yg pakai kamera, lalu coba lagi';
   if (raw) return raw;
   return 'error tidak diketahui — cek koneksi internet, lalu coba lagi';
 }

@@ -220,7 +220,7 @@ function sparepartScannerErrorMessage(err) {
   if (typeof VehicleScanner !== 'undefined' && VehicleScanner && typeof VehicleScanner.errorMessage === 'function') {
     return VehicleScanner.errorMessage(err);
   }
-  const raw = (err && err.message) || (typeof err === 'string' ? err : '');
+  const raw = (err && err.message) || (err && err.name) || (typeof err === 'string' ? err : '');
   if (raw) return raw;
   return 'error tidak diketahui — cek koneksi internet, lalu coba lagi';
 }
