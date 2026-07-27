@@ -116,9 +116,9 @@ const od=overdue?Piutang.overdueDays(p):0;
 const metaParts=[];
 if(p.jatuhTempo)metaParts.push(overdue?`⚠️ Telat ${od} hari (jatuh tempo ${p.jatuhTempo})`:'Jatuh tempo '+p.jatuhTempo);
 if(p.catatan)metaParts.push(escapeHtml(p.catatan));
-const badge=p.lunas?' <span class="u-fs10 u-cacc3 u-r6 u-ml4" style="border:1px solid var(--accent3);padding:1px 5px">Lunas</span>'
+const badge=p.lunas?' <span class="bill-due-badge bill-due-ok u-ml4">Lunas</span>'
 :(isPrioritas?' <span class="u-fs10 u-r6 u-ml4" style="color:#fff;background:var(--accent2);padding:1px 5px">🔥 Prioritas</span>'
-:(overdue?' <span class="u-fs10 u-cacc2 u-r6 u-ml4" style="border:1px solid var(--accent2);padding:1px 5px">Jatuh Tempo</span>':''));
+:(overdue?' <span class="bill-due-badge bill-due-urgent u-ml4">Jatuh Tempo</span>':''));
 return `<div class="tx-item u-pointer" data-action="openPiutangModal" data-args="${escapeHtml(JSON.stringify([p.id]))}"><div class="tx-icon u-bgaccsoft">🤝</div><div class="tx-info"><div class="tx-name">${escapeHtml(p.name)}${badge}</div><div class="tx-meta">${metaParts.join(' · ')}</div></div><div class="tx-amount${p.lunas?'':' green'}">${fmt(p.nilai)}</div><button class="tx-del" data-stop="1" data-action="delPiutang" data-args="${escapeHtml(JSON.stringify([p.id]))}" aria-label="Hapus">🗑</button></div>`;
 }).join('');
 }
@@ -278,7 +278,7 @@ if(d.bunga)metaParts.push('Bunga '+d.bunga+'%/th');
 if(d.cicilanBulanan)metaParts.push('Cicilan '+fmt(d.cicilanBulanan)+'/bln');
 if(d.jatuhTempo)metaParts.push((overdue?'⚠️ Lewat jatuh tempo ':'Jatuh tempo ')+d.jatuhTempo);
 if(d.catatan)metaParts.push(escapeHtml(d.catatan));
-return `<div class="tx-item u-pointer" data-action="openDebtModal" data-args="${escapeHtml(JSON.stringify([d.id]))}"><div class="tx-icon" style="background:var(--accent2-soft)">📕</div><div class="tx-info"><div class="tx-name">${escapeHtml(d.name)}${d.lunas?' <span style=\\"font-size:10px;color:var(--accent3);border:1px solid var(--accent3);border-radius:6px;padding:1px 5px;margin-left:4px\\">Lunas</span>':(overdue?' <span style=\\"font-size:10px;color:var(--accent2);border:1px solid var(--accent2);border-radius:6px;padding:1px 5px;margin-left:4px\\">Jatuh Tempo</span>':'')}</div><div class="tx-meta">${metaParts.join(' · ')}</div></div><div class="tx-amount${d.lunas?'':' red'}">${fmt(d.nilai)}</div><button class="tx-del" data-stop="1" data-action="delDebt" data-args="${escapeHtml(JSON.stringify([d.id]))}" aria-label="Hapus">🗑</button></div>`;
+return `<div class="tx-item u-pointer" data-action="openDebtModal" data-args="${escapeHtml(JSON.stringify([d.id]))}"><div class="tx-icon" style="background:var(--accent2-soft)">📕</div><div class="tx-info"><div class="tx-name">${escapeHtml(d.name)}${d.lunas?' <span class="bill-due-badge bill-due-ok u-ml4">Lunas</span>':(overdue?' <span class="bill-due-badge bill-due-urgent u-ml4">Jatuh Tempo</span>':'')}</div><div class="tx-meta">${metaParts.join(' · ')}</div></div><div class="tx-amount${d.lunas?'':' red'}">${fmt(d.nilai)}</div><button class="tx-del" data-stop="1" data-action="delDebt" data-args="${escapeHtml(JSON.stringify([d.id]))}" aria-label="Hapus">🗑</button></div>`;
 }).join('');
 // KW-170: baris cicilan barang — read-only dari sini (edit/hapus/riwayat
 // pembayaran tetap lewat alur Tagihan yang sudah ada, krn datanya D.bills

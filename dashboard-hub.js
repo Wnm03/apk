@@ -384,18 +384,36 @@ const DashboardHubAnalytics = {
     const incPct = total > 0 ? Math.round((inc / total) * 100) : null;
     const expPct = total > 0 ? Math.round((exp / total) * 100) : null;
 
+    // BUGFIX/UX (sesi ini): Saldo Bersih negatif (pengeluaran > pemasukan
+    // bulan berjalan) tadinya cuma dibedakan lewat warna teks (.red), sama
+    // rata secara visual dgn kartu netral lain -> mudah kelewat pas scroll.
+    // Ditambah 2 penanda, keduanya 100% REUSE pola yang SUDAH ADA di app:
+    // (1) varian background/border ".dashhub-analytics-card--warn" (pola
+    //     sama dgn .bill-banner: var(--accent2-soft)/var(--accent2), lihat
+    //     styles.css) supaya kartu ini menonjol tanpa warna baru;
+    // (2) 1 baris saran singkat dari cashflowActionSuggestion() yang SUDAH
+    //     ADA (modules/finance/tagihan-kalender.js, dipakai jg di
+    //     Proyeksi Arus Kas) -- 0 rumus/saran baru ditulis di sini. Guard
+    //     typeof supaya aman kalau tagihan-kalender.js belum di-load
+    //     (mis. tests/dashboard-hub.test.js yang me-load file ini sendirian).
+    const netNegatif = net < 0;
+    const netSaran = netNegatif && typeof cashflowActionSuggestion === 'function'
+      ? cashflowActionSuggestion(Math.abs(net), new Date().getDate())
+      : '';
+
     const cards = [
       { label: 'Transaksi Bulan Ini', value: String(count), cls: '' },
       { label: 'Total Pemasukan', value: money(inc), cls: 'green' },
       { label: 'Total Pengeluaran', value: money(exp), cls: 'red' },
-      { label: 'Saldo Bersih', value: (net < 0 ? '-' : '') + money(Math.abs(net)), cls: net < 0 ? 'red' : 'green' },
+      { label: 'Saldo Bersih', value: (net < 0 ? '-' : '') + money(Math.abs(net)), cls: net < 0 ? 'red' : 'green', warn: netNegatif, sub: netSaran },
       { label: 'Pemasukan vs Pengeluaran', value: incPct === null ? '—' : (incPct + '% : ' + expPct + '%'), cls: '' },
     ];
 
     el.innerHTML = cards.map((c) => `
-      <div class="dashhub-analytics-card">
+      <div class="dashhub-analytics-card${c.warn ? ' dashhub-analytics-card--warn' : ''}">
         <div class="dashhub-analytics-label">${escapeHtml(c.label)}</div>
         <div class="dashhub-analytics-val${c.cls ? ' ' + c.cls : ''}">${escapeHtml(c.value)}</div>
+        ${c.sub ? '<div class="dashhub-analytics-sub">⚠️ ' + escapeHtml(c.sub) + '</div>' : ''}
       </div>
     `).join('');
   },
@@ -431,12 +449,38 @@ const DashboardHubOwnershipSummary = {
       return;
     }
     const esc = typeof escapeHtml === 'function' ? escapeHtml : String;
-    el.innerHTML = DASHHUB_OWNERSHIP_SUMMARY_ORDER.map((t) => {
+    const row = (t) => {
       const label = (typeof OwnershipEngine !== 'undefined') ? OwnershipEngine.label(t) : t;
       const count = s.counts[t] || 0;
       return '<div class="setting-item"><div><div class="setting-label">' + esc(label) + '</div></div>'
         + '<div class="u-fs14 u-fw600">' + count + '</div></div>';
-    }).join('');
+    };
+
+    // UX (sesi ini): kategori bernilai 0 (mis. Investor/Pelanggan/Keluarga
+    // semua 0) makan tempat scroll tanpa info baru. Kategori >0 SELALU
+    // tampil langsung; kategori 0 disembunyikan di balik toggle "Lihat
+    // semua kategori", pola collapse yang SUDAH ADA (sama persis dgn
+    // card-collapse-toggle/toggleCardCollapse() dipakai ~40+ kartu lain di
+    // app ini, lihat modal-navigasi.js) -- 0 mekanisme collapse baru.
+    // Kalau semua kategori kebetulan 0 atau semua kebetulan >0, toggle
+    // tidak ada gunanya (tidak ada yg perlu disembunyikan) -> tampilkan
+    // semua apa adanya, tanpa toggle.
+    const filled = DASHHUB_OWNERSHIP_SUMMARY_ORDER.filter((t) => (s.counts[t] || 0) > 0);
+    const zero = DASHHUB_OWNERSHIP_SUMMARY_ORDER.filter((t) => (s.counts[t] || 0) === 0);
+
+    if (!filled.length || !zero.length) {
+      el.innerHTML = DASHHUB_OWNERSHIP_SUMMARY_ORDER.map(row).join('');
+      return;
+    }
+
+    el.innerHTML = filled.map(row).join('')
+      + '<div class="setting-item">'
+      + '<div class="setting-label u-t2">Lihat semua kategori</div>'
+      + '<span class="card-collapse-toggle collapsed" id="dashHubOwnershipZero-chev" data-action="toggleCardCollapse" data-args=\'["dashHubOwnershipZero","$event"]\' aria-label="Buka/tutup bagian">▾</span>'
+      + '</div>'
+      + '<div class="card-collapse-body collapsed" id="dashHubOwnershipZero-cbody">'
+      + zero.map(row).join('')
+      + '</div>';
   },
 };
 

@@ -44,6 +44,27 @@ function billActionShareWA(id){ closeQS('qsBillActions'); shareBillWA(id); }
 function billActionHistory(id){ closeQS('qsBillActions'); openBillHistory(id); }
 function billActionEdit(id){ closeQS('qsBillActions'); openBillModal(id); }
 function billActionDelete(id){ closeQS('qsBillActions'); delBill(id); }
+function billActionDeleteArchive(id){ closeQS('qsBillActions'); delBillArchive(id); }
+
+function produsenActionHarga(id){ closeQS('qsProdusenActions'); openProdusenHargaModal(id); }
+function produsenActionDelete(id){ closeQS('qsProdusenActions'); delProdusen(id); }
+
+// assetAction*(id) — S305 UI polish: pasangan wrapper utk openActionsMenu (Aset.openActionsMenu
+// di aset.js), pola SAMA PERSIS billAction*/produsenAction* di atas — tutup qsAssetActions
+// dulu sebelum jalanin aksi aslinya (Aset.openTxHistory/quickScanAsset/delAsset TIDAK diubah).
+function assetActionHistory(id){ closeQS('qsAssetActions'); Aset.openTxHistory(id); }
+function assetActionScan(id){ closeQS('qsAssetActions'); quickScanAsset(id); }
+function assetActionDelete(id){ closeQS('qsAssetActions'); delAsset(id); }
+
+// toggleBillCardDetail(el) — S301 UI polish pt.5: accordion ringkas per-kartu tagihan.
+// Sengaja pakai chevron TERPISAH (bukan ganti tap kartu jadi toggle) krn tap kartu
+// (`data-action="openBillModal"` di `.bill-item`) sudah dipakai user utk buka Edit —
+// kalau tap kartu direbut buat expand/collapse, alur edit yang sudah biasa dipakai jadi
+// tabrakan/berubah. Chevron ini `data-stop="1"` jadi klik-nya TIDAK ikut trigger openBillModal.
+function toggleBillCardDetail(el){
+const card=el.closest('.bill-item');
+if(card)card.classList.toggle('bill-card-expanded');
+}
 
 function torsiSetCatFromChip(name){ Torsi.setCat(name); }
 function torsiToggleCatCardEl(el){ Torsi.toggleCatCard(el); }
@@ -124,6 +145,23 @@ function backToSettingsPage(){ showPage('settings'); }
 
 function dashHubQaTambahTransaksi(){ openTxModal('expense'); }
 function dashHubQaBackup(){ openBackupModal(); }
+// dashHubQaBackupHistory() — pengganti quick action "Backup" (Sesi ini):
+// tombol "Backup" di header (#backupBadge, runFullBackup) & tombol Backup di
+// grid quick action tadinya memanggil aksi backup yang sama persis (terasa
+// duplikat). Quick action ini sekarang membuka Riwayat Backup (bukan
+// menjalankan backup lagi) lewat dashHubNavigateToFeature() yang SUDAH ADA
+// (dashboard-hub.js) -> Pengaturan > tab Notif&Backup > #backupHistoryList
+// (diisi BackupHistoryPresenter, sudah ada). 0 logic backup baru, 0 field D
+// baru — murni navigasi ke UI yang sudah ada. Fallback ke openBackupModal()
+// kalau dashHubNavigateToFeature belum ke-load (mis. dipanggil sebelum
+// dashboard-hub.js), supaya tombol tetap aman dipakai.
+function dashHubQaBackupHistory(){
+  if (typeof dashHubNavigateToFeature === 'function') {
+    dashHubNavigateToFeature({ page: 'settings', group: 'stgGroup4', goTo: 'backupHistoryList' });
+  } else {
+    openBackupModal();
+  }
+}
 function dashHubQaFocusSearch(){ document.getElementById('dashHubSearchInput').focus(); }
 function dashHubQaOpenAI(){ showPage('ai'); }
 

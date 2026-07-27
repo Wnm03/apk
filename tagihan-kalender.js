@@ -324,15 +324,24 @@ elT.value=tahuns.map(String).includes(prevT)?prevT:'all';
 billFilterTahun=elT.value;
 }
 /* moved to modules-render.js: renderBillList */
-function openBillActionsMenu(id){
-const b=D.bills.find(x=>x.id===id);
+// openBillActionsMenu(id,lunas) — menu overflow "⋮" utk aksi sekunder kartu tagihan
+// (S299 UI polish: ringkas baris ikon aksi di renderBillList()/modules-render.js —
+// hanya 2 aksi paling sering dipakai yg tetap tampil langsung di kartu, sisanya
+// dipindah ke sini). Param `lunas` dikirim dari renderBillList (sudah tahu status
+// b._lunas), jadi TIDAK re-detect dari D.bills/D.billsArchive di sini (hindari
+// lookup ganda) — cukup dipakai utk pilih set baris & routing delete yg benar.
+function openBillActionsMenu(id,lunas){
+const b=lunas?(D.billsArchive||[]).find(x=>x.id===id):D.bills.find(x=>x.id===id);
 if(!b)return;
 document.getElementById('billActionsTitle').textContent=`🔔 ${b.name}`;
-document.getElementById('billActionsList').innerHTML=`
-    <div class="bill-action-row" data-action="billActionShareWA" data-args="[${id}]"><span class="bar-icon" style="color:#25D366">💬</span> Kirim ke WhatsApp</div>
-    <div class="bill-action-row" data-action="billActionHistory" data-args="[${id}]"><span class="bar-icon u-cacc3">📋</span> Riwayat Pembayaran</div>
-    <div class="bill-action-row" data-action="billActionEdit" data-args="[${id}]"><span class="bar-icon u-cacc">✏️</span> Edit</div>
-    <div class="bill-action-row danger" data-action="billActionDelete" data-args="[${id}]"><span class="bar-icon">🗑</span> Hapus</div>`;
+const rows=lunas?
+    `<div class="bill-action-row" data-action="billActionEdit" data-args="[${id}]"><span class="bar-icon u-cacc">✏️</span> Edit</div>
+     <div class="bill-action-row danger" data-action="billActionDeleteArchive" data-args="[${id}]"><span class="bar-icon">🗑</span> Hapus dari Arsip</div>`
+    :
+    `<div class="bill-action-row" data-action="billActionShareWA" data-args="[${id}]"><span class="bar-icon" style="color:#25D366">💬</span> Kirim ke WhatsApp</div>
+     <div class="bill-action-row" data-action="billActionHistory" data-args="[${id}]"><span class="bar-icon u-cacc3">📋</span> Riwayat Pembayaran</div>
+     <div class="bill-action-row danger" data-action="billActionDelete" data-args="[${id}]"><span class="bar-icon">🗑</span> Hapus</div>`;
+document.getElementById('billActionsList').innerHTML=rows;
 openQS('qsBillActions');
 }
 let billCalYear=null, billCalMonth=null, billCalSelectedDate=null;

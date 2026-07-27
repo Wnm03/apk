@@ -462,27 +462,17 @@ if(assetOwnFiltered.ok)list=assetOwnFiltered.items;
 }
 if(!list.length){el.innerHTML='<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">Belum ada aset tercatat</div></div>';Aset.renderDashboard();Aset.renderInvestasi();Penyusutan.renderList();PajakAset.renderList();LaporanAset.renderList();AssetInsight.render();return;}
 el.innerHTML=list.map(a=>{
-const hasPct=a.keuntunganPct!=null&&isFinite(a.keuntunganPct);
-const pctBadge=hasPct?` <span style="font-size:10px;color:${a.keuntunganPct>=0?'var(--accent3)':'var(--accent2)'}">${a.keuntunganPct>=0?'▲':'▼'} ${a.keuntunganPct>=0?'+':''}${a.keuntunganPct.toFixed(2)}%</span>`:'';
-const linkedAcc=a.accountId?D.accounts.find(x=>sameId(x.id,a.accountId)):null;
-const linkMeta=linkedAcc?(' · 🔗 '+escapeHtml(linkedAcc.name)):(a.accountId?' · 🔗 (akun terhapus)':'');
-const histBtn=linkedAcc?`<button class="tx-del" style="margin-right:2px" title="Riwayat Transaksi akun ini" data-stop="1" data-action="Aset.openTxHistory" data-args="${escapeHtml(JSON.stringify([a.id]))}" aria-label="Riwayat Transaksi">📜</button>`:'';
-// Ownership Badge (S233) — upgrade dari teks sederhana (S232) jadi badge, reuse class
-// "acc-chip" yang SUDAH ADA di project ini (styles.css) — TIDAK ada style baru. Data
-// diambil HANYA dari OwnershipEngine.resolve()/label() (0 rumus baru). Ditaruh sbg span
-// terpisah (bukan digabung ke tx-meta pakai ' · ') supaya tampil sbg badge/chip, bukan teks
-// inline biasa. Data lama tanpa field ownership: resolve() fallback ke SELF/DEFAULT.
-// Ownership Detail View (S234) — SATU pemanggilan OwnershipEngine.resolve(a) dipakai
-// bareng utk badge (S233, label Bahasa Indonesia) DAN detail view di bawahnya (kode tipe
-// mentah, mis. "SELF") — supaya TIDAK ada logic resolve/hitung ulang yang duplikat.
-const ownResolved=(typeof OwnershipEngine!=='undefined')?OwnershipEngine.resolve(a):null;
-const ownMeta=ownResolved?(' <span class="acc-chip">'+escapeHtml(OwnershipEngine.label(ownResolved.type))+'</span>'):'';
-const ownDetail=ownResolved?`<div class="u-fs10 u-t2">Ownership<br>${escapeHtml(ownResolved.type)}</div>`:'';
-// Dana Titipan badge -- cuma tampil kalau ada porsi titipan (bukan dropdown
-// Kepemilikan yang all-or-nothing di atas), reuse class "acc-chip" yang sama.
-const titipanLabel=a.titipanOwnerType==='keluarga'?'Keluarga':(a.titipanOwnerType==='lainnya'?'Pihak Lain':'Investor');
-const titipanMeta=a.titipanAmount>0?(' <span class="acc-chip" title="Dana titipan '+escapeHtml(titipanLabel)+': '+fmt(a.titipanAmount)+'">💰 Titipan '+escapeHtml(titipanLabel)+'</span>'):'';
-return `<div class="tx-item u-pointer" data-action="openAssetModal" data-args="${escapeHtml(JSON.stringify([a.id]))}"><div class="tx-icon u-bgaccsoft">${Aset.ICON[a.jenis]||'📦'}</div><div class="tx-info"><div class="tx-name">${escapeHtml(a.name)}${a.zakatable?' <span class="u-fs10 u-cacc3 u-r6 u-ml4" style="border:1px solid var(--accent3);padding:1px 5px">Zakat</span>':''}</div><div class="tx-meta">${a.jenis}${Aset.extraLabel(a)?' · '+escapeHtml(Aset.extraLabel(a)):''}${a.lokasi?' · '+escapeHtml(a.lokasi):''}${linkMeta}${ownMeta}${titipanMeta}${pctBadge}</div>${ownDetail}</div><div class="tx-amount">${fmt(a.nilai)}</div>${histBtn}<button class="tx-del" style="margin-right:2px" title="Update cepat via scan" data-stop="1" data-action="quickScanAsset" data-args="${escapeHtml(JSON.stringify([a.id]))}" aria-label="Update cepat via scan">⚡</button><button class="tx-del" data-stop="1" data-action="delAsset" data-args="${escapeHtml(JSON.stringify([a.id]))}" aria-label="Hapus">🗑</button></div>`;
+// S306 UI polish: baris tx-meta sebelumnya menggabung jenis · label/extraLabel · lokasi ·
+// akun tertaut · kepemilikan · dana titipan · %untung jadi 1 kalimat panjang tanpa jarak
+// visual (lebih padat drpd kasus chip Tagihan S299/S304). Sekarang HANYA 2 chip prioritas
+// yang tampil di kartu — jenis & 📍 lokasi (reuse class "acc-chip" yang SUDAH ADA, 0 style
+// baru). SEMUA detail lain (label tambahan/extraLabel, akun tertaut, kepemilikan/ownership,
+// dana titipan, %untung) dipindah jadi baris teks di dalam overflow menu (Aset.
+// openActionsMenu di bawah) — dihitung ULANG di sana dari `a`/`id`, BUKAN dikirim lewat
+// closure, jadi TIDAK ada variabel sisa yang dihitung di sini tapi tidak dipakai.
+const jenisChip=`<span class="acc-chip">${escapeHtml(a.jenis)}</span>`;
+const lokasiChip=a.lokasi?` <span class="acc-chip">📍 ${escapeHtml(a.lokasi)}</span>`:'';
+return `<div class="tx-item u-pointer" data-action="openAssetModal" data-args="${escapeHtml(JSON.stringify([a.id]))}"><div class="tx-icon u-bgaccsoft">${Aset.ICON[a.jenis]||'📦'}</div><div class="tx-info"><div class="tx-name">${escapeHtml(a.name)}${a.zakatable?' <span class="u-fs10 u-cacc3 u-r6 u-ml4" style="border:1px solid var(--accent3);padding:1px 5px">Zakat</span>':''}</div><div class="tx-meta">${jenisChip}${lokasiChip}</div></div><div class="tx-amount">${fmt(a.nilai)}</div><button class="tx-del" data-stop="1" data-action="Aset.openActionsMenu" data-args="${escapeHtml(JSON.stringify([a.id]))}" aria-label="Aksi lainnya">⋮</button></div>`;
 }).join('');
 Aset.renderDashboard();
 Aset.renderInvestasi();
@@ -490,6 +480,42 @@ Penyusutan.renderList();
 PajakAset.renderList();
 LaporanAset.renderList();
 AssetInsight.render();
+},
+// openActionsMenu(id) — menu overflow "⋮" utk aksi sekunder + detail kartu aset (S306
+// UI polish, lanjutan pola S299/S304/S305: SAMA PERSIS openBillActionsMenu() di
+// tagihan-kalender.js / openProdusenActionsMenu() di cobek-order.js — reuse penuh modal
+// qs-modal-overlay & class .bill-action-row/.bar-icon yang SUDAH ADA, 0 style baru).
+// 3 tombol kartu (📜 Riwayat, ⚡ Scan cepat, 🗑 Hapus) dipindah ke sini; tap kartu TETAP
+// buka Edit (data-action="openAssetModal" di wrapper div, tidak berubah). Detail meta yang
+// sebelumnya digabung di tx-meta (label/extraLabel, akun tertaut, kepemilikan, dana
+// titipan, %untung) ditampilkan di #assetActionsMeta — bukan dihapus, cuma dipindah biar
+// baris chip di kartu tetap ringkas (jenis + lokasi saja).
+openActionsMenu(id){
+const a=D.assets.find(x=>sameId(x.id,id));
+if(!a)return;
+document.getElementById('assetActionsTitle').textContent=`${Aset.ICON[a.jenis]||'📦'} ${a.name}`;
+const linkedAcc=a.accountId?D.accounts.find(x=>sameId(x.id,a.accountId)):null;
+const linkMeta=linkedAcc?('🔗 Akun tertaut: '+escapeHtml(linkedAcc.name)):(a.accountId?'🔗 Akun tertaut: (akun terhapus)':'');
+const ownResolved=(typeof OwnershipEngine!=='undefined')?OwnershipEngine.resolve(a):null;
+const ownMeta=ownResolved?('👤 Kepemilikan: '+escapeHtml(OwnershipEngine.label(ownResolved.type))):'';
+const titipanLabel=a.titipanOwnerType==='keluarga'?'Keluarga':(a.titipanOwnerType==='lainnya'?'Pihak Lain':'Investor');
+const titipanMeta=a.titipanAmount>0?('💰 Titipan '+escapeHtml(titipanLabel)+': '+fmt(a.titipanAmount)):'';
+const extraMeta=Aset.extraLabel(a)?escapeHtml(Aset.extraLabel(a)):'';
+const pctMeta=(a.keuntunganPct!=null&&isFinite(a.keuntunganPct))?(`${a.keuntunganPct>=0?'▲':'▼'} ${a.keuntunganPct>=0?'+':''}${a.keuntunganPct.toFixed(2)}%`):'';
+const metaRows=[extraMeta,linkMeta,ownMeta,titipanMeta,pctMeta].filter(Boolean);
+// Div meta TETAP ada di HTML (bukan dibuat/dihapus dinamis) supaya elemennya selalu bisa
+// diambil lewat getElementById; kalau kebetulan kosong (mis. OwnershipEngine belum kemuat),
+// disembunyikan lewat display:none — bukan cuma innerHTML='' — supaya padding bawaannya
+// (lihat markup di app_production.html/index.html) TIDAK nyisain celah kosong di atas
+// daftar aksi.
+const metaEl=document.getElementById('assetActionsMeta');
+metaEl.innerHTML=metaRows.join('<br>');
+metaEl.style.display=metaRows.length?'':'none';
+const histRow=linkedAcc?`<div class="bill-action-row" data-action="assetActionHistory" data-args="${escapeHtml(JSON.stringify([id]))}"><span class="bar-icon u-cacc3">📜</span> Riwayat Transaksi</div>`:'';
+document.getElementById('assetActionsList').innerHTML=`${histRow}
+    <div class="bill-action-row" data-action="assetActionScan" data-args="${escapeHtml(JSON.stringify([id]))}"><span class="bar-icon u-cacc">⚡</span> Update Cepat via Scan</div>
+    <div class="bill-action-row danger" data-action="assetActionDelete" data-args="${escapeHtml(JSON.stringify([id]))}"><span class="bar-icon">🗑</span> Hapus</div>`;
+openQS('qsAssetActions');
 },
 // totalValue() — Sesi 193 (Ownership Sync): TAMBAH 1 filter isAssetOwnershipSelf(a)
 // (0 logic lama diubah, cuma nambah 1 syarat filter sebelum reduce). Aset
@@ -1364,7 +1390,10 @@ const PORTFOLIO_LABELS={
 nilai:/nilai\s*(sekarang|saat\s*ini)/i,
 modal:/modal\s*investasi/i,
 hargaBeli:/harga\s*(beli|perolehan)/i,
-jumlahUnit:/jumlah\s*unit/i
+// BUGFIX (laporan user): layar "Detail Portofolio" per-instrumen Bibit pakai label
+// "Total Unit" (bukan "Jumlah Unit" seperti halaman Bibit lain) utk field yang sama --
+// tambahkan sbg alternatif, TIDAK mengganti "jumlah unit" yang sudah ada.
+jumlahUnit:/(?:jumlah|total)\s*unit/i
 };
 const TimelineW={
 avgSurplus(){

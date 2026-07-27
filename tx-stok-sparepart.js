@@ -71,7 +71,17 @@ return existing;
 const catName=(catalogItem.category||'Umum').trim()||'Umum';
 let cat=D.sparepartCats.find(c=>c.name.toLowerCase()===catName.toLowerCase());
 if(!cat){
-cat={id:'sp_'+Date.now(),name:catName,code:codeFromName(catName),intervalKm:0};
+// Sesi 295 (bugfix, permintaan eksplisit user): kategori auto dari scan
+// Katalog Suku Cadang ini TUJUANNYA cuma pengelompokan stok (biar
+// D.partsStock punya catId) -- BUKAN jadwal servis, makanya intervalKm
+// sengaja 0. Dulu tidak ada showInReminder, jadi kategori "sampah" spt
+// "E-2 Cylinder Head Cover" (nama kategori part dari katalog/torsi) ikut
+// numpuk di 🔔 Pengingat Servis dgn "Interval 0 km" & selalu "Lewat".
+// showInReminder:false = default disembunyikan dari Pengingat sampai user
+// SENGAJA mengaktifkannya (isi interval + toggle di 🔧 Kelola Kategori
+// Sparepart & Interval Servis) -- lihat filter di Servis.renderReminder()
+// (car-notes.js) & renderDashboardServisReminder() (modules-render.js).
+cat={id:'sp_'+Date.now(),name:catName,code:codeFromName(catName),intervalKm:0,showInReminder:false};
 D.sparepartCats.push(cat);
 }
 const prefix=cat.code||codeFromName(catName);
