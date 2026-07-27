@@ -487,12 +487,23 @@ function _vehicleImportSafeCategory(category) {
   return trimmed.length > 50 ? trimmed.slice(0, 50).trim() : trimmed;
 }
 
+// PERUBAHAN sesi ini (fitur "Push ke Stok Sparepart" pasca-import, lihat
+// vehicle-catalog-import-stock-push.js): tambah field `createdItems` di
+// summary return — array item VehicleCatalog yang BENAR-BENAR berhasil
+// dibuat (`res.item` dari VehicleCatalog.create(), Tahap Milestone 0)
+// sesi commit ini. Additive murni: field lama (`imported`/`skipped`/
+// `duplicates`/`errors`) TIDAK berubah bentuk/nilai, jadi TIDAK
+// mempengaruhi pemanggil lama (vehicle-catalog-web-import.js dst) yang
+// belum baca field baru ini. Tujuannya supaya UI pasca-commit (Import
+// Katalog PDF) bisa langsung tawarkan push ke Stok Sparepart TANPA query
+// ulang VehicleCatalog (part yang baru dibuat sudah di tangan).
 async function vehicleImportCommitRows(rows) {
   const list = Array.isArray(rows) ? rows : [];
   let imported = 0;
   let skipped = 0;
   let duplicates = 0;
   const errors = [];
+  const createdItems = [];
   for (const row of list) {
     if (!row || !row.partName) { skipped++; continue; }
     const code = row.oemCode || row.barcode;
@@ -512,10 +523,10 @@ async function vehicleImportCommitRows(rows) {
       if (check && check.valid === false) { skipped++; if (check.errors) errors.push(...check.errors); continue; }
     }
     const res = await VehicleCatalog.create(data);
-    if (res && res.success) imported++;
+    if (res && res.success) { imported++; if (res.item) createdItems.push(res.item); }
     else { skipped++; if (res && res.errors) errors.push(...res.errors); }
   }
-  return { imported, skipped, duplicates, errors };
+  return { imported, skipped, duplicates, errors, createdItems };
 }
 
 /** filterCompleteRows(rows, opts) — HANYA baris yang punya kode part (OEM

@@ -348,7 +348,23 @@ code=prefix+'-'+String(seq).padStart(3,'0');
 if(Sparepart.stockEditIdx!==null){
 Object.assign(D.partsStock[Sparepart.stockEditIdx],{name,catId,code,qty,unit,minStock,price,note});
 } else {
-D.partsStock.push({id:'st_'+Date.now(),name,catId,code,qty,unit,minStock,price,note});
+const np={id:'st_'+Date.now(),name,catId,code,qty,unit,minStock,price,note};
+D.partsStock.push(np);
+// Tahap 10 (lanjutan Tahap 9, jembatan Vehicle Catalog <-> Stok Sparepart):
+// part baru yang ditambah manual di sini (⚙️ Atur -> Stok Sparepart) JUGA
+// otomatis dibuatkan entri di Vehicle Catalog (best-effort, tidak
+// menunggu/tidak memblokir simpan stok) supaya part yang sama bisa
+// dikenali lewat scan barcode/OEM & muncul di dropdown "Pilih Sparepart"
+// form transaksi Keuangan tanpa harus discan dulu. Pola & alasan SAMA
+// PERSIS applyTxStockFromTx() di tx-stok-sparepart.js (arah Keuangan ->
+// Katalog) -- di sini arahnya Kelola Stok -> Katalog. Kegagalan (mis.
+// VehicleCatalog belum termuat) diabaikan diam-diam, bukan syarat simpan.
+if(typeof VehicleCatalog!=='undefined'&&VehicleCatalog&&typeof VehicleCatalog.create==='function'){
+const cat=D.sparepartCats.find(c=>c.id===catId);
+VehicleCatalog.create({partName:name,category:(cat&&cat.name)||'Umum'}).then(res=>{
+if(res&&res.success&&res.item){np.catalogId=res.item.id;if(typeof save==='function')save();}
+}).catch(()=>{});
+}
 }
 save();closeModal('stockModal');Sparepart.renderStockList();toast('✅ Stok sparepart disimpan');
 },

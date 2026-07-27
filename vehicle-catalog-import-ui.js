@@ -36,36 +36,56 @@ function catalogImportUiPickFile() {
   if (inp) inp.click();
 }
 
+/** onFileChange(e) — terima 1 ATAU BANYAK file PDF sekaligus (input
+ * `multiple`, lihat modals.js `vehCatImportPdfFile`). Tiap file diproses
+ * berurutan lewat jalur yg SAMA PERSIS dgn sebelumnya (extractPdfText ->
+ * parseCatalogRows -> filterCompleteRows), 100% reuse — TIDAK ada engine
+ * baca/parse PDF baru. Hasil semua file digabung ke satu _vehImportRows
+ * (ditandai `sourceFile` per baris) supaya preview & commit tetap 1 alur
+ * checklist gabungan, bukan per-file terpisah. Satu file gagal TIDAK
+ * menghentikan file lain. Menggantikan modal "Import PDF Honda" terpisah
+ * (honda-pdf-import*.js) yg ternyata reuse engine yg sama persis — cukup
+ * 1 modal ini yg sekarang mendukung banyak file sekaligus. */
 async function catalogImportUiOnFileChange(e) {
-  const file = e && e.target && e.target.files && e.target.files[0];
-  if (!file) return;
-  _vehImportSetStatus('🔍 Membaca PDF (OCR otomatis kalau perlu, bisa beberapa detik)...');
+  const files = (e && e.target && e.target.files) ? Array.from(e.target.files) : [];
+  if (!files.length) return;
+  _vehImportSetStatus('🔍 Membaca ' + files.length + ' PDF (OCR otomatis kalau perlu, bisa beberapa menit utk banyak file)...');
   const commitBtn = document.getElementById('vehCatImportCommitBtn');
   if (commitBtn) commitBtn.disabled = true;
   const pickBtn = document.querySelector('[data-action="VehicleCatalogImportUI.pickFile"]');
   if (pickBtn) pickBtn.disabled = true;
+  let allRows = [];
+  let totalRaw = 0;
+  const fileErrors = [];
   try {
-    const text = await VehicleCatalogImport.extractPdfText(file);
-    const rows = VehicleCatalogImport.parseCatalogRows(text);
-    // Hanya tampilkan baris yang sudah punya kode part — harga TIDAK
-    // wajib (banyak PDF katalog dealer nyata cuma nampilkan harga sbg
-    // angka polos tanpa "Rp", jadi tidak selalu kedeteksi parser; harga
-    // masih bisa diisi/dikoreksi manual di preview di bawah).
-    const completeRows = VehicleCatalogImport.filterCompleteRows(rows, { requirePrice: false });
-    const skippedIncomplete = rows.length - completeRows.length;
-    _vehImportRows = completeRows.map((r) => Object.assign({}, r, { included: true }));
+    for (const file of files) {
+      try {
+        const text = await VehicleCatalogImport.extractPdfText(file);
+        const rows = VehicleCatalogImport.parseCatalogRows(text);
+        totalRaw += rows.length;
+        // Hanya tampilkan baris yang sudah punya kode part — harga TIDAK
+        // wajib (banyak PDF katalog dealer nyata cuma nampilkan harga sbg
+        // angka polos tanpa "Rp", jadi tidak selalu kedeteksi parser; harga
+        // masih bisa diisi/dikoreksi manual di preview di bawah).
+        const completeRows = VehicleCatalogImport.filterCompleteRows(rows, { requirePrice: false });
+        allRows = allRows.concat(completeRows.map((r) => Object.assign({}, r, { sourceFile: file.name })));
+      } catch (err) {
+        console.error('[VehicleCatalogImportUI] gagal baca PDF:', file.name, err);
+        const msg = (typeof VehicleScanner !== 'undefined' && VehicleScanner && typeof VehicleScanner.errorMessage === 'function')
+          ? VehicleScanner.errorMessage(err)
+          : ((err && err.message) || 'gagal membaca PDF, coba lagi');
+        fileErrors.push(file.name + ': ' + msg);
+      }
+    }
+    _vehImportRows = allRows.map((r) => Object.assign({}, r, { included: true }));
+    const skippedIncomplete = totalRaw - allRows.length;
+    const fileLabel = files.length > 1 ? (files.length + ' file') : 'PDF ini';
     if (!_vehImportRows.length) {
-      _vehImportSetStatus('⚠️ Tidak ada part dgn kode part dari PDF ini' + (rows.length ? ' (' + rows.length + ' baris terbaca, tapi tidak ada yang punya kode part)' : '') + ' — coba file lain atau pastikan halaman cukup jelas.');
+      _vehImportSetStatus('⚠️ Tidak ada part dgn kode part dari ' + fileLabel + (totalRaw ? ' (' + totalRaw + ' baris terbaca, tapi tidak ada yang punya kode part)' : '') + (fileErrors.length ? ' — ' + fileErrors.join('; ') : ' — coba file lain atau pastikan halaman cukup jelas.'));
     } else {
-      _vehImportSetStatus('✅ ' + _vehImportRows.length + ' part dgn kode part' + (skippedIncomplete ? ', ' + skippedIncomplete + ' baris dilewati (tidak ada kode part)' : '') + ' — cek & sesuaikan dulu di bawah (isi harga manual kalau belum ada) sebelum import.');
+      _vehImportSetStatus('✅ ' + _vehImportRows.length + ' part dgn kode part dari ' + fileLabel + (skippedIncomplete ? ', ' + skippedIncomplete + ' baris dilewati (tidak ada kode part)' : '') + (fileErrors.length ? ', ' + fileErrors.length + ' file gagal dibaca (' + fileErrors.join('; ') + ')' : '') + ' — cek & sesuaikan dulu di bawah (isi harga manual kalau belum ada) sebelum import.');
     }
     catalogImportUiRenderPreview();
-  } catch (err) {
-    console.error('[VehicleCatalogImportUI] gagal baca PDF:', err);
-    const msg = (typeof VehicleScanner !== 'undefined' && VehicleScanner && typeof VehicleScanner.errorMessage === 'function')
-      ? VehicleScanner.errorMessage(err)
-      : ((err && err.message) || 'gagal membaca PDF, coba lagi');
-    _vehImportSetStatus('❌ Gagal baca PDF: ' + msg);
   } finally {
     if (pickBtn) pickBtn.disabled = false;
   }
@@ -149,6 +169,20 @@ async function catalogImportUiCommit() {
     closeModal('vehCatalogImportModal');
     if (typeof VehicleCatalogUI !== 'undefined' && VehicleCatalogUI && typeof VehicleCatalogUI.renderList === 'function') {
       await VehicleCatalogUI.renderList();
+    }
+    // Sesi ini (fitur "Push ke Stok Sparepart"): tawarkan hubungkan part
+    // yang BARU DIIMPOR (`summary.createdItems`, field baru di
+    // commitRows()) ke Stok Sparepart dgn qty nyata, reuse
+    // VehicleCatalogImportStockPush.promptAndRun() (SUDAH ADA modalnya,
+    // TIDAK ada modal baru di sini). Dibungkus try/catch supaya modal
+    // "push ke stok" opsional ini TIDAK PERNAH menggagalkan toast/refresh
+    // import yang sudah sukses di atas kalau ada error tak terduga.
+    if (typeof VehicleCatalogImportStockPush !== 'undefined' && VehicleCatalogImportStockPush && typeof VehicleCatalogImportStockPush.promptAndRun === 'function') {
+      try {
+        await VehicleCatalogImportStockPush.promptAndRun(summary.createdItems);
+      } catch (e) {
+        console.error('[VehicleCatalogImportUI] gagal push ke Stok Sparepart:', e);
+      }
     }
   } finally {
     if (commitBtn) commitBtn.disabled = !_vehImportRows.some((r) => r.included);

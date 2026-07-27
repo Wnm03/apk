@@ -289,6 +289,13 @@ const GROUP_B = [
   // di atas) & openModal/closeModal/askConfirm/toast/escapeHtml sudah
   // dimuat lebih dulu.
   'modules/vehicle/vehicle-catalog-import-ui.js',
+  // vehicle-catalog-import-stock-push.js — fitur "Push ke Stok Sparepart"
+  // pasca-import (jawaban: sync Katalog->Stok TIDAK otomatis dpt qty
+  // nyata sebelum ini). Reuse syncPartsStockFromCatalog()
+  // (tx-stok-sparepart.js, dimuat lebih dulu di atas) &
+  // askConfirm()/showPromptModal() (modal-navigasi.js). Dipanggil dari
+  // vehicle-catalog-import-ui.js (file di atas) SETELAH commit sukses.
+  'modules/vehicle/vehicle-catalog-import-stock-push.js',
   // vehicle-catalog-web-import.js (Tahap 6 — Import Katalog dari URL Web:
   // fetch(url) -> Parser HTML -> Preview -> Import). App ini PWA
   // client-side murni tanpa backend/proxy, jadi fetch(url) ke situs

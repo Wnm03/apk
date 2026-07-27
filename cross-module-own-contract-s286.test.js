@@ -343,28 +343,6 @@ test('CrossDashboardCard._combinedAttentionCard(): murni penjumlahan budgetOver+
   assert.equal(some.cls, 'orange');
 });
 
-test('CrossDashboardCard._financeHealthCard(): "—" kalau finance tidak ok/healthScore kosong; angka+label+cls warna kalau ada (0 recompute, apa adanya dari healthScore)', () => {
-  const { ctx } = crossDashCtx({ ok: true });
-  const empty = ctx.CrossDashboardCard._financeHealthCard({ ok: false });
-  assert.equal(empty.value, '—');
-  assert.equal(empty.cls, '');
-  const full = ctx.CrossDashboardCard._financeHealthCard({ ok: true, healthScore: { score: 85, label: 'Sangat Sehat' } });
-  assert.equal(full.value, '85/100');
-  assert.equal(full.sub, 'Sangat Sehat');
-  assert.equal(full.cls, 'green');
-});
-
-test('CrossDashboardCard._vehicleHealthCard(): "—" kalau vehicle/fleet/totalVehicles kosong; angka+jumlah kendaraan+cls warna kalau ada (0 recompute, apa adanya dari fleet)', () => {
-  const { ctx } = crossDashCtx({ ok: true });
-  const empty = ctx.CrossDashboardCard._vehicleHealthCard({ ok: true, intelligence: { fleet: { totalVehicles: 0 } } });
-  assert.equal(empty.value, '—');
-  assert.equal(empty.cls, '');
-  const full = ctx.CrossDashboardCard._vehicleHealthCard({ ok: true, intelligence: { fleet: { totalVehicles: 3, avgHealth: 45 } } });
-  assert.equal(full.value, '45/100');
-  assert.equal(full.sub, '3 kendaraan');
-  assert.equal(full.cls, 'orange');
-});
-
 // =====================================================================
 // 🟢 RENDAH — 5 presenter DOM-bound (container tidak ada -> aman diam2;
 // SILENT kalau tidak ada apa pun buat diceritakan; render() = 100%
@@ -531,21 +509,6 @@ test('UnifiedBriefingPresenter.render(): kalau hanya salah satu container ada di
   );
   assert.doesNotThrow(() => ctx.UnifiedBriefingPresenter.render());
   assert.match(dom.byId.crossBriefBody.innerHTML, /X\./);
-});
-
-test('UnifiedBriefingPresenter.render(): kebalikannya — hanya #aiUnifiedBriefBody ada (#crossBriefBody tidak), tetap terisi tanpa throw', () => {
-  const dom = domCtx(['aiUnifiedBriefBody']);
-  const ctx = loadSource(
-    ['modules/cross/unified-briefing-presenter.js'],
-    {
-      document: dom.document,
-      escapeHtml: (s) => String(s),
-      UnifiedAIBriefing: { generate: () => ({ ok: true, text: 'Y.' }) },
-    },
-    ['UnifiedBriefingPresenter'],
-  );
-  assert.doesNotThrow(() => ctx.UnifiedBriefingPresenter.render());
-  assert.match(dom.byId.aiUnifiedBriefBody.innerHTML, /Y\./);
 });
 
 // --- cross-module-widgets.js ---

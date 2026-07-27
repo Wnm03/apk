@@ -1563,6 +1563,11 @@ updateSelfTestBadge(data.failCount>0);
 function updateSelfTestBadge(hasFail){
 const badge=document.getElementById('selfTestNavBadge');
 if(badge) badge.style.display=hasFail?'block':'none';
+// Sinkron ke badge tab "🧪 Diagnostik" di dalam Pengaturan (lihat
+// pengaturan-search.js) supaya statusnya kelihatan juga di level tab,
+// tidak cuma di ikon ⚙️ header.
+const tabBadge=document.getElementById('stgTabBadgeDiag');
+if(tabBadge) tabBadge.classList.toggle('u-dnone',!hasFail);
 }
 async function runSelfTest(){
 const _scrollRootEl=document.getElementById('scrollRoot');
