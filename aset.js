@@ -367,15 +367,36 @@ let accountId=document.getElementById('assetAccId').value||null;
 // dikecualikan dari Total Saldo Akun lewat linkedAssetAccountIds(), sama seperti
 // tautan ke akun lama, supaya nilainya gak dobel dihitung).
 let _createdNewAcc=false;
+// Ownership (S231) — dibaca dari dropdown, divalidasi/dinormalisasi via OwnershipEngine.
+// Dipindah ke SINI (sebelum blok __new__ di bawah, bukan sesudahnya seperti semula)
+// supaya akun baru yang auto-dibuat dari Aset bisa langsung ikut mewarisi ownership
+// aset-nya (fix gap dicatat Sesi 311: akun auto-buat selalu ownership SELF/DEFAULT,
+// jadi tidak kehitung di Dana Kelolaan/"Dana Investor" walau aset-nya sendiri sudah
+// ownership INVESTOR/CUSTOMER/dst).
+const ownRawA=document.getElementById('assetOwnership')?.value;
+const ownership=(typeof OwnershipEngine!=='undefined'&&OwnershipEngine.isValidType(ownRawA))?OwnershipEngine.normalize(ownRawA):(typeof OwnershipEngine!=='undefined'?OwnershipEngine.DEFAULT:'SELF');
 if(accountId==='__new__'){
-const newAcc={id:'acc_'+Date.now(),name,emoji:Aset.ICON[jenis]||'📦',baseBalance:nilai,balance:nilai,includeInBalance:true};
+const newAcc={id:'acc_'+Date.now(),name,emoji:Aset.ICON[jenis]||'📦',baseBalance:nilai,balance:nilai,includeInBalance:true,ownership};
 D.accounts.push(newAcc);
 accountId=newAcc.id;
 _createdNewAcc=true;
 }
-// Ownership (S231) — dibaca dari dropdown, divalidasi/dinormalisasi via OwnershipEngine.
-const ownRawA=document.getElementById('assetOwnership')?.value;
-const ownership=(typeof OwnershipEngine!=='undefined'&&OwnershipEngine.isValidType(ownRawA))?OwnershipEngine.normalize(ownRawA):(typeof OwnershipEngine!=='undefined'?OwnershipEngine.DEFAULT:'SELF');
+// SYNC NOMINAL AKUN TERTAUT (fix: akun yang ditautkan dari Buku Aset sebelumnya
+// cuma dapat baseBalance = nilai SEKALI waktu dibuat -- edit nilai aset SESUDAHNYA
+// tidak pernah kepropagasi ke akunnya, jadi keduanya cepat divergen. Fix: tiap kali
+// aset disimpan (nilai berubah/tidak) & sudah tertaut ke akun YANG SUDAH ADA
+// (bukan baru dibuat di blok atas, itu sudah otomatis sama), akun itu di-"koreksi"
+// ke nominal = nilai aset SEKARANG, pakai pola txDelta yang SAMA PERSIS dgn
+// _saveAccInner() (akun.js) -- riwayat transaksi akun (kalau ada) TIDAK diubah,
+// cuma baseBalance-nya digeser supaya hasil recalcAccBalance() = nilai aset.
+if(accountId&&!_createdNewAcc){
+const linkedAcc=D.accounts.find(x=>sameId(x.id,accountId));
+if(linkedAcc){
+const txDelta=recalcAccBalance(linkedAcc.id)-(linkedAcc.baseBalance!==undefined?linkedAcc.baseBalance:(linkedAcc.balance||0));
+linkedAcc.baseBalance=nilai-txDelta;
+linkedAcc.balance=nilai;
+}
+}
 const keuntungan=modalInvestasi?(nilai-modalInvestasi):null;
 const keuntunganPct=modalInvestasi?((nilai-modalInvestasi)/modalInvestasi*100):null;
 const extra={modalInvestasi,hargaBeli,jumlahUnit,keuntungan,keuntunganPct};
