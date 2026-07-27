@@ -41,6 +41,17 @@ new Promise((_,reject)=>setTimeout(()=>reject(new Error('TIMEOUT:'+label)),ms))
 function scanErrorMessage(err){
 console.error('[OCR] gagal scan:',err);
 const raw=(err&&err.message)||(err&&err.error&&err.error.message)||(typeof err==='string'?err:'');
+const name=(err&&err.name)||'';
+// BUGFIX: sebelumnya izin kamera ditolak (NotAllowedError) jatuh ke pesan generik di paling
+// bawah ("error tidak diketahui...") yang menyuruh user cek internet/restart app -- padahal
+// masalahnya murni izin kamera di browser/OS, bukan OCR/koneksi. User jadi bingung & coba-coba
+// hal yang salah. Fix: deteksi NotAllowedError/PermissionDeniedError secara eksplisit & kasih
+// instruksi yang langsung relevan (cek izin kamera di browser + Android), bukan pesan OCR umum.
+if(name==='NotAllowedError'||name==='PermissionDeniedError'||/permission denied|not allowed/i.test(raw)){
+return 'izin kamera ditolak — buka pengaturan situs di browser (ikon gembok/Shields di address bar) lalu izinkan Kamera untuk situs ini, dan pastikan izin Kamera utk aplikasi browser juga diizinkan di Pengaturan HP (Apps → nama browser → Permissions → Camera), lalu coba scan lagi';
+}
+if(name==='NotFoundError'||name==='OverconstrainedError')return 'kamera tidak ditemukan/tidak cocok di perangkat ini — coba pakai "Scan dari Galeri" sbg alternatif';
+if(name==='NotReadableError')return 'kamera sedang dipakai aplikasi lain — tutup aplikasi kamera/video call lain, lalu coba scan lagi';
 if(raw&&raw.startsWith('TIMEOUT:'))return 'koneksi lambat/putus saat mengunduh modul OCR — cek internet & coba lagi (hindari download lain bareng)';
 if(raw&&/fetch|network|load/i.test(raw))return 'gagal mengunduh modul OCR, cek koneksi internet & coba lagi';
 if(raw&&/SetImageFile|SetImage|null/i.test(raw))return 'modul OCR sempat gagal muat sempurna, sudah dicoba ulang otomatis tapi masih gagal — coba scan sekali lagi';

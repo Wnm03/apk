@@ -34,5 +34,11 @@ const BackupHealthPresenter = {
         <div class="bh-health-sub">${escapeHtml(relText)}</div>
       </div>
     `;
+
+    // Badge titik merah di tab "🔔 Notifikasi & Pengingat" kalau backup
+    // terlambat (>7 hari, ambang SAMA dgn BackupHealthAPI/checkBackup()) --
+    // supaya kelihatan dari level tab, tidak perlu buka kartu ini dulu.
+    const tabBadge = document.getElementById('stgTabBadgeNotif');
+    if (tabBadge) tabBadge.classList.toggle('u-dnone', s.status.level !== 'overdue');
   },
 };

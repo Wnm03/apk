@@ -81,14 +81,21 @@ const np={id:'st_'+Date.now(),name:catalogItem.partName||'Part dari Katalog',cat
 D.partsStock.push(np);
 return np;
 }
-// txStockScanPart() — tombol "📷 Scan Kode Part" di txStockPanel (modal
-// Tambah/Edit Transaksi Keuangan). Reuse 100% SparepartScanner (kamera) ->
-// VehicleCatalog.handleScan() (sudah ada) utk cari/bikin draft part, lalu
-// syncPartsStockFromCatalog() di atas utk hubungkan ke baris stok yg dipilih
-// di dropdown txStockItem yg SUDAH ADA -- TIDAK ada UI/dropdown baru.
-async function txStockScanPart(){
+// txStockScanPartVia(adapterName) — inti bersama tombol "📷 Scan Kode Part"
+// (adapter 'camera') & "🖼️ Scan dari Galeri" (adapter 'gallery') di
+// txStockPanel (modal Tambah/Edit Transaksi Keuangan). Reuse 100%
+// SparepartScanner.scan(adapterName) -- 'camera' & 'gallery' SUDAH ADA sbg
+// adapter terdaftar di sparepart-scanner.js (Tahap 7B-1/7B-2), TIDAK ada
+// adapter/logic scan baru di sini -- lalu VehicleCatalog.handleScan()
+// (sudah ada) utk cari/bikin draft part, lalu syncPartsStockFromCatalog()
+// di atas utk hubungkan ke baris stok yg dipilih di dropdown txStockItem
+// yg SUDAH ADA -- TIDAK ada UI/dropdown baru. Ditarik jadi 1 fungsi supaya
+// txStockScanPart()/txStockScanPartGallery() TIDAK duplikasi alur
+// draft->resolveDraft->syncPartsStockFromCatalog->populate dropdown,
+// bedanya cuma nama adapter & ikon toast sukses (📷 vs 🖼️).
+async function txStockScanPartVia(adapterName){
 if(typeof SparepartScanner==='undefined'||!SparepartScanner){toast('⚠️ Fitur scan belum tersedia');return;}
-const result=await SparepartScanner.scan('camera');
+const result=await SparepartScanner.scan(adapterName);
 if(!result)return;
 let item=result.item;
 if(result.draft&&item){
@@ -106,7 +113,50 @@ if(chk){chk.checked=true;toggleTxStockFields();}
 populateTxStockSelect();
 const sel=document.getElementById('txStockItem');
 if(sel){sel.value=p.id;onTxStockItemChange();}
-toast('📷 Part "'+p.name+'" siap ditambah ke stok');
+toast((adapterName==='gallery'?'🖼️':'📷')+' Part "'+p.name+'" siap ditambah ke stok');
+}
+// txStockScanPart() — tombol "📷 Scan Kode Part" (adapter kamera, perilaku
+// TIDAK berubah dari sebelumnya, cuma diteruskan ke txStockScanPartVia()).
+async function txStockScanPart(){
+return txStockScanPartVia('camera');
+}
+// txStockScanPartGallery() — tombol baru "🖼️ Scan dari Galeri" di
+// txStockPanel, pola SAMA PERSIS SparepartScannerUI.scanGallery() (dipakai
+// tombol serupa di catalogModal) tapi diarahkan ke alur stok Keuangan lewat
+// txStockScanPartVia() di atas, bukan VehicleCatalogUI.openForm().
+async function txStockScanPartGallery(){
+return txStockScanPartVia('gallery');
+}
+// syncUnlinkedCatalogPartsToStock() — Tahap 10 (lanjutan Tahap 9): setiap
+// kali panel stok dibuka, part yang SUDAH ADA di Vehicle Catalog (dari
+// 📦 Katalog Suku Cadang, mis. ditambah manual/scan/import di sana) tapi
+// BELUM punya baris D.partsStock terhubung (catalogId) otomatis dibikinkan
+// baris stoknya (qty:0, reuse syncPartsStockFromCatalog() 100% apa adanya)
+// supaya part itu ikut muncul di dropdown "Pilih Sparepart" form transaksi
+// Keuangan -- sebelumnya HANYA part yang sudah ada di D.partsStock (baik
+// manual maupun dari alur Keuangan) yang tampil di sana, part yang baru
+// ditambah lewat Katalog saja tidak pernah muncul sampai di-scan ulang.
+// Sync SATU ARAH (Katalog -> D.partsStock, TIDAK sebaliknya) & tidak
+// pernah menimpa qty/harga yang sudah ada (existing branch di
+// syncPartsStockFromCatalog cuma sinkronkan nama). VehicleCatalog diakses
+// async (IDBStore) jadi fungsi ini juga async -- pemanggil (populateTxStockSelect)
+// TIDAK menunggu hasilnya (fire-and-forget), render ulang cuma dipanggil
+// kalau memang ada part baru yang berhasil ditautkan, biar tidak flicker
+// dropdown pas tidak ada perubahan.
+async function syncUnlinkedCatalogPartsToStock(){
+if(typeof VehicleCatalog==='undefined'||!VehicleCatalog||typeof VehicleCatalog.ensureLoaded!=='function')return false;
+try{
+await VehicleCatalog.ensureLoaded();
+const store=(typeof VehicleCatalog.getStore==='function')?VehicleCatalog.getStore():null;
+const items=(store&&Array.isArray(store.items))?store.items:[];
+let added=false;
+items.filter(it=>it&&!it.isDraft).forEach(it=>{
+const already=D.partsStock.some(p=>p.catalogId===it.id);
+if(!already){syncPartsStockFromCatalog(it);added=true;}
+});
+if(added&&typeof save==='function')save();
+return added;
+}catch(e){return false;}
 }
 function populateTxStockSelect(){
 const sel=document.getElementById('txStockItem');
@@ -115,6 +165,18 @@ const cur=sel.value;
 sel.innerHTML='<option value="__new__">➕ Sparepart Baru</option>'+D.partsStock.map(p=>`<option value="${p.id}">${escapeHtml(p.name)} (stok ${p.qty}${p.unit?' '+p.unit:''})</option>`).join('');
 sel.value=cur&&D.partsStock.find(p=>p.id===cur)?cur:'__new__';
 onTxStockItemChange();
+// Best-effort: kalau ada part di Katalog Suku Cadang yang belum tertaut
+// ke D.partsStock, tautkan dulu lalu render ulang dropdown supaya
+// langsung kelihatan (tidak perlu tunggu scan kode part dulu).
+syncUnlinkedCatalogPartsToStock().then(added=>{
+if(!added)return;
+const sel2=document.getElementById('txStockItem');
+if(!sel2)return; // modal sudah ditutup / elemen sudah tidak ada
+const cur2=sel2.value;
+sel2.innerHTML='<option value="__new__">➕ Sparepart Baru</option>'+D.partsStock.map(p=>`<option value="${p.id}">${escapeHtml(p.name)} (stok ${p.qty}${p.unit?' '+p.unit:''})</option>`).join('');
+sel2.value=cur2&&D.partsStock.find(p=>p.id===cur2)?cur2:cur2;
+onTxStockItemChange();
+});
 }
 function onTxStockItemChange(){
 const sel=document.getElementById('txStockItem');
