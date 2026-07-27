@@ -5,6 +5,29 @@ JANGAN audit/implement/test/build ulang bagian yang sudah **Completed**.
 
 ## Current Session
 
+Sesi 312 (2026-07-27) — FIX: akun baru dari opsi "➕ Buat Akun Baru dari
+Aset Ini" (`Aset.save()`, blok `accountId==='__new__'`) tidak mewarisi
+`ownership` aset sumbernya — resolusi `ownership` dipindah ke SEBELUM blok
+pembuatan akun, `newAcc` sekarang menyertakan field `ownership` apa adanya
+(pola field sama `_saveAccInner()`/`akun.js`). Akun tertaut LAMA (bukan
+`__new__`) tidak disentuh — di luar scope. SELESAI PENUH. Detail lengkap:
+`CHANGELOG.md` § S312.
+
+Belum digarap (ditunda, bukan bug — lihat `docs/NEXT_SESSION.md`): kartu
+akun tertaut selalu blur walau toggle "Aktif" — ini BY DESIGN
+(`renderAccGrid()`, `modules-render.js`), toggle memang tidak berlaku
+selama masih tertaut Aset.
+
+---
+
+Sesi 311 (2026-07-27) — FIX: nominal akun tertaut ke Buku Aset tidak sync
+saat nilai aset diedit (`Aset.save()` di `modules/asset/aset.js`,
+`accountId` yang sudah tertaut sebelumnya sekarang ikut dikoreksi ke nilai
+aset terbaru lewat pola `txDelta`, riwayat transaksi akun tidak diubah).
+SELESAI PENUH. Detail lengkap: `CHANGELOG.md` § S311.
+
+---
+
 Sesi 287 (2026-07-27) — FIX: Katalog Suku Cadang tidak sync ke dropdown
 "Pilih Sparepart" (input transaksi Keuangan) & Kelola Stok Sparepart tidak
 push ke Katalog. SELESAI PENUH. Detail lengkap: `CHANGELOG.md` § Sesi 287.

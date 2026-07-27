@@ -1,3 +1,87 @@
+# Changelog — S312: Fix ownership akun baru dari Aset ("➕ Buat Akun Baru dari Aset Ini")
+
+## Target eksplisit user
+Lanjutan dari 2 temuan yang ditunda di S311 (rule 1-target/sesi) — user minta
+kerjakan salah satu yang ringan. Dipilih: akun yang dibuat otomatis lewat
+opsi "➕ Buat Akun Baru dari Aset Ini" (`Aset.save()`, blok `accountId==='__new__'`)
+selalu ownership SELF/DEFAULT, TIDAK PERNAH mewarisi ownership aset sumbernya
+— akibatnya akun itu tidak kehitung di Dana Kelolaan ("Dana Investor" dkk)
+walau aset-nya sendiri sudah ownership INVESTOR/CUSTOMER/THIRD_PARTY/FAMILY.
+
+## Perubahan
+`modules/asset/aset.js` `Aset.save()` — resolusi `ownership` (dropdown
+`#assetOwnership`, via `OwnershipEngine.isValidType()`/`.normalize()`) DIPINDAH
+ke SEBELUM blok pembuatan akun `__new__` (semula dihitung SETELAH blok itu).
+Objek `newAcc` yang di-push ke `D.accounts` sekarang menyertakan field
+`ownership` itu apa adanya — pola field yang SAMA PERSIS dipakai
+`_saveAccInner()` (`akun.js`) untuk akun manual. Akun yang ditautkan ke akun
+LAMA (bukan `__new__`) TIDAK terpengaruh (di luar scope — ownership akun lama
+tetap dikontrol independen lewat modal Akun sendiri, sesuai keputusan produk
+sebelumnya, tidak ada auto-override). 0 rumus/logic Dana Kelolaan diubah — fix
+murni di titik penulisan data akun baru.
+
+## Test
+`node --test tests/*.test.js` → **1600/1600 pass, 0 fail** (2x — sebelum &
+sesudah build; tidak ada test baru — `Aset.save()` bergantung penuh ke DOM
+`getElementById`, sama seperti catatan S311, tidak ada harness fake-document
+siap pakai. Logic inheritance ownership divalidasi manual lewat simulasi Node
+terpisah: `__new__` dgn ownership INVESTOR → `newAcc.ownership==='INVESTOR'`,
+`__new__` tanpa ownership dipilih → fallback SELF, keduanya sesuai ekspektasi).
+
+## Build
+`node scripts/build.js sesi312-fix-ownership-akun-baru-dari-aset` → sukses,
+`?v=825`.
+
+## ZIP
+`kw_release_sesi312_fix-ownership-akun-baru-dari-aset_v825.zip`.
+
+---
+
+# Changelog — S311: Fix sync nominal akun tertaut ↔ Buku Aset
+
+## Target eksplisit user (bugreport)
+Screenshot modal Akun (Sesi 310 → sekarang): akun ber-jenis Investasi yang
+ditautkan dari Buku Aset (`accountId`) nominalnya tidak ikut berubah saat
+nilai asetnya diedit — 2 field (`asset.nilai` vs `acc.baseBalance`) cuma
+sama sekali pas akun itu PERTAMA dibuat via opsi "➕ Buat Akun Baru dari
+Aset Ini", sesudah itu independen selamanya (root cause, dikonfirmasi baca
+kode: tidak ada listener sync berkelanjutan).
+
+(2 temuan lain dari audit yang sama — blur kartu akun yang memang BY
+DESIGN selama tertaut ke Aset walau toggle "Aktif", dan ownership akun
+auto-buat yang tidak mewarisi ownership aset shg tidak kehitung di Dana
+Investor — TIDAK digarap sesi ini, ditunda sesuai rule 1-target/sesi,
+lihat `docs/NEXT_SESSION.md`.)
+
+## Perubahan
+`modules/asset/aset.js` `Aset.save()` — 1 blok baru setelah resolusi
+`accountId` (termasuk hasil `__new__`): kalau aset sudah tertaut ke akun
+YANG SUDAH ADA sebelumnya (bukan baru dibuat di blok `__new__` sesi save
+ini, itu sudah otomatis sama nilainya), akun itu di-"koreksi" ke nominal =
+`nilai` aset SEKARANG — pakai pola `txDelta` yang 100% REUSE dari
+`_saveAccInner()` (`akun.js`, dipakai fitur "Saldo Sekarang" manual):
+`txDelta = recalcAccBalance(acc.id) - acc.baseBalance` (efek bersih
+transaksi yang sudah tercatat di akun itu), lalu `acc.baseBalance = nilai -
+txDelta` supaya `recalcAccBalance()` berikutnya = `nilai` persis, TANPA
+menyentuh/menghapus riwayat transaksi akun. 0 rumus baru.
+
+## Test
+`node --test tests/*.test.js` → **1600/1600 pass, 0 fail** (tidak ada test
+baru — `Aset.save()` bergantung penuh ke DOM `getElementById`, tidak ada
+harness fake-document siap pakai utk fungsi ini; rumus `txDelta` divalidasi
+manual lewat simulasi Node terpisah: kasus tanpa transaksi & kasus dengan
+transaksi existing, keduanya hasil akhir = nilai aset baru, transaksi
+tidak berubah).
+
+## Build
+`node scripts/build.js sesi311-fix-sync-akun-tertaut-aset` → sukses,
+`?v=824`.
+
+## ZIP
+`kw_release_sesi311_fix-sync-akun-tertaut-aset_v824.zip`.
+
+---
+
 # Changelog — S306: Chip prioritas + overflow menu "⋮" — kartu Aset (Buku Aset)
 
 ## Konteks (lanjutan audit tab lain, kandidat paling mirip kasus Tagihan)
