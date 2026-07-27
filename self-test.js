@@ -1,3 +1,8 @@
+// CATATAN (Sesi 297): file ini adalah runtime app (bukan file test Node), tapi
+// namanya cocok pola default `node --test` (*-test.js) sehingga bisa ke-load &
+// "gagal" kalau `node --test` dijalankan TANPA argumen di root. `npm test`
+// sudah aman (lihat package.json: `node --test tests/*.test.js`, membatasi
+// hanya folder tests/) — lihat juga catatan di README.md bagian Testing.
 // self-test.js — Runtime & daftar test case self-test/smoke-test aplikasi (Diagnostik):
 // getSelfTestCases() (daftar besar test case), helper _selfTestAssert/findMissingAriaLabels,
 // badge status, tes navigasi halaman (computeNavSmokePageNames), sapuan modal
