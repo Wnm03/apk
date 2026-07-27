@@ -42,10 +42,22 @@ const d=document.getElementById('kasirDiskon');if(d)d.value='';
 const o=document.getElementById('kasirOngkir');if(o)o.value='';
 const cn=document.getElementById('kasirCustName');if(cn)cn.value='';
 const cp=document.getElementById('kasirCustPhone');if(cp)cp.value='';
+const ca=document.getElementById('kasirCustAddr');if(ca)ca.value='';
+const dp=document.getElementById('kasirDP');if(dp)dp.value='';
+const dl=document.getElementById('kasirDelivered');if(dl){dl.checked=true;Kasir.toggleDeliveredField();}
 const nt=document.getElementById('kasirNote');if(nt)nt.value='';
 document.querySelectorAll('#kasirPriceToggle .chip-btn').forEach((b,i)=>b.classList.toggle('active',i===0));
 const aiCard=document.getElementById('kasirAiCard');if(aiCard)aiCard.style.display='none';
 Kasir.render();
+},
+// toggleDeliveredField (kw-kasir-audit-2): update label teks sesuai status toggle, sama pola
+// persis SiapPulang.toggleDeliveredField() yg dipakai Order (oDelivered/oDeliveredLbl) —
+// murni UI, tidak ada logic bisnis baru.
+toggleDeliveredField(){
+const cb=document.getElementById('kasirDelivered');
+const lbl=document.getElementById('kasirDeliveredLbl');
+if(!cb||!lbl)return;
+lbl.textContent=cb.checked?'✅ Sudah diserahkan ke pelanggan':'📦 Belum diserahkan (akan dibawa pulang)';
 },
 onSearch(v){
 Kasir.search=(v||'').toLowerCase().trim();
@@ -310,22 +322,45 @@ const items=lines.map(l=>({productId:l.productId,name:l.product.name,qty:l.qty,h
 const accId=document.getElementById('kasirAcc')?document.getElementById('kasirAcc').value:D.accounts[0]?.id;
 const custName=(document.getElementById('kasirCustName')?.value||'').trim();
 const custPhone=(document.getElementById('kasirCustPhone')?.value||'').trim();
-const customer={name:custName,phone:custPhone,address:''};
+// kw-kasir-audit-1: alamat sekarang ikut dikirim (dulu selalu '' hardcoded).
+const custAddr=(document.getElementById('kasirCustAddr')?.value||'').trim();
+const customer={name:custName,phone:custPhone,address:custAddr};
+// kw-kasir-audit-2: delivered sekarang ikut toggle di UI (dulu selalu true hardcoded).
+const delivered=document.getElementById('kasirDelivered')?document.getElementById('kasirDelivered').checked:true;
 const date=new Date().toISOString().split('T')[0];
 const note=(document.getElementById('kasirNote')?.value||'').trim();
 const txId=uid();
 const result=recordShopSale({
-items,subtotal,diskon,ongkir,total,profit,date,note,customer,priceType:Kasir.priceType,delivered:true,
+items,subtotal,diskon,ongkir,total,profit,date,note,customer,priceType:Kasir.priceType,delivered,
 accountId:accId,txId,existingShopId:null
 });
 if(!result.ok){toast('⚠️ '+result.message);return;}
 const itemSummary=items.map(it=>it.name+' x'+it.qty).join(', ');
-D.transactions.push({id:txId,type:'income',amount:total,category:'Bisnis',subcategory:'Cobek',accountId:accId,payMethod:'tunai',note:(customer.name?customer.name+' - ':'')+itemSummary,date,cobekLinkId:result.shopId});
+// kw-kasir-audit-3: DP/Piutang — logic sama persis Order._saveInner() (cobek-order.js, kw-shop-dp),
+// diduplikasi (bukan diekstrak jadi helper bersama, sesuai keputusan opsi A) krn Kasir TIDAK PERNAH
+// mengedit entri lama (existingShopId selalu null di atas), jadi tidak perlu logic reconciliation
+// piutangLinkId lama seperti di Order. Kosong = dianggap lunas penuh (perilaku lama, tidak berubah).
+const dpRaw=document.getElementById('kasirDP')?document.getElementById('kasirDP').value.trim():'';
+const dpVal=dpRaw===''?total:Math.max(0,Math.min(parseFloat(dpRaw)||0,total));
+const sisa=Math.max(0,total-dpVal);
+const txNote=(customer.name?customer.name+' - ':'')+itemSummary;
+D.transactions.push({id:txId,type:'income',amount:dpVal,category:'Bisnis',subcategory:'Cobek',accountId:accId,payMethod:'tunai',note:txNote,date,cobekLinkId:result.shopId});
+if(sisa>0){
+const piutangName=customer.name||'Pembeli Shop';
+const pid=uid();
+D.piutang.push({id:pid,name:piutangName,nilai:sisa,tanggal:date,jatuhTempo:'',catatan:'Sisa pembayaran shop: '+itemSummary,lunas:false});
+const shopRecord=D.cobek.find(c=>c.id===result.shopId);
+if(shopRecord)shopRecord.piutangLinkId=pid;
+}
 save();
 renderProductList();renderShop();Order.renderRecent();renderDashboard();renderKeuangan();renderSiapPulang();
-toast('✅ Transaksi tersimpan & tersinkron ke Keuangan');
+if(typeof Piutang!=='undefined'&&Piutang.renderList)Piutang.renderList();
+toast(sisa>0?`✅ Tersimpan — DP ${fmtFull(dpVal)}, sisa ${fmtFull(sisa)} otomatis masuk Piutang`:'✅ Transaksi tersimpan & tersinkron ke Keuangan');
 Kasir.reset();
 }
 };
 // Muat preferensi mode tampilan (grid/list) yg tersimpan dari sesi sebelumnya — kw198-kasir-viewtoggle.
 (function(){try{const saved=localStorage.getItem('kw_kasirViewMode');if(saved==='list')Kasir.viewMode='list';}catch(e){/* default 'grid' */}})();
+// kw-kasir-audit-2: wrapper global dipanggil dari onchange di HTML, sama pola persis
+// toggleOrderDeliveredField() (modules/shop/cobek-io.js) yg membungkus SiapPulang.toggleDeliveredField().
+function toggleKasirDeliveredField(){return Kasir.toggleDeliveredField();}

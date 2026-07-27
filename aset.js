@@ -427,19 +427,22 @@ save();
 if(typeof AIBus!=="undefined")AIBus.emit("asset.updated",{jenis,nilai,editId:Aset.editId});
 closeModal('assetModal');
 Aset.renderList();renderKekayaanBersih();hitungZakatMaal();renderAccGrid();renderDashAccList();renderLapAccList();
+if(typeof renderDebtList==='function')renderDebtList();
 if(typeof populateAccFilters==='function')populateAccFilters();
 toast(_createdNewAcc?'✅ Aset tersimpan & akun baru dibuat':'✅ Aset tersimpan');
 },
 async delete(id){
 if(!await askConfirm('Hapus aset ini dari Buku Aset?',{okText:'Ya, Hapus'}))return;
 const a=D.assets.find(x=>sameId(x.id,id));
-if(a&&a.titipanDebtLinkId&&D.debts){
+const hadTitipanDebt=!!(a&&a.titipanDebtLinkId&&D.debts);
+if(hadTitipanDebt){
 D.debts=D.debts.filter(d=>String(d.id)!==String(a.titipanDebtLinkId));
 }
 D.assets=D.assets.filter(a=>!sameId(a.id,id));
 save();
 if(typeof AIBus!=="undefined")AIBus.emit("asset.updated",{deletedId:id});
 Aset.renderList();renderKekayaanBersih();hitungZakatMaal();renderAccGrid();renderDashAccList();renderLapAccList();
+if(hadTitipanDebt&&typeof renderDebtList==='function')renderDebtList();
 },
 renderList(){
 const el=document.getElementById('assetList');
@@ -1105,7 +1108,7 @@ const r=PajakAset.hitungPBB(a,s);
 totalPBB+=r.terutang;
 return `<div class="u-flex u-jcb u-aifs u-gap8 u-fs12 u-mb6"><span class="u-flex1">${Aset.ICON[a.jenis]||'📦'} ${escapeHtml(a.name)}</span><span class="u-fw700 u-tar" style="white-space:nowrap">${fmtFull(r.terutang)}/th</span></div>`;
 }).join('')):'';
-const zakatHtml=zakat.list.length?('<div class="u-fs12t2 u-fw700 u-mb6 u-mt10">🕌 Zakat Maal Aset</div>'+zakat.list.map(a=>{
+const zakatHtml=zakat.list.length?('<div class="u-fs12t2 u-fw700 u-mb6 u-mt10">🕌 Zakat Maal per Aset (bukan Kekayaan Bersih)</div>'+zakat.list.map(a=>{
 const z=Math.round((a.nilai||0)*0.025);
 return `<div class="u-flex u-jcb u-aifs u-gap8 u-fs12 u-mb6"><span class="u-flex1">${Aset.ICON[a.jenis]||'📦'} ${escapeHtml(a.name)}</span><span class="u-fw700 u-tar" style="white-space:nowrap">${fmtFull(z)}</span></div>`;
 }).join('')):'';
@@ -1117,7 +1120,7 @@ if(zakatEl)zakatEl.textContent=fmtFull(zakat.totalZakat);
 const totalPajak=totalPBB+zakat.totalZakat;
 const ringkasanEl=document.getElementById('assetPajakRingkasan');
 if(ringkasanEl){
-ringkasanEl.innerHTML=`📋 <b>Ringkasan Pajak:</b> estimasi total kewajiban pajak &amp; zakat dari Buku Aset ±<b>${fmtFull(totalPajak)}</b>/tahun — PBB ${fmtFull(totalPBB)} (${properti.length} aset properti) + Zakat Maal ${fmtFull(zakat.totalZakat)} (${zakat.list.length} aset zakatable). Estimasi kasar dari data Buku Aset, bukan angka resmi SPPT/lembaga zakat — cek Perda/BAZNAS setempat utk angka pasti.`;
+ringkasanEl.innerHTML=`📋 <b>Ringkasan Pajak:</b> estimasi total kewajiban pajak &amp; zakat dari Buku Aset ±<b>${fmtFull(totalPajak)}</b>/tahun — PBB ${fmtFull(totalPBB)} (${properti.length} aset properti) + Zakat Maal per Aset ${fmtFull(zakat.totalZakat)} (${zakat.list.length} aset zakatable, TIDAK termasuk Piutang/Utang). Estimasi kasar dari data Buku Aset, bukan angka resmi SPPT/lembaga zakat — cek Perda/BAZNAS setempat utk angka pasti. Untuk Zakat Maal lengkap (Saldo+Aset+Piutang−Utang), lihat kartu 💰 Zakat Maal di tab 🕌 Pajak.`;
 }
 }
 };

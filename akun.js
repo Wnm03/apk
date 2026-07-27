@@ -207,6 +207,19 @@ D.accounts.push({id:'acc_'+Date.now(),name,emoji,baseBalance:nominal,balance:nom
 save();closeModal('accModal');renderAccGrid();populateAccFilters();renderDashAccList();renderLapAccList();toast('✅ Akun ditambahkan');
 }
 }
+// openAccTxHistory(id) — klik kartu akun di 🏦 Akun & Metode Pembayaran (Pengaturan >
+// Keuangan) sekarang menampilkan Riwayat Transaksi akun itu, bukan langsung buka modal
+// Edit (yang sebelumnya jadi satu-satunya aksi klik kartu). Pakai ULANG scope 'account' di
+// showFilteredTx() (modules/finance/filter-laporan.js) — persis fungsi yang sama dipakai
+// Aset.openTxHistory() (modules/asset/aset.js) — 0 UI/logic baru, cuma titik panggil baru.
+// Edit akun sekarang lewat tombol ✏️ terpisah (lihat renderAccGrid(), modules-render.js)
+// yang tetap manggil openAccModal(idx) seperti sebelumnya.
+function openAccTxHistory(id){
+const acc=D.accounts.find(x=>sameId(x.id,id));
+if(!acc){toast('⚠️ Akun tidak ditemukan');return;}
+if(typeof showFilteredTx!=='function'){toast('⚠️ Fitur riwayat transaksi belum tersedia');return;}
+showFilteredTx('account',undefined,'📜 Riwayat: '+acc.name,acc.id);
+}
 async function delAcc(i){
 if(D.accounts.length<=1){toast('⚠️ Minimal 1 akun harus ada');return;}
 const acc=D.accounts[i];

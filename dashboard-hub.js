@@ -59,7 +59,15 @@ const PAGE_NAV_IDX = {
 // diverifikasi lewat grep ke index.html (lihat komentar TAB REFERENSI di
 // dashboard-hub-registry.js untuk daftar tab yang valid per page).
 const KEU_TAB_IDX = { kelola: 0, tagihan: 1, budget: 2, utangpiutang: 3, asetproyek: 4, laporan: 5 };
-const SHOP_TAB_IDX = { kasir: 0, jual: 1, etalase: 2, produsen: 3, riwayat: 4, pelanggan: 5 };
+// BUGFIX (Sesi 264, ditemukan sewaktu audit navigasi shop Business
+// Intelligence): 'laporan'/'bi' TIDAK ADA di peta ini sejak dulu — padahal
+// #page-shop sudah py 8 tab (bukan 6) sejak tab Laporan (lama) & tab
+// Business Intelligence (Sesi 250) ditambahkan. Akibatnya
+// dashHubNavigateToFeature({page:'shop', tab:'laporan'/'bi', ...}) selalu
+// resolve ke `tabs[undefined]` -> setShopTab(t, undefined) -> crash di
+// `el.classList.add('active')` (lihat cobek-io.js). Ditambahkan sesuai
+// urutan DOM asli 8 tombol #page-shop .cn-tab (index.html).
+const SHOP_TAB_IDX = { kasir: 0, jual: 1, etalase: 2, produsen: 3, riwayat: 4, pelanggan: 5, laporan: 6, bi: 7 };
 // BUGFIX (Sesi 158, ditemukan sewaktu wiring deep-link sub-tab baru):
 // CN_TAB_IDX dulu {bbm:0, servis:1} — stale sejak Sesi 157 (page-carnotes
 // jadi 4 tab: insight/bbm/servis/pajak, BUKAN 2 lagi). Efeknya cosmetic
@@ -432,6 +440,52 @@ const DashboardHubOwnershipSummary = {
   },
 };
 
+// ================== SHOP MINI SUMMARY (Sesi 250) ==================
+// ShopMiniSummary — MURNI TAMPILAN + navigasi, 0 rumus baru, 0 field D
+// baru. Menggantikan 3 wrap detail (#shopBusinessEngineWrap/
+// #tripPresenterWrap/#businessFlowWrap) yang DIPINDAH APA ADANYA ke tab
+// baru #shopTab-bi ("Business Intelligence") di #page-shop (lihat
+// index.html/app_production.html + cobek-io.js setShopTab()). Beranda
+// sekarang cukup menampilkan 3 angka ringkas (Omzet/Profit/Stok Menipis)
+// — 100% REUSE ShopBusinessEnginePresenter.summary() (S199, modules/shop/
+// shop-business-engine-presenter.js), yang sendiri sudah 100% delegasi ke
+// ProfitEngine.summarize() (omzet/untung, ownership SELF-only, pola Sesi
+// 194) & InventoryEngine.restockScan() (jumlah produk perlu direstock =
+// "Stok Menipis") — TIDAK membaca D langsung, TIDAK menghitung ulang apa
+// pun. Guard typeof (pola sama persis DashboardHubOwnershipSummary di
+// atas) supaya aman dipakai standalone di tests tanpa D/ShopBusinessEnginePresenter.
+const ShopMiniSummary = {
+  _money(n) {
+    return (typeof fmt === 'function') ? fmt(n) : ('Rp ' + Math.round(n || 0));
+  },
+  render() {
+    const el = document.getElementById('shopMiniSummaryGrid');
+    if (!el) return;
+    if (typeof ShopBusinessEnginePresenter === 'undefined') {
+      el.innerHTML = '<div class="u-hint10">Shop Business Engine belum tersedia.</div>';
+      return;
+    }
+    const s = ShopBusinessEnginePresenter.summary();
+    const omzet = (s.profit && s.profit.ok) ? s.profit.omzet : 0;
+    const untung = (s.profit && s.profit.ok) ? s.profit.untung : 0;
+    const stokMenipis = (s.purchase && s.purchase.ok) ? s.purchase.itemCount : 0;
+    const esc = typeof escapeHtml === 'function' ? escapeHtml : String;
+    const cards = [
+      { label: 'Omzet Bulan Ini', value: this._money(omzet), cls: '' },
+      { label: 'Profit Bulan Ini', value: this._money(untung), cls: untung < 0 ? 'red' : 'green' },
+      { label: 'Stok Menipis', value: String(stokMenipis), cls: stokMenipis > 0 ? 'red' : '' },
+    ];
+    el.innerHTML = cards.map((c) => `
+      <div class="findash-card">
+        <div class="findash-card-body">
+          <div class="findash-card-label">${esc(c.label)}</div>
+          <div class="findash-card-val${c.cls ? ' ' + c.cls : ''}">${esc(c.value)}</div>
+        </div>
+      </div>
+    `).join('');
+  },
+};
+
 const DashboardHub = {
   render() {
     const el = document.getElementById('dashboardHubGrid');
@@ -661,7 +715,7 @@ const DashboardHub = {
   // SENGAJA tidak masuk daftar manapun di bawah — tetap selalu tampil.
   applySectionTab(tab) {
     const SECTION_GROUPS = {
-      ringkasan: ['dashHubSummaryGrid', 'dashHubAnalyticsRow'],
+      ringkasan: ['dashHubSummaryGrid', 'dashHubAnalyticsRow', 'dashHubOwnershipSummaryCard'],
       fitur: ['dashHubFavoritSection', 'dashHubMainGridCard'],
       widget: ['dashboardHubPinnedWrap'],
       // Sesi 133: findashWrap/forecastWrap/budgetRecoWrap/cashflowProjWrap/
@@ -681,7 +735,7 @@ const DashboardHub = {
       // di grup ini SUDAH PINDAH ke tab "Manajemen" #page-aset (lihat
       // catatan migrasi di render(), atas), jadi dihapus dari daftar —
       // bukan lagi bagian dari Dashboard Hub sama sekali.
-      insight: ['lifeOSWrap', 'eieWrap', 'crossDashWrap', 'crossBriefWrap', 'crossInsightWrap', 'personalOverviewWrap', 'crossWidgetsWrap', 'lifePriorityWrap', 'recommendationPanelWrap', 'actionQueueWrap'],
+      insight: ['lifeOSWrap', 'eieWrap', 'shopMiniSummaryWrap', 'crossDashWrap', 'crossBriefWrap', 'crossInsightWrap', 'personalOverviewWrap', 'crossWidgetsWrap', 'lifePriorityWrap', 'recommendationPanelWrap', 'actionQueueWrap'],
     };
     Object.keys(SECTION_GROUPS).forEach((t) => {
       SECTION_GROUPS[t].forEach((id) => {

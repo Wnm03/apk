@@ -41,9 +41,13 @@
 // pernah terjadi sesaat di S115 lewat ActionQueue.getQueue(), sudah
 // di-revert sesi ini krn menyebabkan "Maximum call stack size exceeded"
 // saat rantai modul asli dimuat bersamaan; lihat
-// tests/decision-center-dependency-graph.test.js utk regression test yg
-// memuat rantai modul ASLI, bukan mock, supaya siklus ini tidak bisa
-// balik lagi tanpa ketahuan).
+// tests/cross-module-dependency-graph-s286.test.js (S286 — menggantikan
+// 2 nama file lama yg disebut di catatan ini sebelumnya, cross-module-
+// graph-static.test.js & decision-center-dependency-graph.test.js,
+// KEDUANYA TIDAK PERNAH ADA di source) utk regression test yg memuat
+// rantai modul ASLI, bukan mock, supaya siklus ini tidak bisa balik lagi
+// tanpa ketahuan. Kontrak fungsional generate() sendiri (guard/susunan
+// teks) ada di tests/cross-module-own-contract-s286.test.js.
 const UnifiedAIBriefing = {
 
 // generate() — Unified AI Briefing. {ok:false} kalau UnifiedSummaryAPI
