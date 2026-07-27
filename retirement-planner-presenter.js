@@ -30,7 +30,7 @@
 // VEHICLE_ANALYTICS_NAV_TARGETS.total/trend (self-scroll utk kartu
 // komposit).
 const RETIRE_NAV_TARGETS = Object.freeze({
-  self: { page: 'dashboard-hub', goTo: 'retirementPlannerWrap' },
+  self: { page: 'keuangan', tab: 'laporan', goTo: 'retirementPlannerWrap' },
 });
 const RetirementPlannerPresenter = {
 

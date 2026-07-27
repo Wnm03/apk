@@ -34,6 +34,8 @@ const FeatureIcons = {
     '🚗': '<path d="M4 16V9l2.5-4h9L18 9v7"/><path d="M2 16h20v3H2z"/><circle cx="7" cy="19" r="1.6"/><circle cx="17" cy="19" r="1.6"/>',
     '⛽': '<rect x="4" y="4" width="9" height="17" rx="1"/><path d="M4 11h9"/><path d="M15 8h2l3 3v7a1.5 1.5 0 01-3 0v-3h-2"/>',
     '🕌': '<path d="M4 21V11l8-6 8 6v10"/><path d="M9 21v-6h6v6"/><circle cx="12" cy="6" r="1.5"/><path d="M12 4V2"/>',
+    '👨‍👩‍👧': '<circle cx="7" cy="7" r="2.5"/><path d="M2 21c0-3.5 2-5.5 5-5.5s5 2 5 5.5"/><circle cx="17" cy="7" r="2.5"/><path d="M12 21c0-3.5 2-5.5 5-5.5s5 2 5 5.5"/><circle cx="12" cy="16" r="1.8"/><path d="M9 22c0-2 1.2-3 3-3s3 1 3 3"/>',
+    '🏃': '<circle cx="14.5" cy="4" r="1.7"/><path d="M9.5 21l2.5-6 2.5 2 3 5"/><path d="M6 15l4-3 1.5-5-2.5-1.5-3 4"/><path d="M11.5 12.5l3 1 3-2"/>',
     '📦': '<path d="M3 8l9-5 9 5-9 5-9-5z"/><path d="M3 8v9l9 5 9-5V8"/><path d="M12 13V22"/>',
     '🌱': '<path d="M12 21V11"/><path d="M12 11C12 6 8 4 4 4c0 5 3 8 8 8z"/><path d="M12 14c0-4 3-6 7-6 0 4-2 7-7 7z"/>',
     '🤖': '<rect x="5" y="8" width="14" height="11" rx="2"/><circle cx="9.5" cy="13.5" r="1.2"/><circle cx="14.5" cy="13.5" r="1.2"/><path d="M9 17h6"/><path d="M12 8V4"/><circle cx="12" cy="3" r="1"/>',

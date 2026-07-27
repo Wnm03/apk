@@ -29,7 +29,7 @@
 // persis FINHEALTH_NAV_TARGETS.self (S254A, self-scroll utk kartu
 // komposit).
 const DEBTOPTIMIZER_NAV_TARGETS = Object.freeze({
-  self: { page: 'dashboard-hub', goTo: 'debtOptimizerWrap' },
+  self: { page: 'keuangan', tab: 'laporan', goTo: 'debtOptimizerWrap' },
 });
 const DebtOptimizerPresenter = {
 

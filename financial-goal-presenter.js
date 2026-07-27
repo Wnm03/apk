@@ -31,7 +31,7 @@
 // pola sama persis VEHICLE_ANALYTICS_NAV_TARGETS.total/trend (self-scroll
 // utk kartu komposit).
 const FINGOAL_NAV_TARGETS = Object.freeze({
-  self: { page: 'dashboard-hub', goTo: 'financialGoalWrap' },
+  self: { page: 'keuangan', tab: 'laporan', goTo: 'financialGoalWrap' },
 });
 const FinancialGoalPresenter = {
 

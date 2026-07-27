@@ -30,7 +30,7 @@
 // persis FINHEALTH_NAV_TARGETS.self (S254A, self-scroll utk kartu
 // komposit).
 const FORECAST_NAV_TARGETS = Object.freeze({
-  self: { page: 'dashboard-hub', goTo: 'forecastWrap' },
+  self: { page: 'keuangan', tab: 'laporan', goTo: 'forecastWrap' },
 });
 const FinancialForecastPresenter = {
 

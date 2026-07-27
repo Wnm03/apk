@@ -147,6 +147,13 @@ function acTxNotes(){return recentUniqueStrings(D.transactions,t=>t.note);}
 function isKendaraanCatName(catName){
 return /kendaraan|transport|motor|vario|beat|grandmax/i.test(catName||'');
 }
+// isRenovCatName(catName) -- detektor kategori Renovasi utk panel "🔨 Catat
+// juga ke Proyek Renovasi?" (lihat tx-renov.js). Pola sama persis dgn
+// isKendaraanCatName di atas: cocok kalau nama kategori mengandung "Renov"
+// (mis. "Renovasi"), case-insensitive.
+function isRenovCatName(catName){
+return /renov/i.test(catName||'');
+}
 function resolveVehicleTxCategory(vehicle){
 const vehName=vehicle&&vehicle.name?vehicle.name:'';
 const vehId=vehicle&&vehicle.id?vehicle.id:null;
@@ -196,6 +203,7 @@ const stockPanel=document.getElementById('txStockPanel');
 const bbmPanel=document.getElementById('txBbmPanel');
 const shopPanel=document.getElementById('txShopStockPanel');
 const shopSalePanel=document.getElementById('txShopSalePanel');
+const renovPanel=document.getElementById('txRenovPanel');
 if(!stockPanel||!bbmPanel)return;
 const catName=document.getElementById('txCat').value;
 const subName=document.getElementById('txSubCat')?document.getElementById('txSubCat').value:'';
@@ -204,10 +212,12 @@ const showBbm=isExpense&&isKendaraanCatName(catName)&&isBensinSubName(subName);
 const showStock=isExpense&&!showBbm&&isSparepartSubName(catName,subName);
 const showShop=isExpense&&!showBbm&&!showStock&&isShopStockCatName(catName,subName);
 const showShopSale=!isExpense&&isShopStockCatName(catName,subName);
+const showRenov=isExpense&&isRenovCatName(catName);
 bbmPanel.style.display=showBbm?'block':'none';
 stockPanel.style.display=showStock?'block':'none';
 if(shopPanel)shopPanel.style.display=showShop?'block':'none';
 if(shopSalePanel)shopSalePanel.style.display=showShopSale?'block':'none';
+if(renovPanel)renovPanel.style.display=showRenov?'block':'none';
 if(showBbm){
 populateTxBbmVehicleSelect();
 } else {
@@ -237,6 +247,13 @@ const chk=document.getElementById('txAddShopSale');
 if(chk)chk.checked=false;
 toggleTxShopSaleFields();
 resetTxShopSaleCart();
+}
+if(showRenov){
+if(typeof populateTxRenovSelect==='function')populateTxRenovSelect();
+} else {
+const rchk=document.getElementById('txAddRenov');
+if(rchk)rchk.checked=false;
+if(typeof toggleTxRenovFields==='function')toggleTxRenovFields();
 }
 }
 // Catatan: fungsi-fungsi form BBM (populateTxBbmVehicleSelect, toggleTxBbmFields,
@@ -338,6 +355,10 @@ const shopSaleHargaEl=document.getElementById('txShopSaleHarga'); if(shopSaleHar
 ['txShopSaleDiskon','txShopSaleOngkir','txShopSaleCustName','txShopSaleCustPhone','txShopSaleCustAddr'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
 resetTxShopSaleCart();
 toggleTxShopSaleFields();
+const renovChk=document.getElementById('txAddRenov');
+if(renovChk)renovChk.checked=false;
+if(typeof setTxRenovStatus==='function')setTxRenovStatus('sudah');
+if(typeof toggleTxRenovFields==='function')toggleTxRenovFields();
 openModal('txModal');
 }
 function resetPayMethodLock(){
@@ -367,6 +388,10 @@ updateTxVehiclePanels();
 const stockChk=document.getElementById('txAddStock');
 if(stockChk)stockChk.checked=false;
 toggleTxStockFields();
+const renovChkEdit=document.getElementById('txAddRenov');
+if(renovChkEdit)renovChkEdit.checked=false;
+if(typeof setTxRenovStatus==='function')setTxRenovStatus('sudah');
+if(typeof toggleTxRenovFields==='function')toggleTxRenovFields();
 const shopChk=document.getElementById('txAddShopStock');
 const hasShopStock=(t.stockItems&&t.stockItems.length)||t.stockProductId;
 if(hasShopStock&&shopChk){
@@ -501,6 +526,14 @@ const note=document.getElementById('txNote').value;
 const cat=document.getElementById('txCat').value;
 const accId=document.getElementById('txAcc').value;
 if(cat==='__add_new_cat__'){toast('⚠️ Pilih atau buat kategori dulu');return;}
+// Panel "🔨 Catat juga ke Proyek Renovasi?" dgn status "🛒 Belum Dibeli" (lihat
+// tx-renov.js): barangnya belum benar-benar dibeli, jadi transaksi Keuangan
+// SENGAJA tidak dicatat -- item renovasi (belum lunas) saja yang dibuat.
+// Hanya berlaku utk transaksi BARU (bukan edit) & metode Tunai, supaya tidak
+// bentrok dgn alur cicilan/langganan/edit transaksi yang sudah ada di bawah.
+if(!txEditId&&curPayMethod==='tunai'&&typeof handleTxRenovBelumDibeli==='function'&&handleTxRenovBelumDibeli(note,cat)){
+return;
+}
 if(curPayMethod==='cicilan'&&!validateCicilanFields())return;
 if(!txEditId){
 const dupe=findPossibleDuplicateTx(amt,date,note,curTxType);
@@ -719,6 +752,7 @@ applyTxStockFromTx(note,savedTxId,date,amt,existingTx);
 applyTxBbmFromTx(savedTxId,amt,date,accId,note,existingTx);
 applyTxShopStockFromTx(savedTxId,note,existingTx);
 applyTxShopSaleFromTx(savedTxId,date,accId,note,existingTx);
+if(!existingTx&&typeof applyTxRenovFromTx==='function')applyTxRenovFromTx(note,savedTxId,date,amt,cat,accId);
 txEditId=null;
 rememberLastAccForCat(cat,accId);
 if(_txCatLearnSource){learnCatFromItemName(_txCatLearnSource,cat);_txCatLearnSource=null;}

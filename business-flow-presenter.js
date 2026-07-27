@@ -177,25 +177,36 @@ const INVENTORY_TRANSFER_STATUSES = Object.freeze([
 //   0 Purchase       -> Etalase > Rekomendasi Restock AI (stockRekoWidgetList)
 //   2 Stock          -> Etalase > Daftar Produk (productList)
 //   3 Sale           -> Riwayat > Riwayat Transaksi (shopList)
-//   4 KPI            -> Riwayat > Alur Bisnis Shop (businessFlowBody)
+//   4 KPI            -> Laporan > Alur Bisnis Shop (businessFlowBody)
 //   5 Cost/Pricing   -> sda (belum ada kartu Cost/Pricing berdiri sendiri)
 //   6 Load/Transport -> sda (belum ada kartu Load/Transport berdiri sendiri)
 //   7 Decision       -> sda (belum ada kartu Decision berdiri sendiri)
 //   8 Finance        -> halaman Keuangan (ringkasan finansial lengkap)
 //   9 Transfer       -> daftar Transfer di kartu ini sendiri
-//     (businessFlowTransferList, sama halaman Dashboard Hub — sudah ada
-//     tombol "Buat Transfer" di kartu ini, klik kartu cuma scroll+
-//     highlight ke daftarnya, 0 navigasi baru selain scroll)
+//     (businessFlowTransferList, sekarang di tab Business Intelligence
+//     Shop — sudah ada tombol "Buat Transfer" di kartu ini, klik kartu
+//     cuma scroll+highlight ke daftarnya, 0 navigasi baru selain scroll)
+//
+// BUGFIX (Sesi 264, audit navigasi shop): entri 4-7 SEBELUMNYA menunjuk
+// tab:'riwayat', padahal container businessFlowBody sejak Sesi 205 hidup
+// di dalam #shopTab-laporan (bukan #shopTab-riwayat) — grep manual
+// index.html mengonfirmasi. Entri 9 SEBELUMNYA menunjuk page:
+// 'dashboard-hub', padahal container businessFlowTransferList sudah
+// DIPINDAH ke #shopTab-bi sejak migrasi Business Intelligence (Sesi 250,
+// lihat komentar besar di index.html "BUSINESS INTELLIGENCE (Sesi 250)").
+// Akibat sebelumnya: klik kartu KPI/Transfer melempar ke tab/halaman yang
+// TIDAK berisi datanya (kartu terlihat "mengarah ke dashboard/tab lain,
+// bukan ke datanya sendiri").
 const CARD_NAV_TARGETS = Object.freeze({
   0: { page: 'shop', tab: 'etalase', goTo: 'stockRekoWidgetList' },
   2: { page: 'shop', tab: 'etalase', goTo: 'productList' },
   3: { page: 'shop', tab: 'riwayat', goTo: 'shopList' },
-  4: { page: 'shop', tab: 'riwayat', goTo: 'businessFlowBody' },
-  5: { page: 'shop', tab: 'riwayat', goTo: 'businessFlowBody' },
-  6: { page: 'shop', tab: 'riwayat', goTo: 'businessFlowBody' },
-  7: { page: 'shop', tab: 'riwayat', goTo: 'businessFlowBody' },
+  4: { page: 'shop', tab: 'laporan', goTo: 'businessFlowBody' },
+  5: { page: 'shop', tab: 'laporan', goTo: 'businessFlowBody' },
+  6: { page: 'shop', tab: 'laporan', goTo: 'businessFlowBody' },
+  7: { page: 'shop', tab: 'laporan', goTo: 'businessFlowBody' },
   8: { page: 'keuangan' },
-  9: { page: 'dashboard-hub', goTo: 'businessFlowTransferList' },
+  9: { page: 'shop', tab: 'bi', goTo: 'businessFlowTransferList' },
 });
 
 const BusinessFlowPresenter = {
@@ -328,19 +339,34 @@ const BusinessFlowPresenter = {
 
     this._beginTick(); // S225-226: 1x renderTab() = 1 tick memoization
     const f = this.flow();
-    const lines = [
-      `🧾 Purchase: ${this._purchaseCard(f.purchase).value}`,
-      `🚚 Trip: ${this._tripCard(f.trip).value}`,
-      `📦 Stock: ${this._stockCard(f.stock).value}`,
-      `📈 Sale: ${this._saleCard(f.sale).value}`,
-      `📊 KPI: ${this._kpiCard(this.businessKPI()).value}`,
-      `💰 Cost/Pricing: ${this._costPricingCard(this.costPricingKPI()).value}`,
-      `🚛 Load/Transport: ${this._loadCostCard(this.loadCostKPI()).value}`,
-      `🧭 Decision: ${this._decisionCard(this.aiDecisionSummary()).value}`,
-      `🩺 Finance: ${this._financeCard(this.decisionDashboard().financeSummary).value}`,
-      `🚚 Inventory Transfer: ${this._transferCard(this.locationSummary()).value}`,
+    const cards = [
+      { icon: '🧾', prefix: 'Purchase', card: this._purchaseCard(f.purchase) },
+      { icon: '🚚', prefix: 'Trip', card: this._tripCard(f.trip) },
+      { icon: '📦', prefix: 'Stock', card: this._stockCard(f.stock) },
+      { icon: '📈', prefix: 'Sale', card: this._saleCard(f.sale) },
+      { icon: '📊', prefix: 'KPI', card: this._kpiCard(this.businessKPI()) },
+      { icon: '💰', prefix: 'Cost/Pricing', card: this._costPricingCard(this.costPricingKPI()) },
+      { icon: '🚛', prefix: 'Load/Transport', card: this._loadCostCard(this.loadCostKPI()) },
+      { icon: '🧭', prefix: 'Decision', card: this._decisionCard(this.aiDecisionSummary()) },
+      { icon: '🩺', prefix: 'Finance', card: this._financeCard(this.decisionDashboard().financeSummary) },
+      { icon: '🚚', prefix: 'Inventory Transfer', card: this._transferCard(this.locationSummary()) },
     ];
-    el.innerHTML = lines.map((l) => `<div class="u-fs12 u-lh15">${escapeHtml(l)}</div>`).join('');
+    // S251 fix: baris di sini SEBELUMNYA cuma <div> teks polos (0
+    // data-action/onClick) — beda dgn render() (#businessFlowGrid) yang
+    // sudah clickable lewat mekanisme onClick per-kartu. Karena
+    // #businessFlowGrid disembunyikan via CSS di Dashboard Hub (lihat
+    // komentar dashboard-hub.js "Alur Bisnis Shop DIPINDAH ke tab Shop"),
+    // #businessFlowBody (di sini) JUSTRU yang tampil ke user — jadi
+    // "tidak bisa diklik" itu benar: baris ini memang belum pernah
+    // dikasih data-action. Reuse PERSIS field `onClick:{action,args}`
+    // yang tiap kartu SUDAH punya (S251, sama seperti render() di atas),
+    // 0 target navigasi baru.
+    el.innerHTML = cards.map(({ icon, prefix, card }) => {
+      const clickAttrs = card.onClick
+        ? ` data-action="${escapeHtml(card.onClick.action)}" data-args="${escapeHtml(JSON.stringify(card.onClick.args))}"`
+        : '';
+      return `<div class="u-fs12 u-lh15${card.onClick ? ' u-pointer' : ''}"${clickAttrs}>${escapeHtml(`${icon} ${prefix}: ${card.value}`)}</div>`;
+    }).join('');
   },
 
   // restockTripCandidate() — WIRE Purchase->Trip (S206): ambil item
@@ -374,23 +400,25 @@ const BusinessFlowPresenter = {
   // openTripPage() — WIRE Trip Navigation (Sesi 249): tombol "🚚 Trip" pada
   // kartu Business Flow. TIDAK ADA halaman Trip berdiri sendiri di app
   // ini — Trip SUDAH direpresentasikan oleh TripPresenter (S204-A), yang
-  // landing/render-nya ada di 2 tempat: #tripPresenterGrid (Dashboard Hub)
-  // & #tripPresenterBody (tab Shop > Riwayat, lihat komentar
-  // "S204-A (Trip Presenter)" di index.html). Sesuai prinsip "jangan buat
-  // halaman/modal/engine baru bila sudah ada yang relevan": navigasi di
-  // sini 100% REUSE dashHubNavigateToFeature() (dashboard-hub.js) — fungsi
-  // navigasi generik yang SUDAH ADA & dipakai persis oleh seluruh entri
-  // FEATURE_REGISTRY (dashboard-hub-registry.js, mis. 'shop-laporan-omzet'
-  // -> {page:'shop', tab:'riwayat', goTo:'shopList'}) — ke tab Shop >
-  // Riwayat lalu scroll+flash-highlight ke #tripPresenterBody (landing
-  // TripPresenter, container yang SUDAH ADA sejak S204-A). Kalau
-  // dashHubNavigateToFeature belum dimuat (mis. dipanggil dari konteks
-  // tanpa dashboard-hub.js), fallback ke DeliveryPlanUI.open() (S203,
-  // fitur Delivery/Pengiriman yang SUDAH ADA) — 0 halaman/modal/engine
-  // baru dibuat di kedua jalur.
+  // landing/render-nya ada di 2 tempat: #tripPresenterGrid (tab Shop >
+  // Business Intelligence) & #tripPresenterBody (tab Shop > Laporan,
+  // lihat komentar "S204-A (Trip Presenter)" di index.html). Sesuai
+  // prinsip "jangan buat halaman/modal/engine baru bila sudah ada yang
+  // relevan": navigasi di sini 100% REUSE dashHubNavigateToFeature()
+  // (dashboard-hub.js) — ke tab Shop > Laporan lalu scroll+flash-highlight
+  // ke #tripPresenterBody (landing TripPresenter, container yang SUDAH ADA
+  // sejak S204-A). Kalau dashHubNavigateToFeature belum dimuat (mis.
+  // dipanggil dari konteks tanpa dashboard-hub.js), fallback ke
+  // DeliveryPlanUI.open() (S203, fitur Delivery/Pengiriman yang SUDAH
+  // ADA) — 0 halaman/modal/engine baru dibuat di kedua jalur.
+  //
+  // BUGFIX (Sesi 264, audit navigasi shop): SEBELUMNYA target tab:
+  // 'riwayat' — padahal #tripPresenterBody hidup di #shopTab-laporan
+  // (grep manual index.html), bukan #shopTab-riwayat. Efeknya klik
+  // "🚚 Trip" melempar ke tab Riwayat yang tidak berisi ringkasan Trip.
   openTripPage() {
     if (typeof dashHubNavigateToFeature === 'function') {
-      dashHubNavigateToFeature({ page: 'shop', tab: 'riwayat', goTo: 'tripPresenterBody' });
+      dashHubNavigateToFeature({ page: 'shop', tab: 'laporan', goTo: 'tripPresenterBody' });
       return;
     }
     if (typeof DeliveryPlanUI !== 'undefined' && DeliveryPlanUI.open) DeliveryPlanUI.open();
@@ -845,9 +873,10 @@ const BusinessFlowPresenter = {
     if (typeof document === 'undefined') return;
     const prodSel = document.getElementById('itProduct');
     if (prodSel && typeof D !== 'undefined') {
-      prodSel.innerHTML = (D.products || [])
-        .map((p) => `<option value="${p.id}">${escapeHtml(p.name)}</option>`)
-        .join('');
+      const inStock = (D.products || []).filter((p) => (parseFloat(p.stock) || 0) > 0);
+      prodSel.innerHTML = inStock.length
+        ? inStock.map((p) => `<option value="${p.id}">${escapeHtml(p.name)} (stok ${p.stock})</option>`).join('')
+        : '<option value="">— Tidak ada produk dengan stok —</option>';
     }
     const qtyEl = document.getElementById('itQty');
     if (qtyEl) qtyEl.value = 1;
@@ -871,7 +900,14 @@ const BusinessFlowPresenter = {
       if (typeof toast === 'function') toast('Pilih produk & isi qty dulu');
       return;
     }
+    const product = (typeof D !== 'undefined' && (D.products || []).find((p) => p.id === productId)) || null;
+    const stock = product ? (parseFloat(product.stock) || 0) : 0;
     const existing = this._transferCartState.find((it) => it.productId === productId);
+    const alreadyInCart = existing ? existing.qty : 0;
+    if (stock > 0 && (alreadyInCart + qty) > stock) {
+      if (typeof toast === 'function') toast(`Stok tidak cukup (tersisa ${stock - alreadyInCart})`);
+      return;
+    }
     if (existing) existing.qty += qty;
     else this._transferCartState.push({ productId, qty });
     if (qtyEl) qtyEl.value = 1;

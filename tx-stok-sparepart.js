@@ -50,6 +50,64 @@ if(!p.txRefs.includes(txId))p.txRefs.push(txId);
 p.lastTxId=txId;
 }
 }
+// syncPartsStockFromCatalog(catalogItem) — Tahap 9 (Jembatan Vehicle
+// Catalog <-> Stok Sparepart Keuangan): cari-atau-buat 1 baris D.partsStock
+// yang TERHUBUNG (field `catalogId`) ke 1 part di VehicleCatalog (katalog
+// suku cadang, IDBStore terpisah — lihat modules/vehicle/vehicle-catalog.js).
+// Pola bridge ini SAMA PERSIS `catalogPartLinkedStockId` yang sudah dipakai
+// alur Servis di car-notes.js (VehicleCatalog TETAP identitas/OEM/barcode,
+// D.partsStock TETAP satu-satunya pemilik qty/harga/riwayat pembelian —
+// konsisten aturan ACR-001 "VehicleCatalog tidak pernah menyentuh D").
+// Fungsi MURNI terhadap D (baca/tulis D.partsStock & D.sparepartCats saja,
+// TIDAK memanggil save() -- pemanggil yang sudah punya 1 titik save() per
+// alur, sama seperti applyTxStockFromTx() di bawah).
+function syncPartsStockFromCatalog(catalogItem){
+if(!catalogItem||!catalogItem.id)return null;
+const existing=D.partsStock.find(p=>p.catalogId===catalogItem.id);
+if(existing){
+if(catalogItem.partName&&existing.name!==catalogItem.partName)existing.name=catalogItem.partName;
+return existing;
+}
+const catName=(catalogItem.category||'Umum').trim()||'Umum';
+let cat=D.sparepartCats.find(c=>c.name.toLowerCase()===catName.toLowerCase());
+if(!cat){
+cat={id:'sp_'+Date.now(),name:catName,code:codeFromName(catName),intervalKm:0};
+D.sparepartCats.push(cat);
+}
+const prefix=cat.code||codeFromName(catName);
+const seq=D.partsStock.filter(p=>p.code&&p.code.startsWith(prefix+'-')).length+1;
+const code=(catalogItem.barcode||catalogItem.oemCode||(prefix+'-'+String(seq).padStart(3,'0')));
+const np={id:'st_'+Date.now(),name:catalogItem.partName||'Part dari Katalog',catId:cat.id,code,qty:0,unit:'pcs',minStock:1,price:catalogItem.price||0,note:'Terhubung dari Katalog Suku Cadang (scan)',catalogId:catalogItem.id};
+D.partsStock.push(np);
+return np;
+}
+// txStockScanPart() — tombol "📷 Scan Kode Part" di txStockPanel (modal
+// Tambah/Edit Transaksi Keuangan). Reuse 100% SparepartScanner (kamera) ->
+// VehicleCatalog.handleScan() (sudah ada) utk cari/bikin draft part, lalu
+// syncPartsStockFromCatalog() di atas utk hubungkan ke baris stok yg dipilih
+// di dropdown txStockItem yg SUDAH ADA -- TIDAK ada UI/dropdown baru.
+async function txStockScanPart(){
+if(typeof SparepartScanner==='undefined'||!SparepartScanner){toast('⚠️ Fitur scan belum tersedia');return;}
+const result=await SparepartScanner.scan('camera');
+if(!result)return;
+let item=result.item;
+if(result.draft&&item){
+const name=await showPromptModal({title:'Nama Part Baru',message:'Kode "'+(item.barcode||item.oemCode||'')+'" belum ada di Katalog Suku Cadang. Isi nama part-nya dulu:',icon:'📦'});
+if(!name)return;
+const res=await VehicleCatalog.resolveDraft(item.id,{partName:name,category:'Umum'});
+if(!res||!res.success){toast('⚠️ '+((res&&res.errors&&res.errors[0])||'Gagal menyimpan part ke katalog'));return;}
+item=res.item;
+}
+if(!item){toast('⚠️ Part tidak ditemukan/gagal dibuat');return;}
+const p=syncPartsStockFromCatalog(item);
+if(!p){toast('⚠️ Gagal menghubungkan part ke stok');return;}
+const chk=document.getElementById('txAddStock');
+if(chk){chk.checked=true;toggleTxStockFields();}
+populateTxStockSelect();
+const sel=document.getElementById('txStockItem');
+if(sel){sel.value=p.id;onTxStockItemChange();}
+toast('📷 Part "'+p.name+'" siap ditambah ke stok');
+}
 function populateTxStockSelect(){
 const sel=document.getElementById('txStockItem');
 if(!sel)return;
@@ -119,6 +177,16 @@ const np={id:'st_'+Date.now(),name,catId:cat.id,code,qty:0,unit,minStock:1,price
 D.partsStock.push(np);
 applyStockPurchase(np,qty,unitPrice,purchaseDate,txId);
 targetPart=np;
+// Tahap 9: part baru yg diketik manual di Keuangan JUGA otomatis dibuatkan
+// entri di Vehicle Catalog (best-effort, tidak menunggu/tidak memblokir
+// alur simpan transaksi yg sync) supaya part yg sama bisa dikenali lewat
+// scan barcode/OEM di sesi berikutnya. Kegagalan (mis. VehicleCatalog
+// belum ada) diabaikan diam-diam -- ini pelengkap, bukan syarat simpan.
+if(typeof VehicleCatalog!=='undefined'&&VehicleCatalog&&typeof VehicleCatalog.create==='function'){
+VehicleCatalog.create({partName:name,category:cat.name}).then(res=>{
+if(res&&res.success&&res.item){np.catalogId=res.item.id;if(typeof save==='function')save();}
+}).catch(()=>{});
+}
 }
 toast(`📦 Kategori & stok "${name}" otomatis dibuat (+${qty} ${unit})`);
 } else {

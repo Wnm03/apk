@@ -27,6 +27,14 @@ box.innerHTML='📊 <b>Perkiraan kasar</b> (26 hari kerja/bulan):<br>'
 +'<span class="u-ctext3">Nanti bisa diatur presisi lewat Absensi harian</span>';
 }
 async function finishOnboard(){
+// FIX (2026-07-26): guard SW controllerchange-reload dipindah ke PALING AWAL finishOnboard(),
+// SEBELUM operasi async apa pun (hashPin, dsb). Sebelumnya guard ini baru diset di akhir fungsi,
+// jadi ada celah waktu (selama await hashPin() dkk) di mana event 'controllerchange' bisa keburu
+// nembak reload() sebelum guard sempat terpasang -- itu penyebab PIN "muncul 2x" (init() jalan
+// ulang, lihat kw_pin baru tersimpan, showPinScreen() lagi sebelum user lihat halaman utama).
+// Set guard duluan di sini menutup celah race tsb; reload SW normal utk update berikutnya tetap
+// jalan seperti biasa (guard cuma berlaku sekali per sesi transisi onboarding->main ini).
+try{sessionStorage.setItem('kw_sw_reloaded','1');}catch(e){}
 const nama=document.getElementById('ob_nama').value||'W';
 const gaji=parseInt(document.getElementById('ob_gaji').value)||65000;
 const kirim=parseInt(document.getElementById('ob_kirim').value)||500000;
@@ -38,13 +46,6 @@ D.profile={nama,gajiPokok:gaji,kiriman:kirim,theme:tema,tanggalLahir:null,status
 safeSetItem('kw_pin',await hashPin(pin));
 _sessionRawPin=pin;
 safeSetItem('kw_setup','1');
-// FIX (2026-07-25): SW controllerchange auto-reload (lihat script inline di head index.html/
-// app_production.html) kadang kepicu TEPAT setelah onboarding selesai -- reload itu bikin init()
-// jalan ulang, lihat kw_pin baru saja tersimpan, lalu showPinScreen() lagi sebelum user sempat
-// lihat halaman utama sama sekali (terasa spt PIN diminta 2x). Set guard sessionStorage di sini
-// supaya reload SW yg nyangkut di momen ini di-skip SEKALI utk transisi onboarding->main; reload
-// normal utk update SW berikutnya tetap jalan seperti biasa.
-try{sessionStorage.setItem('kw_sw_reloaded','1');}catch(e){}
 save(); document.getElementById('onboard').style.display='none'; showMain();
 }catch(e){
 console.error('finishOnboard gagal:',e);

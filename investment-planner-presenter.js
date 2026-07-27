@@ -31,7 +31,7 @@
 // app_production.html), pola sama persis FINHEALTH_NAV_TARGETS.self
 // (S254A, self-scroll utk kartu komposit).
 const INVESTPLANNER_NAV_TARGETS = Object.freeze({
-  self: { page: 'dashboard-hub', goTo: 'investPlannerWrap' },
+  self: { page: 'keuangan', tab: 'laporan', goTo: 'investPlannerWrap' },
 });
 const InvestmentPlannerPresenter = {
 

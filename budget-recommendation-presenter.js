@@ -29,7 +29,7 @@
 // TERVERIFIKASI ADA di index.html/app_production.html), pola sama persis
 // FINHEALTH_NAV_TARGETS.self (S254A, self-scroll utk kartu komposit).
 const BUDGETRECO_NAV_TARGETS = Object.freeze({
-  self: { page: 'dashboard-hub', goTo: 'budgetRecoWrap' },
+  self: { page: 'keuangan', tab: 'laporan', goTo: 'budgetRecoWrap' },
 });
 const BudgetRecommendationPresenter = {
 

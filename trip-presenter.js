@@ -30,7 +30,13 @@
 // ke container yang SAMA (#tripPresenterBody, TIDAK ADA container baru),
 // dieksekusi lewat dashHubNavigateToFeature() yang SUDAH ADA
 // (dashboard-hub.js).
-const CARD_NAV_TARGET = Object.freeze({ page: 'shop', tab: 'riwayat', goTo: 'tripPresenterBody' });
+//
+// BUGFIX (Sesi 264, audit navigasi shop — sama pola dgn kasus Finance
+// Dashboard Sesi 263): SEBELUMNYA tab:'riwayat' — padahal
+// #tripPresenterBody hidup di #shopTab-laporan (grep manual index.html),
+// bukan #shopTab-riwayat. Efeknya klik kartu Trip melempar ke tab Riwayat
+// yang tidak berisi ringkasan Trip-nya.
+const CARD_NAV_TARGET = Object.freeze({ page: 'shop', tab: 'laporan', goTo: 'tripPresenterBody' });
 
 const TripPresenter = {
 
