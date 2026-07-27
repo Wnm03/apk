@@ -1,49 +1,220 @@
-# Changelog — Sesi 286d: FIX — kontrak fungsional 11 file modules/cross/* yang masih 0 test sendiri (audit temuan #2, lanjutan Sesi 286c)
+# Changelog — Sesi 293: Audit tindak lanjut — orphan check Target Tabungan di runDataHealthCheck()
 
 ## Konteks
-Lanjutan langsung dari Sesi 286c (cycle-guard dependency graph, lihat
-entri di bawah): entri itu menutup temuan #1 (cycle-guard hilang) tapi
-menyisakan 11 file `modules/cross/*` yang SUDAH ikut dites di graph +
-1 rantai end-to-end (`cross-module-dependency-graph-s286.test.js`),
-TAPI belum satupun punya test kontrak FUNGSIONAL milik file itu sendiri
-(guard `{ok:false}` per-dependency, arithmetic murni yang jadi tanggung
-jawabnya, dan utk presenter: perilaku SILENT/container-tidak-ada).
+Hasil audit eksternal atas rilis Sesi 292 (`akun-del-targets-assets-gapfix`)
+menemukan: `delAcc()` (`modules/finance/akun.js`) sudah memigrasi `accountId`
+di `D.targets` sejak Sesi 292 supaya tidak dangling saat akun dihapus, TAPI
+`runDataHealthCheck()` (`data-health-check.js`) — mekanisme audit integritas
+data lintas-domain yang sudah mengecek kasus identik untuk `D.assets`,
+`D.bills`, `D.bbmLogs`, `D.servisLogs`, `D.cobek`, item `D.renovProjects`,
+dll — belum pernah mengecek orphan `accountId` di `D.targets`. Jadi kalau
+ada jalur lain (restore backup lama, import, dsb) yang bikin `D.targets`
+kembali dangling, tidak ada warning yang muncul ke user.
 
-## Perubahan
-- **`tests/cross-module-own-contract-s286.test.js`** (49 test, BARU),
-  dikelompokkan per prioritas audit, tiap file diuji SENDIRIAN (stub
-  hanya dependency langsungnya, bukan rantai 17 file — itu tetap
-  tanggung jawab test graph di 286c):
-  - 🟠 **Tinggi (2 file):** `life-dashboard-summary-api.js`,
-    `unified-ai-briefing.js`
-  - 🟡 **Sedang (4 file):** `unified-summary-api.js`, `cross-ai-hook.js`,
-    `finance-vehicle-cross-summary.js`, `cross-dashboard-card.js`
-    (termasuk kontrak `_financeHealthCard()`/`_vehicleHealthCard()` yang
-    tetap hidup di file walau sudah tidak dipanggil dari `render()`)
-  - 🟢 **Rendah (5 file presenter DOM-bound):**
-    `cross-insight-presenter.js`, `personal-overview-presenter.js`,
-    `unified-briefing-presenter.js` (termasuk kasus 2 container
-    independen), `cross-module-widgets.js`, `unified-dashboard-home.js`
-- **`modules/cross/unified-ai-briefing.js`** (komentar saja, 0 logic
-  berubah): catatan header § "ARSITEKTUR (S116)" masih merujuk
-  `tests/decision-center-dependency-graph.test.js` — nama file yang
-  SUDAH diganti di 286c tapi lupa disamakan di sini. Diarahkan ke
-  `tests/cross-module-dependency-graph-s286.test.js` +
-  `tests/cross-module-own-contract-s286.test.js`.
+Rekomendasi audit lain yang TIDAK dikerjakan sesi ini (di luar cakupan
+"paling ringan", butuh keputusan/effort terpisah):
+- Instalasi `esbuild` (perlu akses jaringan, tidak tersedia di environment
+  build saat ini) — bundle produksi tetap belum diminify.
+- Retensi folder `backups/` — lihat `scripts/cleanup-backups.js` (BARU,
+  sesi ini) sebagai tooling-nya; belum dijadwalkan otomatis, dijalankan
+  manual dulu sesuai kebutuhan.
+
+## Perubahan (audit-only, 0 skema/store baru, pola 100% reuse)
+- **`data-health-check.js`**: tambah 1 cek baru di `runDataHealthCheck()` —
+  `(D.targets||[]).forEach(...)` warn `"Target Tabungan dengan akun tautan
+  tidak valid"` kalau `t.accountId` tidak ada di `D.accounts`. Pola SAMA
+  PERSIS cek `D.assets` yang sudah ada tepat di atasnya (1 syarat, 1 issue,
+  level `warn`, 0 logic baru).
+- **`scripts/cleanup-backups.js`** (BARU): utility standalone (tanpa
+  dependency luar) buat retensi `backups/app-bundle-*.min.*.js` — default
+  simpan 10 backup terbaru per bundle (`a`/`b`), sisanya dihapus. Dry-run
+  by default (`--apply` buat betulan menghapus). Tidak dipanggil otomatis
+  dari `build.js` sesi ini (sengaja, biar user yang putuskan kapan
+  dijalankan) — TIDAK ada perubahan ke `build.js`.
+
+## Test baru
+`tests/data-health-check-target-orphan-s293.test.js` (4 test): warn kalau
+`accountId` Target Tabungan tidak valid, tidak warn kalau valid, tidak
+di-flag kalau `accountId` kosong/null (target manual tanpa tautan akun),
+dan `D.targets` kosong/tidak ada tidak pernah bikin `runDataHealthCheck()`
+error.
 
 ## Hasil verifikasi
 ```
 node --test tests/*.test.js
-# tests 1547 / pass 1547 / fail 0 (naik dari 1505, +49 test baru, +7 dari 286c, 0 regresi)
+# tests 1577 / pass 1577 / fail 0 (naik dari 1573, +4 test baru, 0 regresi)
 
-node scripts/build.js kw286d-cross-module-own-contract-test
-# ✅ Build selesai, ?v=811, index.html & app_production.html identik
-
-node --test tests/*.test.js   # setelah build
-# tests 1547 / pass 1547 / fail 0
+node scripts/build.js s293-datahealth-target-orphan-audit
+# ✅ Build selesai, index.html & app_production.html identik, sintaks bundle valid
 ```
 
-**Audit temuan #2 (11 file cross tanpa kontrak sendiri) DITUTUP.**
+---
+
+# Changelog — Sesi 292: Bugfix — hapus Akun tidak memigrasi Target Tabungan & Aset yang tertaut (akun-del-targets-assets-gapfix)
+
+## Konteks
+`accountId` menunjuk ke `D.accounts`. Sebelum fix ini, hapus akun yang
+masih ditautkan ke Target Tabungan (`D.targets`) atau Aset (`D.assets`)
+bikin `accountId`-nya jadi dangling reference (nunjuk akun yang sudah
+tidak ada) — progress Target/badge "via Aset" bisa salah baca karena kode
+di `tx-target.js`/`aset.js` asumsinya akun itu selalu ada. `delAcc()`
+sebelumnya cuma memigrasi 5 array lain (`transactions`, `bills`,
+`bbmLogs`, `servisLogs`, `cobek`) saat akun dihapus & datanya dipindah ke
+akun lain — `targets` dan `assets` terlewat.
+
+## Perubahan (additive, pola 100% reuse, 0 skema/store baru)
+- **`modules/finance/akun.js`** (`delAcc()`): tambah `D.targets` &
+  `D.assets` ke deteksi `hasLinkedData` dan ke migrasi `accountId` saat
+  akun dihapus — pola SAMA PERSIS 5 array yang sudah ada (cuma 2 baris
+  `forEach` tambahan + 2 syarat `.some()` tambahan, 0 logic baru). Pesan
+  konfirmasi & modal pilih akun tujuan (`showChoiceModal`) diperluas
+  menyebutkan jumlah Target Tabungan/Aset yang ikut tertaut, supaya user
+  sadar data ini juga akan dipindah.
+
+## Test baru
+`tests/akun-del-migrate-choice.test.js`: +2 test — akun ditautkan ke
+Target Tabungan (`D.targets`) ikut terdeteksi & ikut dipindah; akun
+ditautkan ke Aset (`D.assets`) dengan 2+ kemungkinan tujuan ikut
+terdeteksi, `showChoiceModal` muncul, ikut dipindah ke pilihan user.
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 1573 / pass 1573 / fail 0 (0 regresi)
+
+node scripts/build.js s292-akun-del-targets-assets-gapfix
+# ✅ Build selesai, ?v=802, index.html & app_production.html identik, sintaks bundle valid
+```
+
+---
+
+# Changelog — Sesi 290: FITUR — "Push ke Stok Sparepart" pasca Import Katalog PDF
+
+## Konteks (pertanyaan user)
+Audit user atas `vehicle-catalog.js` benar: sync Katalog Suku Cadang ->
+Stok Sparepart TIDAK otomatis membawa qty nyata. Yang sudah ada
+sebelumnya (Tahap 9/`syncPartsStockFromCatalog()` & Tahap 10
+Sesi 287/`syncUnlinkedCatalogPartsToStock()`) cuma menautkan part katalog
+ke `D.partsStock` dgn `qty:0` begitu panel Stok Keuangan dibuka — part
+hasil "Import Katalog" (PDF) tetap harus ditambah qty-nya manual satu-
+satu lewat modal "Tambah Stok Sparepart" atau dropdown Servis.
+
+## Perubahan (additive, 0 skema/store baru, 0 modal baru)
+- **`modules/vehicle/vehicle-catalog-import.js`** — `commitRows()`
+  sekarang juga mengembalikan `createdItems: []` (item `VehicleCatalog`
+  yang BENAR-BENAR berhasil dibuat sesi commit ini). Field lama
+  (`imported`/`skipped`/`duplicates`/`errors`) TIDAK berubah bentuk —
+  additive murni, pemanggil lama (mis. `vehicle-catalog-web-import.js`)
+  tidak terpengaruh.
+- **`modules/vehicle/vehicle-catalog-import-stock-push.js`** (BARU) —
+  `VehicleCatalogImportStockPush.run(items, qty)`: logic murni, reuse
+  100% `syncPartsStockFromCatalog()` (Tahap 9) per item lalu **tambah**
+  qty ke baris stoknya (tidak pernah menimpa qty existing, pola sama
+  `applyStockPurchase()`). `.promptAndRun(createdItems)`: orkestrasi
+  reuse `askConfirm()`/`showPromptModal()` yang SUDAH ADA (tidak ada
+  modal baru) — tanya konfirmasi lalu SATU angka qty awal yang dipakai
+  rata ke semua part yang baru diimpor sesi commit itu (qty berbeda per
+  part tetap bisa dikoreksi manual seperti biasa setelahnya).
+- **`modules/vehicle/vehicle-catalog-import-ui.js`** — `catalogImportUiCommit()`
+  memanggil `VehicleCatalogImportStockPush.promptAndRun(summary.createdItems)`
+  SETELAH toast/refresh import sukses (dibungkus try/catch, guard typeof —
+  gagal aman, tidak pernah menggagalkan import yang sudah sukses).
+- **`scripts/build.js`** — entri baru `vehicle-catalog-import-stock-push.js`
+  di GROUP_B, tepat setelah `vehicle-catalog-import-ui.js`.
+
+## Test baru
+- `tests/vehicle-catalog-import-stock-push.test.js` — 11 test baru
+  (`run()`: link + tambah qty, qty 0/negatif/NaN, array kosong,
+  dependency belum ada; `promptAndRun()`: array kosong, batal di
+  konfirmasi, batal di prompt qty, sukses end-to-end, qty dikosongkan).
+- `tests/vehicle-catalog-import.test.js` — +2 test `commitRows()`
+  (`createdItems` isi item yang benar-benar dibuat, bukan skip/duplikat;
+  array kosong -> `createdItems` tetap array kosong).
+
+## Diketahui, TIDAK disentuh sesi ini (pre-existing, di luar cakupan)
+- ~~`tests/sw-precache-paths.test.js` — 2 test gagal~~ **DIPERBAIKI** (lihat
+  bawah, atas permintaan lanjutan user sesi ini).
+- `npm run lint` tidak bisa dijalankan di environment sesi ini (`eslint`
+  belum terpasang, tidak ada akses jaringan utk `npm install`).
+
+## Perbaikan susulan (1 baris, atas permintaan user)
+- **`sw.js`** — `PRECACHE_URLS`: `'./smoke-test.js'` (path lama, file
+  sudah dipindah ke `modules/shared/smoke-test.js` sejak Sesi 284, `sw.js`
+  tidak pernah ikut diupdate) diperbaiki jadi
+  `'./modules/shared/smoke-test.js'`. Efeknya: sebelumnya
+  `cache.addAll(PRECACHE_URLS)` di `install` event gagal-total (silent,
+  cuma ke-`console.warn`) krn 1 path 404 — precache PWA offline-first
+  jadi tidak pernah benar-benar tersimpan. Fix ini murni koreksi path,
+  0 perubahan strategi caching lain.
+
+## Hasil verifikasi (final)
+```
+node --test tests/*.test.js
+# tests 1565 / pass 1565 / fail 0 (0 gagal — termasuk fix sw-precache-paths)
+
+node scripts/build.js
+# ✅ Build "s289-camera-scanner-modal-fix-4" selesai, ?v=799,
+#    index.html & app_production.html identik, sintaks bundle valid
+```
+
+---
+
+
+
+## Konteks (laporan user, 2 screenshot)
+1. Dropdown "Pilih Sparepart" di panel "📦 Tambah ke Stok Sparepart juga?"
+   (form Tambah/Edit Transaksi Keuangan) cuma menampilkan isi
+   `D.partsStock` — part yang sudah ada di 📦 Katalog Suku Cadang
+   (`VehicleCatalog`, ditambah manual/scan/import di modal Katalog) TIDAK
+   pernah muncul di situ sampai di-scan ulang lewat tombol "📷 Scan Kode
+   Part".
+2. Sebaliknya, part baru yang ditambah manual lewat ⚙️ Atur -> "Kelola
+   Kategori Sparepart & Stok Sparepart" -> "+ Tambah Stok Sparepart"
+   (`Sparepart.saveStock()`, modules/vehicle/sparepart-servis.js) TIDAK
+   pernah dipush ke `VehicleCatalog` — beda dari alur Keuangan
+   (`applyTxStockFromTx()`) yang SUDAH auto-push sejak Tahap 9 (Sesi 266).
+
+Jembatan Tahap 9 (`syncPartsStockFromCatalog()`, dari Sesi 266) sudah ada
+tapi cuma dipanggil dari alur scan — belum pernah dipanggil otomatis pas
+panel dibuka, dan belum ada versi arah sebaliknya (Kelola Stok -> Katalog).
+
+## Perubahan (Tahap 10, lanjutan Tahap 9 — 0 skema/store baru)
+- **`modules/finance/tx-stok-sparepart.js`** — fungsi baru
+  `syncUnlinkedCatalogPartsToStock()`: tiap kali `populateTxStockSelect()`
+  dipanggil (panel stok dibuka), best-effort load `VehicleCatalog` lalu
+  tautkan semua part katalog (non-draft) yang belum punya baris
+  `D.partsStock` terhubung (`catalogId`) — reuse 100%
+  `syncPartsStockFromCatalog()` yang sudah ada, TIDAK ada logic bikin part
+  baru. Async & fire-and-forget (guard `typeof`, tidak throw kalau
+  `VehicleCatalog` belum ada/gagal load) — dropdown dirender ulang HANYA
+  kalau memang ada part baru yang tertaut, supaya tidak flicker.
+- **`modules/vehicle/sparepart-servis.js`** — `Sparepart.saveStock()`
+  cabang "part baru" (bukan edit) sekarang juga panggil
+  `VehicleCatalog.create({partName, category})` best-effort (pola SAMA
+  PERSIS `applyTxStockFromTx()`), lalu simpan `catalogId` hasilnya ke
+  baris stok yang baru dibuat. Cabang edit TIDAK berubah (tidak
+  memicu create() lagi, mencegah entri katalog dobel tiap edit).
+
+## Test baru
+- `tests/tx-stok-sparepart-catalog-link.test.js` — +5 test
+  `syncUnlinkedCatalogPartsToStock()` (part belum tertaut, sudah tertaut,
+  draft diabaikan, VehicleCatalog belum ada, ensureLoaded() reject).
+- `tests/sparepart-savestock-catalog-push.test.js` (baru, 5 test) —
+  `saveStock()` push part baru ke `VehicleCatalog.create()` dgn kategori
+  terpilih/fallback "Umum", edit TIDAK memicu create() lagi,
+  VehicleCatalog tidak ada/reject -> tetap simpan stok tanpa error.
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 1554 / pass 1553 / fail 1 (naik dari 1544, +10 test baru)
+# 1 fail SUDAH ADA SEBELUM sesi ini, tidak terkait (FEATURE_REGISTRY:
+# group 'stgGroup3' Pengingat belum dihapus dari index.html — item lain
+# yang sedang dikerjakan user, di luar cakupan fix ini)
+
+node scripts/build.js s287-sparepart-catalog-tx-sync
+# ✅ Build selesai, ?v=811, index.html & app_production.html identik
+```
 
 ---
 

@@ -372,8 +372,8 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1')return true;
 }catch(e){ /* anggap bukan dev mode kalau gagal deteksi */ }
 return false;
 }
-const APP_BUILD_VERSION = 's293-datahealth-target-orphan-audit';
-const PRODUCTION_BUILD_SYNCED_VERSION = 's293-datahealth-target-orphan-audit';
+const APP_BUILD_VERSION = 's289-camera-scanner-modal-fix-7';
+const PRODUCTION_BUILD_SYNCED_VERSION = 's289-camera-scanner-modal-fix-7';
 let D = {
 schemaVersion:SCHEMA_VERSION,
 transactions:[],cobek:[],products:[],produsen:[],cobekKategori:JSON.parse(JSON.stringify(DEFAULT_COBEK_KATEGORI)),targets:[],eduFunds:[],reminders:[],bills:[],billsArchive:[],inventoryTransfers:[],
@@ -18232,16 +18232,6 @@ issues.push({level:'warn',title:'Tagihan dengan akun tidak valid',detail:`"${esc
 (D.assets||[]).forEach(a=>{
 if(a.accountId && !accIds.has(a.accountId)){
 issues.push({level:'warn',title:'Aset dengan akun tautan tidak valid',detail:`"${escapeHtml(a.name)}" ditautkan ke akun yang sudah dihapus — akun tautan otomatis dianggap kosong, cek/lepas tautannya di modal Aset.`});
-}
-});
-// PERUBAHAN SESI 293 (audit lanjutan Sesi 292 akun-del-targets-assets-gapfix):
-// D.targets punya accountId (dipakai progress "via Akun" — lihat akun.js
-// delAcc() & modules-calc.js) tapi belum pernah dicek orphan di sini, gap
-// yang sama persis seperti D.assets di atas. Pola SAMA PERSIS cek Aset di
-// atas (1 syarat, 1 issue, level warn, 0 logic baru).
-(D.targets||[]).forEach(t=>{
-if(t.accountId && !accIds.has(t.accountId)){
-issues.push({level:'warn',title:'Target Tabungan dengan akun tautan tidak valid',detail:`"${escapeHtml(t.name||'?')}" ditautkan ke akun yang sudah dihapus — saldo tautan otomatis dianggap kosong, cek/lepas tautannya di modal Target Tabungan.`});
 }
 });
 D.bbmLogs.forEach(b=>{

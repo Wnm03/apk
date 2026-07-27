@@ -43,6 +43,16 @@ if(a.accountId && !accIds.has(a.accountId)){
 issues.push({level:'warn',title:'Aset dengan akun tautan tidak valid',detail:`"${escapeHtml(a.name)}" ditautkan ke akun yang sudah dihapus — akun tautan otomatis dianggap kosong, cek/lepas tautannya di modal Aset.`});
 }
 });
+// PERUBAHAN SESI 293 (audit lanjutan Sesi 292 akun-del-targets-assets-gapfix):
+// D.targets punya accountId (dipakai progress "via Akun" — lihat akun.js
+// delAcc() & modules-calc.js) tapi belum pernah dicek orphan di sini, gap
+// yang sama persis seperti D.assets di atas. Pola SAMA PERSIS cek Aset di
+// atas (1 syarat, 1 issue, level warn, 0 logic baru).
+(D.targets||[]).forEach(t=>{
+if(t.accountId && !accIds.has(t.accountId)){
+issues.push({level:'warn',title:'Target Tabungan dengan akun tautan tidak valid',detail:`"${escapeHtml(t.name||'?')}" ditautkan ke akun yang sudah dihapus — saldo tautan otomatis dianggap kosong, cek/lepas tautannya di modal Target Tabungan.`});
+}
+});
 D.bbmLogs.forEach(b=>{
 if(b.vehicleId && !vehIds.has(b.vehicleId)){
 issues.push({level:'error',title:'Catatan BBM dengan kendaraan tidak valid',detail:`Catatan BBM tgl ${b.date||'?'} menunjuk ke kendaraan yang sudah dihapus.`});

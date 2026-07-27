@@ -5,6 +5,50 @@ JANGAN audit/implement/test/build ulang bagian yang sudah **Completed**.
 
 ## Current Session
 
+Sesi 287 (2026-07-27) — FIX: Katalog Suku Cadang tidak sync ke dropdown
+"Pilih Sparepart" (input transaksi Keuangan) & Kelola Stok Sparepart tidak
+push ke Katalog. SELESAI PENUH. Detail lengkap: `CHANGELOG.md` § Sesi 287.
+
+**Target eksplisit user**: 2 screenshot melaporkan katalog suku cadang
+belum tampil di input transaksi, dan Kelola Kategori/Stok Sparepart
+seharusnya sync otomatis dgn Katalog.
+
+**Implementasi**: Tahap 10 (lanjutan bridge Tahap 9 Sesi 266) — 2 arah
+sync antara `VehicleCatalog` (Katalog Suku Cadang) & `D.partsStock`:
+1. `syncUnlinkedCatalogPartsToStock()` baru (tx-stok-sparepart.js), tautkan
+   otomatis part katalog yang belum ada di `D.partsStock` tiap panel stok
+   dibuka — reuse `syncPartsStockFromCatalog()` 100%.
+2. `Sparepart.saveStock()` (sparepart-servis.js) push part stok baru ke
+   `VehicleCatalog.create()` best-effort, pola sama `applyTxStockFromTx()`.
+
+**Scope**: 2 file JS + 2 file test (10 test baru). 0 skema/store baru, 0
+perubahan ke fungsi bridge murni yang sudah ada (Tahap 9 dipakai apa
+adanya).
+
+## Test
+
+`node --test tests/*.test.js` -> **1553/1554 pass** (naik dari 1543/1544,
++10 test baru). 1 fail SUDAH ADA sebelum sesi ini (FEATURE_REGISTRY,
+`stgGroup3`/Pengingat belum dihapus dari index.html — pekerjaan lain yang
+sedang berjalan, di luar cakupan fix ini).
+
+## Build
+
+`node scripts/build.js s287-sparepart-catalog-tx-sync` -> sukses, `?v=811`
+(naik dari `?v=810`).
+
+## ZIP
+
+`kw_release_sesi287_sparepart-catalog-tx-sync_v811.zip` — dibuat &
+diverifikasi `unzip -t`.
+
+## Current Step
+
+Sesi 287 selesai penuh — ZIP rilis dibuat & diverifikasi, ringkasan & link
+ditampilkan ke user. STOP.
+
+---
+
 Sesi 262 (2026-07-26) — Selective Liquid Glass + M3 Expressive UI refresh
 (floating nav, glass chrome, kontras badge stok). SELESAI PENUH. Detail
 lengkap: `CHANGELOG.md` § Sesi 262.

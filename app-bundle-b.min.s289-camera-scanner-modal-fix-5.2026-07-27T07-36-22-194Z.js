@@ -372,8 +372,8 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1')return true;
 }catch(e){ /* anggap bukan dev mode kalau gagal deteksi */ }
 return false;
 }
-const APP_BUILD_VERSION = 's293-datahealth-target-orphan-audit';
-const PRODUCTION_BUILD_SYNCED_VERSION = 's293-datahealth-target-orphan-audit';
+const APP_BUILD_VERSION = 's289-camera-scanner-modal-fix-5';
+const PRODUCTION_BUILD_SYNCED_VERSION = 's289-camera-scanner-modal-fix-5';
 let D = {
 schemaVersion:SCHEMA_VERSION,
 transactions:[],cobek:[],products:[],produsen:[],cobekKategori:JSON.parse(JSON.stringify(DEFAULT_COBEK_KATEGORI)),targets:[],eduFunds:[],reminders:[],bills:[],billsArchive:[],inventoryTransfers:[],
@@ -4549,67 +4549,18 @@ if(!acc){toast('⚠️ Akun tidak ditemukan');return;}
 if(typeof showFilteredTx!=='function'){toast('⚠️ Fitur riwayat transaksi belum tersedia');return;}
 showFilteredTx('account',undefined,'📜 Riwayat: '+acc.name,acc.id);
 }
-// delAcc(i) — hapus akun ke-i. SEBELUM sesi ini, data terkait (transaksi/
-// tagihan/catatan BBM/servis/transaksi Shop) SELALU otomatis dipindah ke
-// D.accounts[0] (akun pertama dalam daftar) tanpa user bisa memilih. Sesi
-// ini: kalau akun yang dihapus MEMANG punya data terkait & ada lebih dari
-// 1 akun tujuan yang mungkin, user diberi PILIHAN mau dipindah ke akun
-// mana (reuse showChoiceModal() yang SUDAH ADA, modal generik pilihan
-// button-list — TIDAK ada modal/UI baru dibuat). Kalau akun yang dihapus
-// TIDAK punya data terkait sama sekali, atau cuma ada 1 kemungkinan akun
-// tujuan (total akun = 2), langsung pakai satu-satunya akun itu tanpa
-// modal pilihan tambahan (menghindari friksi tanya sesuatu yang jawabannya
-// cuma 1 opsi) — perilaku ini MURNI presenter/keputusan UI, field data
-// (accountId) TIDAK berubah sama sekali dari versi sebelumnya.
-// PERBAIKAN LANJUTAN (audit sesi ini): titik migrasi SEBELUMNYA cuma 5
-// array (transactions/bills/bbmLogs/servisLogs/cobek), padahal D.targets
-// (Tabungan/Target Keuangan, field accountId di tx-target.js) & D.assets
-// (Buku Aset, field accountId di aset.js -- aset yang ditautkan ke akun,
-// mis. akun Reksadana yang dibuatkan otomatis dari aset) JUGA nyimpen
-// accountId menunjuk ke D.accounts. Sebelum fix ini, hapus akun yang masih
-// ditautkan ke Target/Aset bikin accountId-nya jadi dangling reference
-// (nunjuk akun yang sudah tidak ada) -- progress Target/badge "via Aset"
-// bisa salah baca krn kode di tx-target.js/aset.js asumsinya akun itu
-// selalu ada. Ditambah ke deteksi hasLinkedData & migrasi di bawah, pola
-// SAMA PERSIS 5 array yang sudah ada (TIDAK ada logic baru, cuma 2 baris
-// forEach tambahan + 2 syarat .some() tambahan).
 async function delAcc(i){
 if(D.accounts.length<=1){toast('⚠️ Minimal 1 akun harus ada');return;}
 const acc=D.accounts[i];
-if(!acc)return;
-const others=D.accounts.filter((a,idx)=>idx!==i);
-const hasLinkedData=D.transactions.some(t=>t.accountId===acc.id)
-||(D.bills||[]).some(b=>b.accountId===acc.id)
-||(D.bbmLogs||[]).some(b=>b.accountId===acc.id)
-||(D.servisLogs||[]).some(s=>s.accountId===acc.id)
-||(D.cobek||[]).some(c=>c.accountId===acc.id)
-||(D.targets||[]).some(t=>t.accountId===acc.id)
-||(D.assets||[]).some(a=>a.accountId===acc.id);
-let target=others[0];
-if(hasLinkedData&&others.length>1){
-const choices=others.map(a=>({label:`${a.emoji||'💰'} ${a.name} (saldo ${fmt(recalcAccBalance(a.id))})`}));
-const linkedTargetsCount=(D.targets||[]).filter(t=>t.accountId===acc.id).length;
-const linkedAssetsCount=(D.assets||[]).filter(a=>a.accountId===acc.id).length;
-let extraNote='';
-if(linkedTargetsCount>0)extraNote+=` ${linkedTargetsCount} Target Tabungan`;
-if(linkedAssetsCount>0)extraNote+=`${extraNote?' &':''} ${linkedAssetsCount} Aset`;
-const pickedIdx=await showChoiceModal({title:'Pindahkan Data ke Akun Mana?',icon:'🔀',message:`Akun "${acc.name}" punya transaksi/tagihan/catatan yang terkait${extraNote?' (termasuk'+extraNote+' yang ditautkan)':''}. Pilih akun tujuan buat pindahin datanya sebelum akun ini dihapus:`,choices});
-if(pickedIdx===null||pickedIdx===undefined)return; // dibatalkan, akun TIDAK jadi dihapus
-target=others[pickedIdx];
-}
-const confirmMsg=hasLinkedData
-?`Hapus akun "${acc.name}"? Transaksi, tagihan, catatan BBM/servis, transaksi Shop, Target Tabungan, dan Aset yang terkait akan dipindahkan ke akun "${target.name}".`
-:`Hapus akun "${acc.name}"? Akun ini tidak punya data transaksi terkait.`;
-if(!await askConfirm(confirmMsg))return;
+if(!await askConfirm(`Hapus akun "${acc.name}"? Transaksi, tagihan, catatan BBM/servis, dan transaksi Shop yang terkait akan dipindahkan ke akun lain.`))return;
 D.accounts.splice(i,1);
-D.transactions.forEach(t=>{if(t.accountId===acc.id)t.accountId=target.id;});
-(D.bills||[]).forEach(b=>{if(b.accountId===acc.id)b.accountId=target.id;});
-(D.bbmLogs||[]).forEach(b=>{if(b.accountId===acc.id)b.accountId=target.id;});
-(D.servisLogs||[]).forEach(s=>{if(s.accountId===acc.id)s.accountId=target.id;});
-(D.targets||[]).forEach(t=>{if(t.accountId===acc.id)t.accountId=target.id;});
-(D.assets||[]).forEach(a=>{if(a.accountId===acc.id)a.accountId=target.id;});
-(D.cobek||[]).forEach(c=>{if(c.accountId===acc.id)c.accountId=target.id;});
-save();renderAccGrid();populateAccFilters();renderDashAccList();renderLapAccList();renderDashboard();renderKeuangan();refreshBillEverywhere();renderCnTab();toast(hasLinkedData?`🗑 Akun dihapus, semua data terkait dipindah ke "${target.name}"`:`🗑 Akun "${acc.name}" dihapus`);
+const fallback=D.accounts[0];
+D.transactions.forEach(t=>{if(t.accountId===acc.id)t.accountId=fallback.id;});
+(D.bills||[]).forEach(b=>{if(b.accountId===acc.id)b.accountId=fallback.id;});
+(D.bbmLogs||[]).forEach(b=>{if(b.accountId===acc.id)b.accountId=fallback.id;});
+(D.servisLogs||[]).forEach(s=>{if(s.accountId===acc.id)s.accountId=fallback.id;});
+(D.cobek||[]).forEach(c=>{if(c.accountId===acc.id)c.accountId=fallback.id;});
+save();renderAccGrid();populateAccFilters();renderDashAccList();renderLapAccList();renderDashboard();renderKeuangan();refreshBillEverywhere();renderCnTab();toast(`🗑 Akun dihapus, semua data terkait dipindah ke "${fallback.name}"`);
 }
 
 // gaji-calc.js — Kalkulator gaji harian/borongan (Tukang & karyawan lepas), catat sbg pemasukan
@@ -18232,16 +18183,6 @@ issues.push({level:'warn',title:'Tagihan dengan akun tidak valid',detail:`"${esc
 (D.assets||[]).forEach(a=>{
 if(a.accountId && !accIds.has(a.accountId)){
 issues.push({level:'warn',title:'Aset dengan akun tautan tidak valid',detail:`"${escapeHtml(a.name)}" ditautkan ke akun yang sudah dihapus — akun tautan otomatis dianggap kosong, cek/lepas tautannya di modal Aset.`});
-}
-});
-// PERUBAHAN SESI 293 (audit lanjutan Sesi 292 akun-del-targets-assets-gapfix):
-// D.targets punya accountId (dipakai progress "via Akun" — lihat akun.js
-// delAcc() & modules-calc.js) tapi belum pernah dicek orphan di sini, gap
-// yang sama persis seperti D.assets di atas. Pola SAMA PERSIS cek Aset di
-// atas (1 syarat, 1 issue, level warn, 0 logic baru).
-(D.targets||[]).forEach(t=>{
-if(t.accountId && !accIds.has(t.accountId)){
-issues.push({level:'warn',title:'Target Tabungan dengan akun tautan tidak valid',detail:`"${escapeHtml(t.name||'?')}" ditautkan ke akun yang sudah dihapus — saldo tautan otomatis dianggap kosong, cek/lepas tautannya di modal Target Tabungan.`});
 }
 });
 D.bbmLogs.forEach(b=>{
