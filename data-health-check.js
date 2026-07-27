@@ -4,6 +4,13 @@
 // (Sesi 5 restrukturisasi folder, blok 2 — lihat AUDIT-STRUKTUR-FOLDER.md) murni pengelompokan
 // ulang file, BUKAN perubahan perilaku. Taruh di /modules/shared karena baca lintas D.transactions/
 // D.bills/D.assets/D.bbmLogs/D.vehicles/D.accounts.
+//
+// PERUBAHAN SESI INI (S268, audit ringan pra-migrasi bridge scan Keuangan->
+// Stok — lihat NEXT_SESSION.md "Kandidat migrasi penuh"): tambah 1 cek warn
+// baru "catalogId duplikat" di D.partsStock (baca-saja, 0 perubahan ke cek
+// yang sudah ada). Rekomendasi lain hasil audit (audit 1-per-1 ke-9 file
+// konsumen sync lain sebelum migrasi VehicleCatalog.getAll() penuh) SENGAJA
+// belum dikerjakan sesi ini — di luar cakupan "paling ringan".
 
 function runDataHealthCheck(){
 const issues=[];
@@ -135,6 +142,43 @@ if((p.qty||0)<0){
 issues.push({level:'error',title:'Stok sparepart minus',detail:`"${escapeHtml(p.name)}" stoknya ${p.qty} (minus). Cek riwayat pemakaian di catatan servis.`});
 }
 });
+// Cek tambahan (S268 — bridge scan Keuangan->Stok, lihat NEXT_SESSION.md
+// "Kandidat migrasi penuh"): syncPartsStockFromCatalog() di modules/finance/
+// tx-stok-sparepart.js MENGASUMSIKAN 1 catalogId cuma nempel ke 1 baris
+// D.partsStock (dia pakai .find() pertama yang cocok). Kalau ada 2+ baris
+// dgn catalogId sama (mis. dari restore data lama/edit manual), sync jadi
+// ambigu (baris mana yg dianggap "sumber kebenaran" berubah-ubah tergantung
+// urutan array) -- dan ini juga PERSIS jenis data yang bakal bikin migrasi
+// penuh ke VehicleCatalog.getAll() makin berisiko. Cek murni read-only,
+// TIDAK mengubah data, TIDAK menyentuh alur sync yang sudah ada.
+const catalogIdCount={};
+(D.partsStock||[]).forEach(p=>{
+if(p.catalogId)catalogIdCount[p.catalogId]=(catalogIdCount[p.catalogId]||0)+1;
+});
+Object.keys(catalogIdCount).forEach(cid=>{
+if(catalogIdCount[cid]>1){
+const names=(D.partsStock||[]).filter(p=>p.catalogId===cid).map(p=>p.name).join(', ');
+issues.push({level:'warn',title:'Part katalog terhubung ke lebih dari 1 baris stok',detail:`${catalogIdCount[cid]} baris stok sparepart menunjuk ke part katalog yang sama (${names}). Sinkronisasi scan bisa jadi tidak konsisten -- gabungkan/lepas tautan salah satunya.`});
+}
+});
+// Cek tambahan (S276 — audit sinkronisasi lintas-fitur, temuan lanjutan
+// dari S274/275): catalogId di D.partsStock bisa jadi ORPHAN kalau part-nya
+// sudah dihapus dari Katalog Suku Cadang (VehicleCatalog.remove()) --
+// badge "🔗 Katalog" & "📦 Stok N" di VehicleCatalogUI otomatis "hilang"
+// begitu itemnya tak ketemu (bukan crash, cuma silently tidak match), jadi
+// user tidak pernah diberi tahu tautannya sudah putus. Guard ganda: cuma
+// jalan kalau VehicleCatalog sudah dimuat (isLoaded(), Sesi 276) SEKALIGUS
+// tersedia (typeof) -- kalau belum/tidak dimuat, cek ini diam saja (0
+// false-positive), sama prinsipnya dgn guard typeof lain di seluruh file
+// ini. Murni baca (VehicleCatalog.getStore() + D.partsStock), 0 tulis.
+if(typeof VehicleCatalog!=='undefined' && typeof VehicleCatalog.isLoaded==='function' && VehicleCatalog.isLoaded() && typeof VehicleCatalog.getStore==='function'){
+const catalogIds=new Set((VehicleCatalog.getStore().items||[]).map(it=>it.id));
+(D.partsStock||[]).forEach(p=>{
+if(p.catalogId && !catalogIds.has(p.catalogId)){
+issues.push({level:'warn',title:'Stok sparepart tertaut ke part katalog yang sudah dihapus',detail:`"${escapeHtml(p.name)}" masih menyimpan tautan catalogId ke part di Katalog Suku Cadang yang sudah dihapus/tidak ditemukan -- badge "🔗 Katalog"/"📦 Stok" terkait jadi tidak muncul. Data stok sendiri tetap aman, cek/lepas tautannya kalau perlu.`});
+}
+});
+}
 (D.debts||[]).forEach(d=>{
 if(!d.name || !d.name.trim()){
 issues.push({level:'error',title:'Utang tanpa nama pemberi pinjaman',detail:`Catatan utang (ID ${d.id}) tidak punya nama pemberi pinjaman.`});
@@ -145,6 +189,21 @@ issues.push({level:'error',title:'Utang dengan nilai tidak valid',detail:`Utang 
 if(d.jatuhTempo && isNaN(new Date(d.jatuhTempo).getTime())){
 issues.push({level:'warn',title:'Utang dengan tanggal jatuh tempo tidak valid',detail:`Utang "${d.name||'?'}" punya tanggal jatuh tempo yang tidak terbaca sebagai tanggal.`});
 }
+});
+// Cek tambahan (S283 — audit data integrity, temuan gap): D.renovProjects[].
+// items[] punya accountId & txId (lihat modules/finance/tx-renov.js) persis
+// spt bills/wishlist, tapi belum pernah dicek orphan di sini. Pola & level
+// disamakan persis dgn cek bills (accountId) & wishlist (txId) di atas.
+// Murni baca, 0 perubahan ke cek lain.
+(D.renovProjects||[]).forEach(p=>{
+(p.items||[]).forEach(it=>{
+if(it.accountId && !accIds.has(it.accountId)){
+issues.push({level:'warn',title:'Item Renovasi dengan akun tidak valid',detail:`"${escapeHtml(it.name||'?')}" (proyek "${escapeHtml(p.name||'?')}") menunjuk ke akun yang sudah dihapus.`});
+}
+if(it.txId && !txIds.has(it.txId)){
+issues.push({level:'warn',title:'Item Renovasi kehilangan transaksi tertaut',detail:`"${escapeHtml(it.name||'?')}" (proyek "${escapeHtml(p.name||'?')}") ditandai sudah dibayar & tertaut ke transaksi keuangan, tapi transaksinya tidak ditemukan.`});
+}
+});
 });
 const catNames=new Set([...D.categories.income,...D.categories.expense].flatMap(c=>[c.id,c.name,...(c.subs||[]).map(s=>s.id)]));
 (D.budgets||[]).forEach(b=>{
@@ -196,4 +255,5 @@ listEl.innerHTML=issues.map(i=>`<div style="padding:10px;border-radius:10px;marg
     </div>`).join('');
 }
 openModal('dataHealthModal');
+return issues;
 }

@@ -101,6 +101,15 @@ Nice-to-have, dampak kecil terhadap pengguna akhir.
 
 9. **🟢 Migrasikan literal `font-size` kecil** (11px, 12px, 13px,
    8.5px) ke token `--fs-*` terdekat yang sudah ada.
+
+   **Sebagian selesai (Sesi 277, 280)**: 47 literal yang PERSIS sama
+   dengan token sudah dimigrasi (`11/12/13px`→`--fs-caption/--fs-label/
+   --fs-body` Sesi 277; `14/15/16/17/18/20px`→`--fs-body-lg/
+   --fs-title-sm/--fs-icon/--fs-title/--fs-icon-lg/--fs-stat` Sesi 280).
+   Sisa literal (`8.5px`, `9.5px`, `10px`, `10.5px`, `11.5px`, `12.5px`,
+   `13.5px`, `14.5px`, `19px`, `22px`, `24px`, `26px`, dst.) **sengaja
+   dibiarkan** — tidak match persis token manapun, mengganti akan
+   mengubah ukuran font sungguhan.
    *Sumber: `KNOWN-ISSUES.md` §2.4.*
 
 10. ~~🟢 Tambahkan `max-width` container konsisten untuk seluruh
@@ -130,7 +139,7 @@ Nice-to-have, dampak kecil terhadap pengguna akhir.
 | 6 | Konsolidasi durasi transition 🟢 | ⏳ Belum — bukan value-preserving, butuh review visual |
 | 7 | Touch target chip-btn/qs-btn 🟢 | ✅ Selesai |
 | 8 | Ripple berbasis koordinat 🔴 | ✅ Selesai |
-| 9 | Font-size kecil → token 🟢 | ⏳ Belum — beberapa nilai (8.5/10.5/11.5px) tidak match token manapun |
+| 9 | Font-size kecil → token 🟢 | 🔶 Sebagian (Sesi 277, 280) — sisa nilai tidak match token manapun |
 | 10 | Container max-width konsisten 🟢 | ✅ Selesai (Sprint 2 Tahap 15) |
 | 11 | Hover/elevation tap-target sekunder 🟢 | ✅ Selesai |
 

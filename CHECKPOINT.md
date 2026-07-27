@@ -5,6 +5,28 @@ JANGAN audit/implement/test/build ulang bagian yang sudah **Completed**.
 
 ## Current Session
 
+Sesi 262 (2026-07-26) — Selective Liquid Glass + M3 Expressive UI refresh
+(floating nav, glass chrome, kontras badge stok). SELESAI PENUH. Detail
+lengkap: `CHANGELOG.md` § Sesi 262.
+
+**Target eksplisit user**: implementasi arah UI Material 3 Expressive +
+Selective Liquid Glass yang sudah disepakati lewat preview interaktif
+(floating bottom nav, tanpa FAB, nav 6 item asli, palet netral kalem) ke
+file project nyata, plus buat preview HTML implementasi, plus doc-sync.
+
+**Implementasi**: lihat `CHANGELOG.md` § Sesi 262 untuk detail penuh
+(`modern-ui-layer.css`, `nav-scroll.js` baru, `preview-m3-liquidglass.html`
+baru, 1 bug token mati + 1 fix kontras WCAG AA ditemukan & diperbaiki).
+
+**Scope**: CSS-only + 1 file JS mandiri baru. TIDAK menyentuh
+`app-bundle-a/b.min.js` atau modul bisnis apa pun — 0 resiko ke 1228 test
+JS yang ada (test suite tidak dijalankan ulang sesi ini karena tidak ada
+perubahan logic bisnis untuk diverifikasi).
+
+---
+
+## Sesi sebelumnya (arsip singkat)
+
 Sesi 203 (Continue, 2026-07-25) — Delivery Plan UI: hubungkan TripEngine
 (S198) ke Order/Kasir. SELESAI PENUH.
 
@@ -893,4 +915,37 @@ hanya `WorthIt.catFieldsHtml()` yang dites, bukan DOM/modal wiring).
 ## ZIP
 
 `kw_release_sesi165b_worthit_kategori_fields_v617.zip` — dibuat & dikirim
+ke user.
+
+## Checkpoint — Sesi 267 (2026-07-26): Kasir AI — parity Alamat/Delivered/DP dgn Order
+
+Audit ditemukan Kasir AI (`modules/business/kasir.js`) kirim 3 field lebih
+sedikit dari Order manual: `address` selalu hardcode `''`, `delivered`
+selalu hardcode `true`, dan tidak ada dukungan DP/Piutang. `recordShopSale()`
+sendiri sudah generik (terima ketiganya) — gapnya murni di layar Kasir.
+
+Fix (additif, 0 baris Order/`recordShopSale()` diubah):
+- Tambah field Alamat (`kasirCustAddr`), toggle "Sudah diserahkan"
+  (`kasirDelivered` + `Kasir.toggleDeliveredField()`), dan field DP
+  (`kasirDP`) di `index.html` (kasir-cart-fields).
+- `Kasir._checkoutInner()`: teruskan address & delivered ke
+  `recordShopSale()`; logic DP→Piutang (hitung sisa, `D.transactions.amount
+  = dp`, buat `D.piutang` kalau sisa>0) **diduplikasi** dari
+  `Order._saveInner()` (opsi A — user pilih ini di atas opsi ekstrak
+  helper bersama, krn Kasir tidak pernah edit entri lama jadi tidak perlu
+  logic reconciliation `piutangLinkId`).
+- `Kasir.reset()` ikut clear 3 field baru.
+
+## Test
+
+`node --test tests/*.test.js` -> **1369/1369 pass, 0 fail** (tidak ada test
+baru ditambahkan — perubahan murni wiring UI, dicek manual lewat build+lint).
+
+## Build
+
+`node scripts/build.js kasir-audit-address-delivered-dp` -> sukses, `?v=784`.
+
+## ZIP
+
+`kw_release_kasir-audit-address-delivered-dp_v784.zip` — dibuat & dikirim
 ke user.

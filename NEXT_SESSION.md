@@ -1,5 +1,85 @@
 # NEXT_SESSION.md — Target sesi berikutnya (update setiap sesi)
 
+> **Catatan Sync (S273-S274, lanjutan S272):** (S273) Rekomendasi audit
+> S272 DIKERJAKAN — `Servis._saveInner()` (`car-notes.js`) sekarang cek
+> `Servis.findMatchingStockByCatalogId()` (baru, match presisi via ID)
+> LEBIH DULU, `findMatchingStockByName()` jadi fallback saja untuk baris
+> stok lama tanpa `catalogId`. Kedua gap S272 (stok diam-diam tidak
+> kepotong saat rename manual; risiko potong stok salah saat nama
+> duplikat) TERTUTUP. Test lama `servis-catalog-stock-sync-gap-s272.
+> test.js` diganti `servis-catalog-stock-sync-fix-s273.test.js` (4 test).
+> (S274) Audit lanjutan lintas-fitur: 1 gap BARU ditemukan (severity
+> rendah, kosmetik) — badge "📦 Stok N" di layar Katalog Suku Cadang
+> (`VehicleCatalogUI.render()`, `vehicle-catalog-ui.js`) MASIH pakai
+> name-match, pola sama S272 tapi di sisi tampilan (bukan data-mutating).
+> Rekomendasi: ganti ke match via `catalogId` (1 baris, pola sama badge
+> "🔗 Katalog" S269) — **belum dikerjakan, menunggu konfirmasi user**.
+> Bridge `catalogPartRefs` (Servis & Transaksi), modul OCR scan
+> (`sparepart-ocr-catalog-link.js`), & adapter EIE/LifeOS dikonfirmasi
+> BERSIH (0 gap). Detail lengkap: `CHANGELOG.md` § Sesi 273/274.
+> Baseline regression **1421/1421 PASS**.
+
+> **Catatan Sync (S266-S271, Build 795-797 — "Scan Kode Part di
+> Keuangan → Stok Sparepart Car Notes", TOPIK SELESAI/DITUTUP):**
+> Fitur: tombol scan barcode di `txStockPanel` (modal Transaksi
+> Keuangan kategori Motor/Kendaraan) → `VehicleCatalog.handleScan()` →
+> `syncPartsStockFromCatalog()` (`modules/finance/tx-stok-sparepart.js`)
+> menghubungkan hasilnya (field `catalogId`) ke `D.partsStock` yg
+> dipakai bareng Car Notes/Servis — pola bridge SAMA PERSIS
+> `catalogPartLinkedStockId` yg sudah ada di alur Servis. Migrasi TOTAL
+> `D.partsStock` → turunan async penuh dari `VehicleCatalog` DIMINTA
+> user di awal, lalu **DITOLAK permanen** setelah 2 putaran audit:
+> (S268) ke-9 file konsumen sync (`finance-dashboard.js`,
+> `data-health-check.js`, `self-test.js`, `backup-restore.js`,
+> `car-notes.js`, `sparepart-servis.js`, `ai-chat.js`,
+> `features-helpers-global-security.js`, `scan-ocr.js`,
+> `vehicle-catalog-ui.js`) — risiko regresi tinggi terutama
+> `car-notes.js`/`sparepart-servis.js`; (S270) audit lanjutan 2 file
+> risiko-rendah (`finance-dashboard.js`/`ai-chat.js`) — verdict aman
+> secara teknis, TAPI (S271) migrasi bahkan yg parsial itu diputuskan
+> **TIDAK dikerjakan**: tidak menyelesaikan masalah apa pun selama 8
+> file lain masih sync, tidak menambah kapabilitas baru (kebutuhan asli
+> sudah tuntas lewat bridge), biaya kompleksitas nyata utk manfaat nol.
+> **Bridge `catalogId` = arsitektur final** utk integrasi ini. Yang
+> SUDAH dikerjakan dari rekomendasi audit: cek integritas `catalogId`
+> duplikat di `runDataHealthCheck()` (S268) & badge "🔗 Katalog" di
+> `Sparepart.renderStockList()` (S269). Detail lengkap tiap sesi:
+> `CHANGELOG.md` § Sesi 266/268/269/270/271. **Topik migrasi ini
+> ditutup** — tidak perlu dibuka ulang tanpa kebutuhan baru yang
+> konkret (BEDA dari temuan bug S272 di bawah, yang masih terbuka).
+>
+> **(S272) AUDIT: alur sync BELUM sepenuhnya konsisten** — bridge
+> `catalogId` (Sesi 266/269, arsitektur final per Sesi 271) baru dipakai
+> di sisi Keuangan→Stok. Sisi Stok→Servis (`Servis._saveInner()`,
+> `car-notes.js`) MASIH pakai `findMatchingStockByName()` (name-match,
+> dibuat SEBELUM `catalogId` ada) buat tentukan `catalogLinkedStockId`.
+> Dampak dibuktikan lewat 3 test baru
+> (`tests/servis-catalog-stock-sync-gap-s272.test.js`): (1) stok TIDAK
+> kepotong diam-diam kalau baris stok di-rename manual walau `catalogId`
+> tetap sama; (2) risiko potong stok yang SALAH kalau 2 baris stok
+> kebetulan nama sama tapi `catalogId` beda. Rekomendasi: `Servis.
+> _saveInner()` cek `catalogId` LEBIH DULU, name-match jadi fallback saja
+> utk baris stok lama. Detail: `CHANGELOG.md` § Sesi 272. **Belum
+> dikerjakan — menunggu konfirmasi user.**
+
+
+> **Catatan Sync (S262, di luar batch tracking, permintaan eksplisit user
+> "Material 3 Expressive + Selective Liquid Glass" → disepakati lewat
+> preview interaktif sebelum implementasi):** `modern-ui-layer.css`
+> di-refresh: bottom nav jadi floating (margin + `env(safe-area-inset-
+> bottom)`), auto-hide saat scroll (file baru `nav-scroll.js`, mandiri,
+> tidak sentuh bundle), tanpa FAB. Audit ketemu 1 token mati
+> (`--surface1` tidak pernah ada, fallback `--bg` diam-diam aktif di
+> semua tema — fix ke `--header-bg`) dan 1 gap kontras WCAG AA di badge
+> status stok pada 6 dari 10 tema bersurface terang (fix via
+> `color-mix` scoped per tema, worst-case sekarang 4.72:1). File preview
+> baru `preview-m3-liquidglass.html` (load CSS/JS project asli + theme
+> switcher). CSS-only + 1 JS mandiri baru — 0 perubahan ke
+> `app-bundle-a/b.min.js`, test suite tidak perlu dijalankan ulang.
+> Detail: `CHANGELOG.md` § Sesi 262. Kandidat lanjutan: tambah animasi
+> masuk/keluar kartu (M3 spring easing), audit shape/radius token lebih
+> luas di luar `.nav`/`.card`.
+
 > **Catatan Sync (S203, di luar batch tracking — permintaan eksplisit user
 > "hubungkan TripEngine ke UI", build `kw201-finalisasi-sinkronisasi-lintas-
 > modul-717`, `?v=717`):** `TripEngine`/`LogisticsEngine`/

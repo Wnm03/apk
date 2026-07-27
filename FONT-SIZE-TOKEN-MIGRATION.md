@@ -56,3 +56,15 @@ node --test
 
 Item #9 selesai. Sisa: #5 (shadow, ditahan), #8 (🔴 JS), #10 (max-width
 container), #11 (hover elevation tap-target sekunder).
+
+## Update Sesi 277 & 280
+
+Audit ulang Sesi 277 menemukan klaim "51 literal 11/12/13px sudah
+ditoken-kan" di atas **tidak sesuai kode nyata saat itu** (literal
+tersebut masih ada) — dokumen ini sendiri basi untuk bagian itu.
+Sesi 277 mengeksekusi ulang migrasi 11/12/13px (8 literal match-persis
+yang benar-benar tersisa, bukan 51 — lihat `KNOWN-ISSUES.md` §2.4).
+Sesi 280 melanjutkan ke skala berikutnya: 39 literal `14px`–`20px`
+yang match-persis token (`--fs-body-lg`/`--fs-title-sm`/`--fs-icon`/
+`--fs-title`/`--fs-icon-lg`/`--fs-stat`) juga dimigrasi. Detail lengkap
+kedua sesi: `CHANGELOG.md` § Sesi 277/280.

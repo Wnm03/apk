@@ -1,3 +1,993 @@
+# Changelog — Sesi 286d: FIX — kontrak fungsional 11 file modules/cross/* yang masih 0 test sendiri (audit temuan #2, lanjutan Sesi 286c)
+
+## Konteks
+Lanjutan langsung dari Sesi 286c (cycle-guard dependency graph, lihat
+entri di bawah): entri itu menutup temuan #1 (cycle-guard hilang) tapi
+menyisakan 11 file `modules/cross/*` yang SUDAH ikut dites di graph +
+1 rantai end-to-end (`cross-module-dependency-graph-s286.test.js`),
+TAPI belum satupun punya test kontrak FUNGSIONAL milik file itu sendiri
+(guard `{ok:false}` per-dependency, arithmetic murni yang jadi tanggung
+jawabnya, dan utk presenter: perilaku SILENT/container-tidak-ada).
+
+## Perubahan
+- **`tests/cross-module-own-contract-s286.test.js`** (49 test, BARU),
+  dikelompokkan per prioritas audit, tiap file diuji SENDIRIAN (stub
+  hanya dependency langsungnya, bukan rantai 17 file — itu tetap
+  tanggung jawab test graph di 286c):
+  - 🟠 **Tinggi (2 file):** `life-dashboard-summary-api.js`,
+    `unified-ai-briefing.js`
+  - 🟡 **Sedang (4 file):** `unified-summary-api.js`, `cross-ai-hook.js`,
+    `finance-vehicle-cross-summary.js`, `cross-dashboard-card.js`
+    (termasuk kontrak `_financeHealthCard()`/`_vehicleHealthCard()` yang
+    tetap hidup di file walau sudah tidak dipanggil dari `render()`)
+  - 🟢 **Rendah (5 file presenter DOM-bound):**
+    `cross-insight-presenter.js`, `personal-overview-presenter.js`,
+    `unified-briefing-presenter.js` (termasuk kasus 2 container
+    independen), `cross-module-widgets.js`, `unified-dashboard-home.js`
+- **`modules/cross/unified-ai-briefing.js`** (komentar saja, 0 logic
+  berubah): catatan header § "ARSITEKTUR (S116)" masih merujuk
+  `tests/decision-center-dependency-graph.test.js` — nama file yang
+  SUDAH diganti di 286c tapi lupa disamakan di sini. Diarahkan ke
+  `tests/cross-module-dependency-graph-s286.test.js` +
+  `tests/cross-module-own-contract-s286.test.js`.
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 1547 / pass 1547 / fail 0 (naik dari 1505, +49 test baru, +7 dari 286c, 0 regresi)
+
+node scripts/build.js kw286d-cross-module-own-contract-test
+# ✅ Build selesai, ?v=811, index.html & app_production.html identik
+
+node --test tests/*.test.js   # setelah build
+# tests 1547 / pass 1547 / fail 0
+```
+
+**Audit temuan #2 (11 file cross tanpa kontrak sendiri) DITUTUP.**
+
+---
+
+# Changelog — Sesi 286 (lanjutan): FIX — cycle-guard dependency graph modules/cross/* (audit temuan #1, gap regression-test yang hilang)
+
+## Konteks
+Audit lanjutan (0 kode diubah) menemukan: komentar header
+`unified-ai-briefing.js` § "ARSITEKTUR (S116 — Circular Dependency
+Hotfix)" merujuk riwayat bug nyata Sesi 115-117 (`UnifiedAIBriefing ->
+ActionQueue -> DecisionCenterAPI` sempat circular -> "Maximum call stack
+size exceeded") & menyebut `tests/decision-center-dependency-graph.test.js`
++ `tests/cross-module-graph-static.test.js` sbg regression-guard
+permanennya — **TERNYATA KEDUA FILE ITU TIDAK ADA** di source (dicek
+grep/find ke seluruh `tests/*.test.js`, 0 hasil). Kalau siklus itu balik
+lagi di masa depan, tidak ada satu pun test yang akan menangkapnya.
+Ditutup jadi prioritas tertinggi dari seluruh audit.
+
+## Perubahan (0 kode aplikasi diubah — murni test baru)
+- **`tests/cross-module-dependency-graph-s286.test.js`** (7 test, BARU)
+  menggantikan 2 nama file yang hilang, digabung jadi 1:
+  - **Static (2 test):** baca ulang ke-17 `modules/cross/*.js` APA
+    ADANYA (bukan daftar edge hardcode), bangun graph dependency dari
+    referensi identifier antar-file (komentar di-strip dulu supaya
+    prosa yang menyebut nama file lain tidak salah kedeteksi jadi
+    edge), lalu DFS deteksi siklus generik + assert arah 3 file inti
+    riwayat bug (`UnifiedAIBriefing` tidak boleh membaca
+    `ActionQueue`/`DecisionCenterAPI`/`LifeDashboardSummaryAPI`).
+  - **Runtime (5 test):** muat SEMUA 17 file cross ASLI bersamaan
+    (urutan build sebenarnya dari `scripts/build.js`) + stub minimal 4
+    leaf dependency luar (`FinanceDashboard`/`VehicleAIHook`/
+    `FinanceIntelligence`/`VehicleIntelligence`), lalu panggil rantai
+    nyata end-to-end lewat `ActionQueue.getQueue()`/
+    `RecommendationPanel.getRecommendations()`/`PriorityEngine.getItems()`/
+    `UnifiedAIBriefing.generate()`→`DecisionCenterAPI.summary()` — kalau
+    siklus balik terjadi, panggilan ini RangeError otomatis tanpa perlu
+    assertion tambahan.
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 1505 / pass 1505 / fail 0 (naik dari 1498, +7 test baru, 0 regresi)
+
+node scripts/build.js kw286c-cross-module-dependency-graph-cycle-guard
+# ✅ Build selesai, ?v=810, index.html & app_production.html identik
+
+node --test tests/*.test.js   # setelah build
+# tests 1505 / pass 1505 / fail 0
+```
+
+**Audit temuan #1 (cycle-guard hilang) DITUTUP.** Sisa 10 file
+`modules/cross/*` (life-dashboard-summary-api/unified-ai-briefing/
+unified-summary-api/cross-ai-hook/finance-vehicle-cross-summary/
+cross-dashboard-card/unified-briefing-presenter/cross-insight-presenter/
+personal-overview-presenter/cross-module-widgets/unified-dashboard-home)
+masih 0 test kontrak fungsional masing-masing (bukan cycle-guard) —
+belum digarap, menunggu arahan lanjutan.
+
+---
+
+
+
+## Konteks
+Audit ditemukan: seluruh rantai `LifeDashboardSummaryAPI -> PriorityEngine ->
+DecisionCenterAPI -> ActionQueue/RecommendationPanel/DecisionCenterHome ->
+LifePriorityPanel` (dipakai Personal Life Dashboard & Personal Decision
+Center, Batch 8) serta `ai-decision-engine.js` (otak AI lintas modul) TIDAK
+PUNYA satu pun test — gap besar padahal jadi konsumen inti banyak modul.
+Prioritas ditentukan dari besar-kecil blast radius kalau berubah/rusak:
+**tinggi** = 2 engine murni (filter/urutan/rule evaluation, dikonsumsi
+banyak lapisan di atasnya), **sedang** = 1 adapter data (`DecisionCenterAPI`
+— pintu masuk gabungan), **rendah** = 4 presenter murni (render/formatting,
+blast radius sempit, sebagian besar sudah wrapped guard `typeof===
+'undefined'`).
+
+## Perubahan (0 kode aplikasi diubah — murni test baru, sesuai batasan
+harness `tests/helpers/loadSource.js`: fungsi yang baca/tulis DOM lewat
+`getElementById` TIDAK dites di sini, pola sama persis
+`tests/business-flow-presenter.test.js`)
+
+**Prioritas tinggi (engine):**
+- `tests/priority-engine-s286.test.js` (7 test) — `PriorityEngine.getItems()`:
+  guard sumber belum dimuat, filter `over===true`/severity overdue-atau-
+  due-soon, urutan hasil, count konsisten.
+- `tests/ai-decision-engine-s286.test.js` (16 test) — kontrak generik
+  `AIDecision.rules`/`.recommend`/`.learn`/`.decide()`/
+  `.formatRecommendation()`.
+
+**Prioritas sedang (adapter):**
+- `tests/decision-center-api-s286.test.js` (7 test, BARU sesi ini) —
+  `DecisionCenterAPI.recommendations()` (filter gabungan finance+vehicle
+  `type==='warning'`) & `.summary()` (guard sumber belum dimuat/`ok:false`,
+  `priorityItems`/`priorityCount` dari `PriorityEngine` bukan dihitung
+  ulang, fallback ke `s.priorityCount` kalau `PriorityEngine` tidak
+  tersedia, `recommendations`/`recommendationCount` ikut ditempel).
+
+**Prioritas rendah (presenter):**
+- `tests/decision-center-presenters-s286.test.js` (14 test, BARU sesi
+  ini) — bagian NON-DOM dari 4 presenter: `ActionQueue.getQueue()`/
+  `_label()`/`_vehicleIcon()`, `RecommendationPanel.getRecommendations()`/
+  `_icon()`, `DecisionCenterHome.render()` (delegasi murni ke 2 presenter
+  lain, di-mock sbg plain object — 0 DOM nyata), `LifePriorityPanel._row()`/
+  `_vehicleIcon()`. `render()` milik `ActionQueue`/`RecommendationPanel`/
+  `LifePriorityPanel` sendiri (baca `getElementById`) SENGAJA TIDAK dites
+  di sini — di luar batasan harness, konsisten pola presenter lain.
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 1498 / pass 1498 / fail 0 (naik dari 1476, +22 test baru, 0 regresi)
+
+node scripts/build.js kw286b-decision-center-presenter-adapter-gap-fix
+# ✅ Build selesai, ?v=809, index.html & app_production.html identik
+
+node --test tests/*.test.js   # setelah build
+# tests 1498 / pass 1498 / fail 0
+```
+
+**Rantai Priority/Decision Engine SEKARANG punya cakupan test penuh di
+semua 3 tingkat prioritas (tinggi/sedang/rendah) — lihat 4 file test di
+atas.**
+
+---
+
+
+
+## Konteks
+§4.1 sebelumnya 🔴 (butuh JS, di luar batas program CSS-only Tahap 1–8).
+User eksplisit mengizinkan perubahan JavaScript untuk item ini sesi ini.
+`ROADMAP-v1.1.md` #3 mencatat FEATURE_REGISTRY sudah lama teratasi lewat
+`FeatureIcons.render()`, tapi eksplisit mengecualikan "widget AI/LifeOS
+Areas" dari scope — sesi ini menutup 1 dari 2 pengecualian itu.
+
+## Perubahan
+- **`modules/shared/feature-icons.js`**: 2 mapping SVG baru ditambah ke
+  `_MAP` — `👨‍👩‍👧` (family, 3-figure icon) & `🏃` (health, running
+  figure). 4/6 emoji `LIFEOS_AREAS` lain (💰🛒🚗🕌) sudah lama terpetakan,
+  tidak diubah.
+- **`lifeos/ui/areas.js`** (`LifeOSAreas.render()`): `.lifeos-area-icon`
+  sekarang pakai `FeatureIcons.render(a.icon || '🗂️')` (guard `typeof
+  FeatureIcons !== 'undefined'`, fallback `escapeHtml(a.icon)` kalau
+  file belum di-load) — pola SAMA PERSIS `dashboard-hub.js`/
+  `dashboard-hub-search.js`. `a.icon` bersumber dari `LIFEOS_AREAS`
+  (`lifeos-registry.js`, data statis di source, bukan input user) —
+  aman dipakai tanpa `escapeHtml` di jalur utama, konsisten dgn
+  FEATURE_REGISTRY yang juga tidak di-escape.
+- **TIDAK diubah**: `dashboard-hub-registry.js`/`FeatureIcons.render()`
+  itu sendiri, `modules/ai/feature-insights.js` (emoji glyph inline di
+  tengah teks — pola berbeda, butuh keputusan desain terpisah, sengaja
+  dilewati sesi ini, dicatat sbg sisa terbuka).
+
+## Test baru
+`tests/lifeos-areas-icon-s281.test.js` (5 test — sebelumnya 0 test sama
+sekali utk `LifeOSAreas.render()`): mapping SVG lengkap 6/6 emoji
+`LIFEOS_AREAS`, fallback `render()` utk emoji tak terpetakan, render
+menghasilkan `<svg>` (bukan emoji polos), guard `FeatureIcons` tidak
+tersedia → fallback `escapeHtml` tanpa error, guard grid tidak ada di
+DOM.
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 1439 / pass 1439 / fail 0 (naik dari 1434, +5 test baru, 0 regresi)
+
+node scripts/build.js s281-lifeos-areas-icon-svg
+# ✅ Build selesai, ?v=803, index.html & app_production.html identik
+```
+
+---
+
+# Changelog — Sesi 280: FIX ringan — lanjutan migrasi literal `font-size` ke token (KNOWN-ISSUES §2.4)
+
+## Konteks
+Lanjutan "kerjakan yang ringan": setelah §1.2/§3.1 disinkronkan (Sesi
+279), audit ulang §2.4 — Sesi 277 baru memigrasi literal `11/12/13px`,
+sisa skala `14–20px` belum diperiksa apakah ada yang match persis token
+`--fs-*` yang sudah ada di `:root` (`--fs-body-lg:14px`,
+`--fs-title-sm:15px`, `--fs-icon:16px`, `--fs-title:17px`,
+`--fs-icon-lg:18px`, `--fs-stat:20px`, tidak di-override per tema).
+
+## Metode
+Sama seperti Sesi 277: hanya migrasi literal yang **NILAINYA PERSIS
+SAMA** dengan token yang sudah ada (100% value-preserving, `var()`
+resolve ke angka piksel identik di semua tema). Regex hanya menyasar
+properti `font-size:`, tidak menyentuh `:root` sendiri atau properti
+lain (`line-height`, `width`, dst). Nilai yang tidak match persis
+(8.5px, 9.5px, 10px, 10.5px, 11.5px, 12.5px, 13.5px, 14.5px, 19px,
+22px, 24px, 26px, 30px, 36px, 40px, 42px, 52px) sengaja tidak
+disentuh — di luar cakupan "migrasi ke token yang SUDAH ADA".
+
+## Perubahan
+`styles.css` — 39 literal `font-size` diganti jadi referensi token (0
+perubahan nilai piksel): `14px`→`var(--fs-body-lg)` (15×), `15px`→
+`var(--fs-title-sm)` (5×), `16px`→`var(--fs-icon)` (6×), `17px`→
+`var(--fs-title)` (3×), `18px`→`var(--fs-icon-lg)` (6×), `20px`→
+`var(--fs-stat)` (4×).
+
+`KNOWN-ISSUES.md` §2.4, `ROADMAP-v1.1.md` item #9, dan
+`FONT-SIZE-TOKEN-MIGRATION.md` diperbarui merefleksikan progres ini.
+
+## Regresi
+Tidak ada test JS yang terdampak (perubahan CSS murni, tidak ada
+selector/struktur yang berubah). Full suite tetap **1434/1434 PASS**
+(0 perubahan dari baseline Sesi 278/279).
+
+## File berubah
+- `styles.css` — 39 literal ditoken-kan.
+- `KNOWN-ISSUES.md`, `ROADMAP-v1.1.md`, `FONT-SIZE-TOKEN-MIGRATION.md` — status diperbarui.
+- `CHANGELOG.md` (dokumen ini).
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 1434 / pass 1434 / fail 0 (sama seperti baseline Sesi 278/279, 0 regresi)
+```
+
+---
+
+# Changelog — Sesi 279: FIX ringan — sinkronisasi KNOWN-ISSUES.md §1.2/§3.1 (dokumentasi basi)
+
+## Konteks
+Lanjutan "kerjakan yang ringan": setelah §5.3 (Sesi 278), 2 item 🟢
+CSS-only lain di `KNOWN-ISSUES.md` diaudit ulang — §1.2 (touch target
+`.chip-btn`/`.qs-btn`) & §3.1 (container `max-width` halaman). Keduanya
+masih tertulis "belum diperbaiki" padahal kode sudah benar sejak lama
+(`TOUCH-TARGET-PADDING.md`/`PAGE-CONTAINER-MAXWIDTH.md`, Sprint 2 Tahap
+13/15) — dikonfirmasi langsung ke `styles.css`: `.chip-btn{padding:11px
+14px}`, `.qs-btn{padding:12px 12px}`, `@media(min-width:1024px){.page{
+max-width:1080px}}` semua sudah ada. Tabel ringkasan §"Ringkasan Jumlah
+Isu" bahkan sudah menghitung keduanya sebagai selesai — pola sama
+persis "dokumentasi vs kode tidak sinkron" yang berulang di banyak sesi
+sebelumnya (mis. Sesi 39/41/44/46/47 di `TODO.md`).
+
+## Perubahan
+`KNOWN-ISSUES.md` — §1.2 & §3.1 ditandai ✅ SELESAI dengan rincian nilai
+CSS aktual, tabel ringkasan diberi catatan sinkronisasi. **0 perubahan
+kode** — murni dokumentasi.
+
+## File berubah
+`KNOWN-ISSUES.md`, `CHANGELOG.md`.
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js   # 1434/1434 PASS (tidak berubah — 0 kode diubah)
+```
+
+---
+
+# Changelog — Sesi 278: FIX ringan — hover elevation `.shop-stat.clickable` (KNOWN-ISSUES §5.3)
+
+## Konteks
+Lanjutan "kerjakan yang ringan": audit ulang §5.3 KNOWN-ISSUES.md
+("hover elevation tap-target sekunder belum ada") — ternyata SUDAH
+dikerjakan Sprint 2 Tahap 16 untuk `.stat-box`/`.cobek-stat`/
+`.bbm-stat`/`.budget-sum-box`/`.budget-item` (dokumen basi). Satu
+komponen sejenis kelewat: `.shop-stat.clickable`.
+
+## Perubahan
+`styles.css` — tambah `.shop-stat.clickable:hover{background:
+var(--surface3)}` di blok `@media (hover:hover) and (pointer:fine)`,
+disamakan dgn feedback `:active`-nya sendiri (bukan token/pola baru,
+0 perubahan ke rule lain).
+
+## File berubah
+`styles.css`, `KNOWN-ISSUES.md` (§5.3 + tabel ringkasan), `CHANGELOG.md`.
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js   # 1434/1434 PASS (0 regresi)
+node scripts/build.js s278-hover-shop-stat-ringan   # ✅ ?v=801
+```
+
+---
+
+# Changelog — Sesi 277: FIX ringan — migrasi literal CSS ke token yang sudah ada (KNOWN-ISSUES §2.1/2.2/2.4)
+
+## Konteks
+Permintaan user: kerjakan rekomendasi perbaikan dari audit, mulai dari
+yang paling ringan. Kandidat paling ringan = 4 item 🟢 "CSS-only,
+risiko rendah" di `KNOWN-ISSUES.md` §2 (Consistency), yang secara
+eksplisit ditandai *value-preserving* (migrasi literal→token tanpa
+mengubah tampilan).
+
+## Metode
+Audit ulang literal `styles.css` per item (bukan percaya begitu saja
+angka lama di `KNOWN-ISSUES.md` yang ternyata sebagian sudah basi —
+banyak literal generasi sebelumnya SUDAH ditoken-kan di sesi-sesi
+UI Tahap 1–10):
+- **2.1 border-radius** & **2.4 font-size**: cari literal yang
+  **NILAINYA PERSIS SAMA** dengan token `--r-*`/`--fs-*` yang sudah
+  ada di `:root` (didefinisikan SEKALI, tidak di-override per tema —
+  diverifikasi dulu sebelum eksekusi, supaya migrasi dijamin 0
+  perubahan piksel di 10 tema). Literal yang TIDAK match token manapun
+  sengaja dibiarkan (menambah token baru = keputusan desain terpisah,
+  di luar cakupan "ringan").
+- **2.2 box-shadow**: diverifikasi ulang — ternyata sudah 100% pakai
+  `var(--shadow-card, fallback)`, 0 perubahan diperlukan.
+- **2.3 transition duration**: diaudit tapi **sengaja TIDAK disentuh**
+  — durasi asli (300–600ms, animasi lebar progress bar/toggle) tidak
+  match token `--dur-*` manapun (100–250ms); mengganti ke token
+  terdekat akan mengubah kecepatan animasi sungguhan, BUKAN migrasi
+  value-preserving lagi. Beda kelas risiko dari 2.1/2.2/2.4.
+
+## Perubahan
+`styles.css` — 18 literal diganti jadi referensi token (0 perubahan
+nilai piksel):
+- **border-radius** (10×): `8px`→`var(--r-xs)` (`.wh-day-box-status`,
+  `.u-r8`, `.cat-emoji`, `.trs-tag-btn`, `.trs-biaya-wrap input`),
+  `14px`→`var(--r-md)` (`.gaji-result`, `.import-zone`,
+  `.trs-summary-bar`, `.kasir-receipt`), `24px`→`var(--r-pill)`
+  (`.tgl-track`), `18px`→`var(--r-xl)` (`.trs-calc-card`).
+- **font-size** (8×): `11px`→`var(--fs-caption)` (`.page-breadcrumb`,
+  `.findash-card-sub`, `.tk-num`, `.tk-note`), `12px`→
+  `var(--fs-label)` (`.dashhub-fav-star`, `.dashhub-explore-link`,
+  `.tk-title`), `13px`→`var(--fs-body)` (`.tk-mark`).
+
+`KNOWN-ISSUES.md` — §2.1/2.2/2.4 diperbarui jadi "sebagian selesai"
+dgn rincian subset yang sudah dikerjakan vs yang sengaja dibiarkan
+(beserta alasannya), §2.3 diberi catatan kenapa tetap terbuka, tabel
+ringkasan diperbarui.
+
+## Regresi
+Tidak ada test JS yang terdampak (perubahan CSS murni). Full suite
+tetap **1434/1434 PASS** (0 perubahan dari baseline S276).
+
+## File berubah
+- `styles.css` — 18 literal ditoken-kan.
+- `KNOWN-ISSUES.md` — status §2.1/2.2/2.3/2.4 & tabel ringkasan.
+- `CHANGELOG.md` (dokumen ini).
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 1434 / pass 1434 / fail 0 (sama seperti baseline S276, 0 regresi)
+
+node scripts/build.js s277-css-token-migration-ringan
+# ✅ Build selesai, ?v=800, index.html & app_production.html identik
+```
+
+---
+
+# Changelog — Sesi 276: AUDIT sinkronisasi lintas-fitur menyeluruh + FIX gap orphan `catalogId`
+
+## Konteks
+Permintaan user: audit sinkronisasi seluruh repository (semua domain,
+dashboard, presenter, BI, AI, registry, event, SSOT, dead code, orphan
+data, import/export, dependency), jalankan seluruh test & build, dan
+kembalikan repo yang sudah diperbaiki. Melanjutkan pola audit
+S200/S201/S268/S272/S274.
+
+## Metode & cakupan yang diverifikasi
+1. **Full regression baseline**: `node --test tests/*.test.js` (1425/1425
+   PASS) & `node scripts/build.js` — bundle valid, `index.html`/
+   `app_production.html` identik, versi konsisten di semua file source —
+   **sebelum** perubahan apa pun dibuat.
+2. **Orphan file check**: cross-check seluruh `modules/**/*.js` +
+   `lifeos/**` + `economic-intelligence/**` terhadap daftar referensi di
+   `scripts/build.js` (GROUP_A/GROUP_B) — 0 file yatim ditemukan (satu
+   kandidat awal, `modules/shared/smoke-test.js`, dikonfirmasi BUKAN
+   orphan — dimuat terpisah lewat `<script src>` langsung di
+   `index.html`/`app_production.html`, bukan lewat bundle, sesuai desain
+   `scripts/build-preview.js`).
+3. **Duplicate logic check**: scan nama seluruh `function xxx(){}`
+   top-level di semua file domain (1125 nama unik) — 0 nama fungsi
+   duplikat lintas file (konvensi 1-nama-global-1-file konsisten
+   dipertahankan).
+4. **Circular dependency check**: `lifeos/`/`economic-intelligence/`
+   tidak memakai `require()`/`module.exports` (arsitektur global-script
+   `window.X`, bukan bundler ES module) — tidak ada graf import untuk
+   dicek sirkularnya; ketergantungan urutan muat diverifikasi lewat
+   build order eksplisit `scripts/build.js` (sudah py guard sendiri,
+   lolos).
+5. **Bridge fragility sweep** (lanjutan metode S274, grep pola
+   name-match `.find(...name...)`/`toLowerCase()===` di seluruh
+   `modules/*`+root): dikonfirmasi ulang seluruh bridge ID eksplisit
+   (`catalogPartRefs`, badge Katalog S269/275) sudah 100% ID-based;
+   kandidat name-match lain (kategorisasi transaksi, produk Shop,
+   restore-by-name di `backup-restore.js`) dikonfirmasi BUKAN kelas bug
+   yang sama — itu pencocokan teks bebas dari user/import eksternal
+   (tidak ada ID sumber utk dijadikan match presisi), bukan bridge antar
+   2 entitas ber-ID yang seharusnya presisi.
+
+## Temuan & FIX: orphan `catalogId` di `D.partsStock` tidak terdeteksi
+`runDataHealthCheck()` (`data-health-check.js`) sudah cek catalogId
+**duplikat** (S268) tapi belum pernah cek catalogId **orphan** — kalau
+sebuah part di Katalog Suku Cadang dihapus (`VehicleCatalog.remove()`)
+padahal masih ada baris `D.partsStock` yang menyimpan `catalogId`-nya,
+tautan itu jadi putus **diam-diam**: badge "🔗 Katalog"/"📦 Stok" terkait
+di `VehicleCatalogUI` cuma berhenti muncul (bukan error), user tidak
+pernah diberi tahu datanya "menggantung". Root cause kenapa belum ada:
+`VehicleCatalog` disimpan async via IndexedDB (`vehicle-catalog.js`),
+sedangkan `runDataHealthCheck()` sepenuhnya sync di atas `D` —
+sebelumnya tidak ada cara aman utk tahu apakah cache
+`VehicleCatalog.getStore()` sudah terisi data asli atau masih default
+kosong (`{items:[]}`), yang kalau langsung dipakai tanpa guard akan
+salah menandai SEMUA baris berkolom `catalogId` sebagai orphan
+(false-positive).
+
+**Perbaikan**:
+- **`modules/vehicle/vehicle-catalog.js`**: getter baru
+  `vehicleCatalogIsLoaded()` (baca flag module-scope
+  `_vehicleCatalogLoaded` apa adanya, 0 logic baru), diekspos jadi
+  `VehicleCatalog.isLoaded()`. 0 perubahan ke `ensureLoaded()`/
+  `getStore()`/perilaku cache yang sudah ada.
+- **`data-health-check.js`**: cek baru ditambah setelah cek dup
+  catalogId — kalau `VehicleCatalog.isLoaded()===true`, tiap
+  `D.partsStock[].catalogId` dicocokkan ke `VehicleCatalog.getStore().
+  items[].id`; tidak ketemu -> `warn` "Stok sparepart tertaut ke part
+  katalog yang sudah dihapus". Kalau `VehicleCatalog` belum dimuat/tidak
+  tersedia, cek ini diam (guard ganda `typeof`+`isLoaded()`) — 0
+  false-positive, pola sama persis guard `typeof X!=='undefined'` yang
+  sudah ada di seluruh file ini. Murni baca, 0 tulis, 0 perubahan ke cek
+  lain yang sudah ada.
+
+## Test baru
+- `tests/data-health-check-catalog-orphan-s276.test.js` (6 test): tidak
+  cek kalau belum dimuat/tidak tersedia, warn kalau catalogId orphan,
+  tidak warn kalau catalogId masih valid, baris tanpa catalogId
+  diabaikan, regresi cek qty minus & dup catalogId lama tetap jalan.
+- `tests/vehicle-catalog.test.js` (+3 test): `isLoaded()` false sebelum
+  load pertama, true setelah `getAll()`, kembali false setelah
+  `invalidateCache()`.
+
+## Cakupan yang TIDAK diulang sesi ini (sudah terverifikasi hijau di
+regression suite, tidak diaudit ulang dari nol)
+SSOT Dashboard/Laporan/BI/AI Insight (net worth, cashflow, fuel/vehicle
+analytics, investment planner) — sudah dites dedicated di
+S191–S201/S235–S236/S250–S252/S268–S269 dan tetap PASS penuh di
+regression suite sesi ini. `FEATURE_REGISTRY`
+(`dashboard-hub-registry.js`) — tidak ada `target` baru ditambahkan
+sesi ini, jadi tidak ada entry baru yang perlu diverifikasi terhadap
+navigasi. Tidak ada EventBus generik lintas-app (per
+`docs/ai/FOUNDATION_AUDIT.md` §5) — pola adapter function-call yang
+ada tetap konsisten, tidak disentuh.
+
+## File berubah
+- `modules/vehicle/vehicle-catalog.js` — getter `isLoaded()` baru.
+- `data-health-check.js` — cek orphan `catalogId` baru.
+- `tests/data-health-check-catalog-orphan-s276.test.js` — baru.
+- `tests/vehicle-catalog.test.js` — +3 test `isLoaded()`.
+- `CHANGELOG.md` (dokumen ini).
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 1434 / pass 1434 / fail 0 (naik dari 1425, +9 test baru, 0 regresi)
+
+node scripts/build.js s276-audit-sinkronisasi-catalogid-orphan-health-check
+# ✅ Build selesai, ?v=799, index.html & app_production.html identik
+# node --check app-bundle-a.min.js && node --check app-bundle-b.min.js -> OK
+```
+
+---
+
+# Changelog — Sesi 275: FIX — badge stok Katalog Suku Cadang pakai `catalogId` (temuan #1 audit S274)
+
+## Konteks
+Tindak lanjut langsung dari temuan #1 audit Sesi 274 (§ di bawah):
+badge "📦 Stok N" di layar Katalog Suku Cadang (`VehicleCatalogUI.
+renderList()`) masih mencari baris `D.partsStock` lewat name-match,
+pola sama gap S272 tapi di sisi tampilan.
+
+## Perubahan
+`modules/vehicle/vehicle-catalog-ui.js` — pencarian badge diubah dari
+`D.partsStock.find(p=>p.name===it.partName)` (name-match saja) jadi:
+`D.partsStock.find(p=>p.catalogId===it.id)` LEBIH DULU (match presisi
+via ID, tahan rename nama stok manual), name-match jadi FALLBACK saja
+untuk baris stok lama tanpa `catalogId`. Pola identik fix S273
+(`car-notes.js`) & badge "🔗 Katalog" S269. Murni tampilan — 0
+perubahan data/alur simpan, 1 file disentuh.
+
+## File berubah
+- `modules/vehicle/vehicle-catalog-ui.js` — pencarian badge stok diubah.
+- `tests/vehicle-catalog-ui-stock-badge-s275.test.js` — baru, 4 test
+  (badge tetap tampil walau stok di-rename manual; 2 baris stok nama
+  sama tampilkan yang benar; fallback name-match utk stok lama; tidak
+  ada badge kalau tidak match).
+- `CHANGELOG.md` (dokumen ini).
+
+## Regresi
+**1425/1425 PASS** (naik dari 1421 — 4 test baru).
+
+---
+
+# Changelog — Sesi 274: AUDIT lanjutan — sinkronisasi lintas-fitur di seluruh aplikasi
+
+## Konteks
+Permintaan user: audit ulang sinkronisasi antar fitur di seluruh
+aplikasi (lanjutan pola audit S200/S201/S268/S272). **Audit-only, 0 fix
+diimplementasikan** kecuali yang sudah dikerjakan sebelumnya di Sesi
+273. Temuan baru dicatat di sini untuk keputusan user.
+
+## Metode
+1. Grep pola pencocokan-by-nama (`toLowerCase()===`, `.find(...name...)`)
+   di seluruh `modules/*` + file root untuk cari kandidat bridge fragile
+   lain serupa gap `catalogId` vs name-match (S272).
+2. Telusuri seluruh bridge ID eksplisit yang sudah ditetapkan sebagai
+   arsitektur final (`catalogPartRefs {catalogId,qty}[]` — Tahap 6 Sesi 1,
+   dipakai `vehicle-catalog-servis-link.js` & `vehicle-catalog-tx-link.js`)
+   untuk pastikan konsisten ID-based di kedua sisi (Servis & Transaksi).
+3. Cek modul OCR/scan yang lebih baru (`sparepart-ocr-catalog-link.js`)
+   apakah ikut pola lama (name-match) atau sudah pakai identifier stabil.
+4. Spot-check adapter lintas-domain lain (`economic-intelligence/adapters/
+   user-finance-adapter.js`, `lifeos/lifeos-link-registry.js`) untuk pola
+   serupa.
+5. Jalankan full regression suite (0 kode produksi diubah sesi ini di
+   luar yang sudah masuk S273) untuk pastikan baseline tetap utuh.
+
+## Temuan #1 (BARU): badge stok di Katalog Suku Cadang masih name-match
+`VehicleCatalogUI.render()` (`modules/vehicle/vehicle-catalog-ui.js`,
+baris badge "📦 Stok N") mencari baris `D.partsStock` yang cocok pakai
+`p.name.trim().toLowerCase() === it.partName.trim().toLowerCase()` —
+**pola SAMA PERSIS** dengan gap S272 (name-match, bukan `catalogId`),
+tapi di sisi TAMPILAN Katalog Suku Cadang, bukan di alur potong stok
+Servis.
+
+**Dampak**: kalau baris Stok Sparepart di-rename manual (skenario sama
+S272), badge "📦 Stok N" di layar Katalog Suku Cadang jadi **hilang**
+walau part itu sebenarnya masih tertaut lewat `catalogId` (bridge Sesi
+266) dan stoknya ada. **Murni kosmetik** — TIDAK mengubah data apa pun
+(beda dari S272 yang data-mutating: stok beneran gagal terpotong).
+Severity: rendah, tapi membingungkan user ("kok stoknya kelihatan
+kosong padahal ada").
+
+**Rekomendasi**: ganti pencarian badge ini jadi
+`D.partsStock.find(p=>p.catalogId===it.id)` (match presisi via ID, pola
+sama S273), `name`-match jadi fallback saja untuk baris stok lama tanpa
+`catalogId` — perubahan 1 baris, 1 file, murni tampilan (pola identik
+badge "🔗 Katalog" Sesi 269). **Belum dikerjakan — menunggu konfirmasi
+user**, konsisten prinsip 1 task = 1 sesi.
+
+## Temuan #2 (konfirmasi POSITIF): bridge `catalogPartRefs` konsisten
+`vehicle-catalog-servis-link.js` (sisi Servis) & `finance/vehicle-
+catalog-tx-link.js` (sisi Transaksi) — DUA bridge terpisah untuk konsep
+sama (`catalogPartRefs: {catalogId,qty}[]`) — dikonfirmasi **100%
+ID-based di kedua sisi**, tidak ada jejak name-match tersisa. Tidak
+sama dengan gap S272 (yang levelnya beda: `catalogLinkedStockId` vs
+`catalogPartRefs`, dua mekanisme berbeda sejak awal).
+
+## Temuan #3 (konfirmasi POSITIF): modul OCR scan aman
+`sparepart-ocr-catalog-link.js` (Tahap 7C-3a) mencocokkan part lewat
+kode fisik (OEM Code / Barcode / Part Number `aftermarketCode`), BUKAN
+nama — secara desain tahan terhadap rename nama part, tidak masuk
+kategori risiko yang sama.
+
+## Temuan #4 (konfirmasi POSITIF): adapter lintas-domain lain bersih
+`economic-intelligence/adapters/user-finance-adapter.js` &
+`lifeos/lifeos-link-registry.js` tidak memakai pola name-match untuk
+relasi antar `D.*` — keduanya baca-saja & sudah ID/flag-based
+(`isDanaDarurat`, dst). 0 gap ditemukan di kedua modul ini.
+
+## Cakupan yang TIDAK diulang sesi ini
+Konsistensi angka Dashboard/Laporan/AI Insight lintas domain (Finance/
+Shop/Asset/Investment/Vehicle), filter Ownership Engine di semua
+konsumen, dan SSOT net worth/finance engine — sudah diaudit tuntas &
+terverifikasi lewat test dedicated di sesi-sesi sebelumnya (S191–S201,
+S235–S236, S268–S269) dan TETAP terverifikasi hijau di full regression
+suite sesi ini (lihat § Regresi) — tidak diaudit ulang dari nol supaya
+sesi ini fokus ke celah yang belum pernah dicek (pola name-match di
+luar `car-notes.js`).
+
+## File berubah
+- `CHANGELOG.md` (dokumen ini) & `docs/NEXT_SESSION.md`. **0 kode
+  source/test disentuh** — murni audit & dokumentasi.
+
+## Regresi
+**1421/1421 PASS** (sama seperti baseline S273 — 0 kode diubah sesi
+ini).
+
+---
+
+# Changelog — Sesi 273: FIX — implementasi rekomendasi sync gap S272 (`catalogId` presisi > name-match)
+
+## Konteks
+Tindak lanjut langsung dari rekomendasi audit Sesi 272 (§ di bawah,
+"Rekomendasi perbaikan"). Sesi 272 audit-only (0 fix); sesi ini
+mengerjakan rekomendasi itu sesuai persis yang sudah dicatat.
+
+## Perubahan
+`Servis._saveInner()` (`car-notes.js`) sekarang cek `catalogId` LEBIH
+DULU (match presisi via ID) sebelum jatuh ke name-match:
+
+1. **`Servis.findMatchingStockByCatalogId(catalogId)`** — fungsi baru,
+   `D.partsStock.find(p=>p.catalogId===catalogId)`. Match presisi, tahan
+   terhadap rename nama baris stok manual (`Sparepart.saveStock()` tetap
+   menjaga `catalogId` walau `name` diedit bebas).
+2. **`Servis.findMatchingStockByName(name)`** — TIDAK dihapus, sekarang
+   jadi FALLBACK saja, dipakai hanya kalau match via `catalogId` gagal
+   (baris stok lama dibuat sebelum Sesi 266 yang belum pernah punya
+   field `catalogId`).
+3. Baris penentuan `catalogStockMatch` di `_saveInner()` diubah dari
+   `Servis.findMatchingStockByName(catalogPartName)` jadi
+   `Servis.findMatchingStockByCatalogId(catalogPartId) ||
+   Servis.findMatchingStockByName(catalogPartName)`.
+
+Perubahan terisolasi ke 1 file (`car-notes.js`), 0 skema data baru,
+0 migrasi — persis seperti dijanjikan di rekomendasi S272.
+
+## Dampak (kedua gap S272 tertutup)
+1. Rename baris Stok Sparepart manual (nama beda, `catalogId` sama)
+   → servis kini TETAP menemukan match & memotong stok yang benar
+   (sebelumnya: `catalogLinkedStockId` jadi `null`, stok diam-diam
+   tidak terpotong).
+2. 2 baris stok bernama sama tapi `catalogId` beda → servis kini
+   memotong baris yang BENAR-BENAR dipakai user (match by ID, bukan
+   `.find()` nama pertama di array).
+
+## File berubah
+- `car-notes.js` — `Servis.findMatchingStockByCatalogId()` baru,
+  urutan pencarian di `_saveInner()` diubah (catalogId dulu, name-match
+  fallback).
+- `tests/servis-catalog-stock-sync-fix-s273.test.js` — pengganti
+  `tests/servis-catalog-stock-sync-gap-s272.test.js` (dihapus/di-rename):
+  4 test — kasus normal, 2 kasus gap S272 (sekarang FIXED, assertion
+  dibalik sesuai perilaku baru), + 1 test baru untuk fallback name-match
+  (baris stok lama tanpa `catalogId`).
+- `CHANGELOG.md` (dokumen ini).
+
+## Regresi
+**1421/1421 PASS** (naik dari 1420 — net +1: 4 test baru di file
+pengganti, -3 test lama dari file yang dihapus).
+
+---
+
+# Changelog — Sesi 272: AUDIT — gap sync `catalogId` (Keuangan/Stok) vs name-match (Servis)
+
+## Konteks
+Permintaan user: cek alur sync Transaksi Keuangan ↔ Katalog Suku Cadang ↔
+Stok Sparepart ↔ Servis, apakah berjalan sesuai. **Audit-only, 0 fix
+diimplementasikan** — temuan & rekomendasi dicatat di sini untuk keputusan
+user.
+
+## Temuan: 2 mekanisme tautan berbeda untuk konsep yang sama, TIDAK sinkron
+
+Ada **2 cara berbeda** yang dipakai codebase untuk menautkan
+`D.partsStock` ↔ 1 part di `VehicleCatalog`, dibuat di 2 sesi berbeda dan
+TIDAK PERNAH disatukan:
+
+| Alur | Mekanisme | Dibuat | Lokasi |
+|---|---|---|---|
+| Keuangan (scan/beli) → Stok | Field eksplisit `catalogId` | Sesi 266 (Tahap 9) | `syncPartsStockFromCatalog()`, `modules/finance/tx-stok-sparepart.js` |
+| Servis → potong Stok saat part katalog dipakai | **Cocok NAMA** (case-insensitive, `.find()` pertama) | Tahap 7E-3 (SEBELUM `catalogId` ada) | `Servis.findMatchingStockByName()`, `car-notes.js`, dipanggil di `Servis._saveInner()` |
+
+`Servis._saveInner()` (jalur yang menentukan `catalogLinkedStockId` — baris
+stok mana yang qty-nya dikurangi saat servis pakai part katalog) **TIDAK
+PERNAH memeriksa field `catalogId`** yang sudah ada sejak Sesi 266/269,
+padahal itu identifier yang sudah lebih akurat & tersedia.
+
+## Dampak nyata (dibuktikan lewat 3 test baru,
+`tests/servis-catalog-stock-sync-gap-s272.test.js`)
+
+1. **Stok tidak terpotong secara diam-diam.** Kalau user mengedit nama
+   baris Stok Sparepart lewat modal "Edit Stok Sparepart"
+   (`Sparepart.saveStock()` — `catalogId` TETAP UTUH, tapi `name` boleh
+   diganti bebas), lalu pilih part katalog yang SAMA PERSIS (`catalogId`
+   sama) di form Servis — nama di dropdown Katalog tidak berubah, jadi
+   `findMatchingStockByName()` GAGAL cocok → `catalogLinkedStockId` jadi
+   `null` → **stok TIDAK dikurangi sama sekali**, TANPA toast/error apa
+   pun ke user. Servis tetap tersimpan normal (bukan gagal total), cuma
+   pencatatan stok yang diam-diam salah.
+2. **Risiko potong stok yang SALAH.** Kalau 2 baris `D.partsStock` punya
+   nama sama persis tapi `catalogId` beda (mis. 2 part katalog beda
+   kebetulan dinamai sama di sisi stok), `findMatchingStockByName()`
+   ambil match PERTAMA di array TANPA verifikasi `catalogId` — servis bisa
+   mengurangi stok part yang TIDAK dipakai, sementara part yang BENERAN
+   dipakai stoknya tidak berkurang.
+
+## Kesimpulan
+**Alur sync BELUM sepenuhnya konsisten** — bridge `catalogId` (yang
+ditetapkan arsitektur final di Sesi 271) baru dipakai di sisi
+Keuangan→Stok, belum diteruskan ke sisi Stok→Servis yang masih pakai
+mekanisme lama (name-match) dari sebelum bridge itu ada.
+
+## Rekomendasi perbaikan (ringan, TIDAK dikerjakan sesi ini — audit saja)
+Ubah urutan pencarian di `Servis._saveInner()`: cek `D.partsStock.find(p
+=> p.catalogId === catalogPartId)` LEBIH DULU (match presisi via ID),
+`findMatchingStockByName()` jadi fallback SAJA untuk baris stok lama yang
+belum pernah punya `catalogId` (dibuat sebelum Sesi 266). Perubahan
+terisolasi ke 1 fungsi kecil (`findMatchingStockByName` bisa
+diganti/didampingi `findMatchingStockByCatalogId`), tidak menyentuh
+skema data, 0 migrasi. Baru dikerjakan atas konfirmasi eksplisit user.
+
+## File berubah
+- `tests/servis-catalog-stock-sync-gap-s272.test.js` — baru, 3 test
+  (1 kasus normal + 2 kasus gap terbukti). Test murni membuktikan
+  perilaku SAAT INI, tidak mengubah kode produksi.
+- `CHANGELOG.md` (dokumen ini).
+
+## Regresi
+**1420/1420 PASS** (naik dari 1417 — 3 test baru, semua kode produksi
+tidak berubah).
+
+---
+
+# Changelog — Sesi 271: Penutupan jalur migrasi `D.partsStock` (keputusan: TIDAK migrasi)
+
+## Konteks
+Tindak lanjut hasil audit Sesi 270 (2 file risiko rendah:
+`finance-dashboard.js`/`ai-chat.js`). User menanyakan apakah sebaiknya
+lanjut migrasi (sekalipun parsial, 2 file itu saja) demi keringkasan,
+atau tidak. Keputusan: **TIDAK migrasi — bahkan yang parsial.**
+
+## Alasan (ringkas)
+1. **Migrasi parsial tidak menyelesaikan masalah apa pun.**
+   `D.partsStock` tetap wajib jadi source of truth sinkron selama 8
+   file sisa (`car-notes.js`, `sparepart-servis.js`, `self-test.js`,
+   `data-health-check.js`, `backup-restore.js`,
+   `features-helpers-global-security.js`, `scan-ocr.js`,
+   `vehicle-catalog-ui.js`) belum ikut — migrasi total sendiri sudah
+   TIDAK direkomendasikan (poin 4, Sesi 268). Migrasi 2 file saja
+   justru menciptakan 2 sumber kebenaran berjalan bersamaan untuk data
+   yang sama, persis risiko yang ditolak sejak Sesi 266.
+2. **Tidak ada kapabilitas baru yang didapat.** Kebutuhan asli (scan
+   barcode → otomatis masuk stok, dipakai bareng Car Notes/Servis)
+   sudah tuntas lewat bridge `catalogId` (Sesi 266) + badge visual
+   "🔗 Katalog" (Sesi 269). Migrasi async cuma ganti cara baca data
+   yang sudah berfungsi, bukan menambah fitur.
+3. **Biaya nyata utk manfaat nol:** `render()`/`_sparepartCards()`
+   (`finance-dashboard.js`) & `_sendChatInner()` (`ai-chat.js`) harus
+   jadi lebih kompleks (`async`/`await`), dan codebase punya 2 gaya
+   baca part yang berbeda (sync `D.partsStock` vs async
+   `VehicleCatalog`) untuk konsep yang identik.
+
+## Keputusan
+Bridge `catalogId` (pola `catalogPartLinkedStockId`) ditetapkan sebagai
+**arsitektur final** untuk integrasi Katalog Suku Cadang ↔ Stok
+Sparepart Keuangan. Jalur audit migrasi `D.partsStock` →
+`VehicleCatalog.getAll()` (poin 3/4, dimulai Sesi 268) **DITUTUP**,
+bukan sekadar ditunda — supaya sesi berikutnya tidak membuka ulang
+audit yang sama tanpa kebutuhan baru yang konkret.
+
+## File berubah
+`CHANGELOG.md` & `docs/NEXT_SESSION.md` saja (dokumentasi murni, 0
+kode disentuh).
+
+## Regresi
+Tidak relevan — 0 kode diubah. Baseline tetap 1417/1417 PASS (Sesi 269).
+
+---
+
+# Changelog — Sesi 270: Audit 1-per-1 (poin 3) — finance-dashboard.js & ai-chat.js
+
+## Konteks
+Jalankan poin 3 dari rekomendasi Sesi 268 (`CHANGELOG.md` § Sesi 268):
+"audit 1-per-1 (bukan sekaligus) kandidat migrasi `D.partsStock`, mulai
+dari titik baca yang paling sedikit dulu (`finance-dashboard.js`/
+`ai-chat.js`)". Sesi ini **AUDIT SAJA** — 0 perubahan kode — sesuai
+lingkup poin 3 sendiri ("masing2 sesi/ACR terpisah", implementasi
+migrasi itu domain poin 4 yang eksplisit "tidak direkomendasikan
+sekarang").
+
+## Metode
+Telusuri tiap titik baca `D.partsStock` di 2 file ini sampai ke
+pemanggil paling luar (call chain), untuk menilai: (a) apakah
+pemanggilnya sudah `async`/fire-and-forget (migrasi ke `await
+VehicleCatalog.getAll()` aman ditambah tanpa efek berantai), atau (b)
+sinkron & hasilnya ditunggu langsung (migrasi butuh refactor lebih
+luas).
+
+## Temuan — `modules/finance/finance-dashboard.js`
+1 titik baca: `Sparepart.calcFinanceStats(D.partsStock, D.servisLogs)`
+di `_sparepartCards()`, dipanggil HANYA dari `render()`.
+Call chain: `render()` ← `modules/shared/modules-render.js:1023`
+(`if(typeof FinanceDashboard!=='undefined')FinanceDashboard.render();`)
+← dibungkus `runDeferredOrNow(function(){...})` (helper PERF yang
+SUDAH menjadwalkan blok ini fire-and-forget setelah paint, lihat
+komentar di sekitar baris tsb) — pemanggil TIDAK menunggu return value
+`render()` sama sekali, tidak ada test yang assert output DOM-nya
+secara sinkron (`tests/sparepart-dashboard.test.js` cuma test
+`calcFinanceStats()` murni, bukan `render()`). `getAIHook()` (dipakai
+banyak konsumen lain: `cross-ai-hook.js`, `financial-forecast-api.js`,
+`unified-summary-api.js`, dst) **TIDAK menyentuh** `D.partsStock` sama
+sekali — jalur itu 100% aman, tidak kena dampak apa pun.
+**Verdict: berisiko RENDAH.** Kandidat aman untuk migrasi (jadikan
+`render()`/`_sparepartCards()` `async`, `await` sumber data part) di
+ACR terpisah kalau user mau lanjut — TIDAK ada refactor berantai ke
+file lain yang diperlukan.
+
+## Temuan — `ai-chat.js`
+3 titik baca (baris `stockSparepartLow`/`stockSparepartAllFull`/
+`stockSparepartAll`), semua di dalam `async function
+_sendChatInner()`. Call chain: `_sendChatInner()` ← `await
+_sendChatInner()` di `async function sendChat()` ← dipanggil dari
+`onkeydown="if(event.key==='Enter')sendChat()"` (`index.html`) — HTML
+attribute TIDAK menunggu promise return, jadi rantai pemanggil dari
+UI ke bawah **sudah 100% async/fire-and-forget**, tidak ada bagian
+sinkron yang perlu diubah.
+**Verdict: berisiko PALING RENDAH dari semua kandidat** — file ini
+sudah dalam konteks `async function`, tinggal tambah `await` di depan
+pemanggilan sumber data part kalau migrasi dijalankan nanti.
+
+## Kesimpulan
+Kedua file ini AMAN untuk jadi kandidat pertama migrasi parsial (bukan
+migrasi total `D.partsStock`) kalau/ketika user memutuskan lanjut ke
+poin 4 — TIDAK ada dampak ke file lain. Ini BEDA dari `car-notes.js`/
+`sparepart-servis.js` (dropdown/torsi modal LIVE, sinkron, banyak
+titik baca) yang tetap jadi risiko utama dan HARUS diaudit terpisah
+sebelum disentuh. Sesi ini sengaja TIDAK mengimplementasikan migrasi
+apa pun (0 kode diubah) — audit murni, konsisten batas poin 3.
+
+## File berubah
+- `CHANGELOG.md` (dokumen ini) & `docs/NEXT_SESSION.md` saja. Tidak ada
+  file source/test yang disentuh.
+
+## Regresi
+Tidak relevan — 0 kode diubah. Baseline tetap 1417/1417 PASS (Sesi 269).
+
+---
+
+# Changelog — Sesi 269: Badge "🔗 Katalog" di list Stok Sparepart (poin 2 rekomendasi S268)
+
+## Konteks
+Kerjakan poin 2 dari daftar rekomendasi audit migrasi `D.partsStock`
+(`CHANGELOG.md` § Sesi 268): badge kecil di `Sparepart.renderStockList()`
+(`modules/vehicle/sparepart-servis.js`) untuk baris stok yang punya
+`catalogId` (hasil bridge scan Keuangan → Katalog Suku Cadang, Sesi 266),
+supaya user bisa lihat mana part yang tertaut ke katalog langsung dari
+list Stok Sparepart, tanpa buka detail satu-satu.
+
+## Perubahan
+Murni tampilan — 1 `<span>` badge `🔗 Katalog` ditambah di sebelah badge
+kode part yang sudah ada, HANYA muncul kalau `p.catalogId` ada. Tidak ada
+field/skema baru, tidak ada perubahan data/alur simpan, 1 file disentuh.
+
+## File berubah
+- `modules/vehicle/sparepart-servis.js` — badge baru di `renderStockList()`.
+- `tests/sparepart-stocklist-catalog-badge-s268.test.js` — baru, 2 test
+  (badge muncul/tidak muncul sesuai `catalogId`).
+
+## Regresi
+**1417/1417 PASS** (naik dari 1415 — 2 test baru).
+
+---
+
+# Changelog — Sesi 268: Audit ringan pra-migrasi bridge catalogId (tindak lanjut Sesi 266)
+
+## Konteks
+Tindak lanjut catatan "Kandidat migrasi penuh" di `NEXT_SESSION.md` § S266:
+audit 9 file konsumen sync `D.partsStock` (`finance-dashboard.js`,
+`data-health-check.js`, `self-test.js`, `backup-restore.js`, `car-notes.js`,
+`sparepart-servis.js`, `ai-chat.js`, `features-helpers-global-security.js`,
+`scan-ocr.js`, `vehicle-catalog-ui.js`) untuk menilai risiko migrasi total
+`D.partsStock` → cache/view read-only dari `VehicleCatalog.getAll()` (async).
+
+## Hasil audit (ringkas)
+Semua 9 file membaca `D.partsStock` secara **sinkron langsung** (bukan
+`await`) di titik-titik yang saat ini murni/render (`.find()`, `.filter()`,
+`forEach`, iterasi total). Migrasi ke sumber async akan memaksa fungsi2
+render/kalkulasi ini jadi `async` secara berantai, ATAU butuh layer cache
+sync terpisah (kompleksitas baru). Risiko regresi terbesar: `car-notes.js`
+& `sparepart-servis.js` (paling banyak titik baca, termasuk dropdown/torsi
+modal live), disusul `self-test.js` (bisa false-negative kalau bikin fungsi
+diuji jadi async tanpa await). **Rekomendasi: migrasi total DITUNDA**,
+konsisten kesimpulan Sesi 266 — bridge `catalogId` tetap pola yang dipakai.
+
+## Ditemukan gap kecil (bukan bug, celah integritas data)
+`syncPartsStockFromCatalog()` (`modules/finance/tx-stok-sparepart.js`)
+mengasumsikan 1 `catalogId` cuma nempel ke 1 baris `D.partsStock` (pakai
+`.find()` pertama yang cocok). Belum ada cek yang memverifikasi asumsi ini
+tetap benar dari waktu ke waktu (mis. kalau ada 2 baris stok kebetulan
+tertaut ke `catalogId` sama dari restore/edit manual lama) — celah ini juga
+persis salah satu risiko yang bakal menghambat migrasi total nanti kalau
+tidak ketahuan dari awal.
+
+## Rekomendasi (urutan dari paling ringan)
+1. **[Dikerjakan sesi ini]** Tambah 1 cek `warn` baru di
+   `runDataHealthCheck()` (`data-health-check.js`): deteksi `catalogId`
+   yang dipakai lebih dari 1 baris `D.partsStock`. Baca-saja, 0 perubahan
+   ke cek lain, 0 file lain disentuh. 3 test baru
+   `tests/data-health-check-catalog-dup-s268.test.js`.
+2. **[Belum, ringan]** Tambah badge kecil "Terhubung ke Katalog Part" di
+   list Stok Sparepart untuk baris yang punya `catalogId` (murni UI,
+   `car-notes.js`, tanpa ubah data/alur).
+3. **[Belum, sedang]** Audit 1-per-1 (bukan sekaligus) kandidat migrasi
+   `car-notes.js` → mulai dari titik baca yang paling sedikit dulu
+   (`finance-dashboard.js`/`ai-chat.js`), masing2 sesi/ACR terpisah.
+4. **[Belum, berat/tidak direkomendasikan sekarang]** Migrasi total
+   `D.partsStock` jadi view async dari `VehicleCatalog` — perlu ACR baru
+   + audit mendalam ke `car-notes.js`/`sparepart-servis.js` dulu.
+
+## File berubah
+- `data-health-check.js` — 1 cek baru (`catalogId` duplikat), + `return
+  issues;` di akhir `runDataHealthCheck()` (additive, semua pemanggil
+  existing mengabaikan return value — perubahan ini yang bikin fungsinya
+  bisa dites tanpa DOM nyata).
+- `tests/data-health-check-catalog-dup-s268.test.js` — baru, 3 test.
+- `docs/NEXT_SESSION.md` — update status kandidat migrasi.
+
+## Regresi
+**1415/1415 PASS** (naik dari 1412 — 3 test baru).
+
+---
+
+# Changelog — Sesi 266 (Build 795): Scan Kode Part di Keuangan → Stok Sparepart Car Notes (Tahap 9)
+
+## Konteks
+Permintaan user: saat input transaksi Keuangan kategori/subkategori
+Motor (panel `txStockPanel`, sudah ada sejak dulu), bisa scan kode part
+langsung dan otomatis masuk ke Stok Sparepart yang dipakai juga di Car
+Notes/Servis — bukan cuma pilih manual dari dropdown seperti sebelumnya.
+User awalnya minta migrasi total "`D.partsStock` jadi turunan penuh dari
+`VehicleCatalog`" (async, IndexedDB) — setelah dicek, itu bertentangan
+langsung dengan aturan eksplisit di header `vehicle-catalog.js`
+("VehicleCatalog tidak pernah menyentuh D, tidak menduplikasi/mengubah
+D.sparepartCats") dan beda model sync/async yg berisiko regresi luas ke
+12+ file yang baca `D.partsStock` (dashboard, self-test, backup-restore,
+dll). Disepakati jalan tengah: reuse pola bridge `catalogId`/referensi
+ringan yang **sudah ada** (persis pola `catalogPartLinkedStockId` di alur
+Servis Car Notes) — VehicleCatalog tetap sumber identitas/OEM/barcode,
+`D.partsStock` tetap satu-satunya pemilik qty/harga (konsisten ACR-001).
+
+## Perubahan
+- `modules/finance/tx-stok-sparepart.js`: tambah `syncPartsStockFromCatalog(catalogItem)`
+  (murni, cari-atau-buat 1 baris `D.partsStock` ber-`catalogId` yg link
+  ke 1 part `VehicleCatalog`) & `txStockScanPart()` (reuse 100%
+  `SparepartScanner.scan('camera')` → `VehicleCatalog.handleScan()` yg
+  sudah ada; kalau draft/belum ada nama, minta nama sekali lewat
+  `showPromptModal` lalu `VehicleCatalog.resolveDraft()`; hasilnya
+  langsung dipilihkan ke dropdown `txStockItem` yang sudah ada).
+- Bonus kecil: part baru yang diketik manual (bukan scan) di panel ini
+  sekarang JUGA otomatis dibuatkan entri `VehicleCatalog` (best-effort,
+  tidak blocking) — supaya ke depan makin banyak part dikenali lewat
+  scan, tanpa migrasi data lama.
+- `modules/shared/modals.js`: tombol baru "📷 Scan Kode Part" di
+  `txStockPanel` (modal Tambah/Edit Transaksi Keuangan), sebelum
+  dropdown "Pilih Sparepart" yang sudah ada.
+- Test baru: `tests/tx-stok-sparepart-catalog-link.test.js` (6 test,
+  cakupan `syncPartsStockFromCatalog()` murni — `txStockScanPart()`
+  sendiri DOM-heavy, tidak dites lewat harness `loadSource`, sama pola
+  `SparepartScanner.scan()`/`buildOverlay()`).
+
+## Belum dikerjakan sesi ini (lihat NEXT_SESSION.md)
+Migrasi PENUH `D.partsStock` jadi async murni dari `VehicleCatalog`
+(mengubah 12+ file konsumen: `finance-dashboard.js`, `data-health-
+check.js`, `self-test.js`, `backup-restore.js`, `car-notes.js` dashboard/
+torsi/servis-dropdown, dll) — TIDAK dikerjakan sesi ini, risiko regresi
+terlalu besar utk 1 sesi "ringkas". Bridge `catalogId` di atas adalah
+langkah pertama yang aman & 100% reuse pola existing; migrasi penuh
+butuh sesi tersendiri dgn audit per-file.
+
+## Hasil
+1412/1412 test lolos (1406 lama + 6 baru). Bundle di-rebuild ke Build
+795 (esbuild tidak tersedia di sandbox — bundle unminified, limitation
+lama, lihat CHANGELOG sesi-sesi sebelumnya).
+
 # Changelog — Sesi 265 (Build 790): Audit navigasi Dashboard/Car Notes (lanjutan pola Sesi 263-264)
 
 ## Konteks

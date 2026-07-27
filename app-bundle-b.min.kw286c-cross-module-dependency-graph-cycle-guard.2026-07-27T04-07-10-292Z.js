@@ -372,8 +372,8 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1')return true;
 }catch(e){ /* anggap bukan dev mode kalau gagal deteksi */ }
 return false;
 }
-const APP_BUILD_VERSION = 'kw286d-cross-module-own-contract-test';
-const PRODUCTION_BUILD_SYNCED_VERSION = 'kw286d-cross-module-own-contract-test';
+const APP_BUILD_VERSION = 'kw286c-cross-module-dependency-graph-cycle-guard';
+const PRODUCTION_BUILD_SYNCED_VERSION = 'kw286c-cross-module-dependency-graph-cycle-guard';
 let D = {
 schemaVersion:SCHEMA_VERSION,
 transactions:[],cobek:[],products:[],produsen:[],cobekKategori:JSON.parse(JSON.stringify(DEFAULT_COBEK_KATEGORI)),targets:[],eduFunds:[],reminders:[],bills:[],billsArchive:[],inventoryTransfers:[],
@@ -30549,13 +30549,9 @@ summary() {
 // pernah terjadi sesaat di S115 lewat ActionQueue.getQueue(), sudah
 // di-revert sesi ini krn menyebabkan "Maximum call stack size exceeded"
 // saat rantai modul asli dimuat bersamaan; lihat
-// tests/cross-module-dependency-graph-s286.test.js (S286 — menggantikan
-// 2 nama file lama yg disebut di catatan ini sebelumnya, cross-module-
-// graph-static.test.js & decision-center-dependency-graph.test.js,
-// KEDUANYA TIDAK PERNAH ADA di source) utk regression test yg memuat
-// rantai modul ASLI, bukan mock, supaya siklus ini tidak bisa balik lagi
-// tanpa ketahuan. Kontrak fungsional generate() sendiri (guard/susunan
-// teks) ada di tests/cross-module-own-contract-s286.test.js.
+// tests/decision-center-dependency-graph.test.js utk regression test yg
+// memuat rantai modul ASLI, bukan mock, supaya siklus ini tidak bisa
+// balik lagi tanpa ketahuan).
 const UnifiedAIBriefing = {
 
 // generate() — Unified AI Briefing. {ok:false} kalau UnifiedSummaryAPI

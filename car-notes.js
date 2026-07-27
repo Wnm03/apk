@@ -425,11 +425,26 @@ if(!partId||!qty)return;
 const p=D.partsStock.find(x=>x.id===partId);
 if(p)p.qty=(p.qty||0)+qty;
 },
+/** Cari 1 item Stok Sparepart (D.partsStock) yang `catalogId`-nya PERSIS
+ * sama dengan part katalog terpilih di form Servis (Sesi 273, tindak
+ * lanjut audit S272) — match presisi via ID, TIDAK terpengaruh user
+ * mengedit nama baris stok lewat "Edit Stok Sparepart"
+ * (Sparepart.saveStock() menjaga catalogId tetap utuh meski name
+ * berubah). Dipakai LEBIH DULU di _saveInner() sebelum fallback ke
+ * findMatchingStockByName(). */
+findMatchingStockByCatalogId(catalogId){
+if(!catalogId)return null;
+return D.partsStock.find(p=>p.catalogId===catalogId)||null;
+},
 /** Cari 1 item Stok Sparepart (D.partsStock) yang namanya PERSIS sama
  * (case-insensitive) dengan nama part katalog terpilih — dipakai untuk
  * ikut mengurangi stok fisik saat part dari Vehicle Catalog dipakai di
  * servis (Tahap 7E-3). Exact match saja (bukan substring) supaya tidak
- * salah kurangi stok item yang mirip tapi beda. */
+ * salah kurangi stok item yang mirip tapi beda.
+ * Sesi 273: sekarang jadi FALLBACK saja (dipanggil hanya kalau
+ * findMatchingStockByCatalogId() gagal) — untuk baris stok lama yang
+ * dibuat sebelum bridge `catalogId` ada (Sesi 266) dan belum pernah
+ * punya field itu. Lihat CHANGELOG.md § Sesi 272/273. */
 findMatchingStockByName(name){
 const n=(name||'').trim().toLowerCase();
 if(!n)return null;
@@ -473,7 +488,10 @@ const catalogPartQty=catalogPartId?(parseFloat(document.getElementById('servisCa
 // lagi di sini, supaya tidak dobel-sumber-kebenaran/dobel call IDB.
 const catalogPartOemCode=(catalogPartId&&catalogPartSelEl&&catalogPartSelEl.selectedOptions&&catalogPartSelEl.selectedOptions[0]&&catalogPartSelEl.selectedOptions[0].dataset)?(catalogPartSelEl.selectedOptions[0].dataset.oem||''):'';
 const catalogPartName=(catalogPartId&&catalogPartSelEl&&catalogPartSelEl.selectedOptions&&catalogPartSelEl.selectedOptions[0]&&catalogPartSelEl.selectedOptions[0].dataset)?(catalogPartSelEl.selectedOptions[0].dataset.name||''):'';
-const catalogStockMatch=catalogPartId?Servis.findMatchingStockByName(catalogPartName):null;
+// Sesi 273: catalogId dulu (match presisi, tahan terhadap rename baris
+// stok manual), findMatchingStockByName() jadi fallback SAJA untuk baris
+// stok lama yang belum pernah punya catalogId (dibuat sebelum Sesi 266).
+const catalogStockMatch=catalogPartId?(Servis.findMatchingStockByCatalogId(catalogPartId)||Servis.findMatchingStockByName(catalogPartName)):null;
 const catalogLinkedStockId=catalogStockMatch?catalogStockMatch.id:null;
 const itemIsVehicleName=!!matchingVehicleName(item);
 let catIdForLog=matched?matched.id:null;
