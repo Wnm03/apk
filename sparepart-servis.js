@@ -80,15 +80,67 @@ codeEl.value=codeFromName(document.getElementById('sparepartName').value);
 populateDatalist(){
 const dl=document.getElementById('sparepartDatalist');
 if(!dl)return;
-dl.innerHTML=D.sparepartCats.map(c=>`<option value="${escapeHtml(c.name)}">`).join('');
+// Sesi 297 (permintaan eksplisit user): datalist ini awalnya HANYA reuse nama
+// Kategori Sparepart -- beda sumber data dari Katalog Suku Cadang
+// (VehicleCatalog), jadi user yang utamanya isi part lewat Katalog sering
+// tidak lihat sarannya di field ini. Fix (tetap 100% reuse, tanpa formula
+// baru): gabungkan (1) nama Kategori Sparepart (dipertahankan, dipakai
+// autofill interval servis di onItemAutofillInterval()), (2) nama item Stok
+// Sparepart yang MASIH ADA STOKNYA (qty>0 saja -- yang qty 0 sengaja
+// dilewati supaya tidak menyarankan part yang sudah pasti tidak bisa
+// dipotong stoknya), dan (3) nama part Katalog Suku Cadang (VehicleCatalog,
+// async) supaya field ini & auto-link exact-match di
+// tryAutoLinkCatalogPart() (car-notes.js) sinkron dari SATU sumber saran
+// yang sama. Dedup case-insensitive; render dulu sinkron (kategori+stok),
+// lalu render ulang setelah catalog termuat (fire-and-forget, pola sama
+// populateCatalogPartSelect()).
+const names=new Map(); // key: lowercase, value: nama asli pertama yang ketemu
+D.sparepartCats.forEach(c=>{ if(c.name) names.set(c.name.toLowerCase(),c.name); });
+D.partsStock.forEach(p=>{ if(p.name&&p.qty>0&&!names.has(p.name.toLowerCase())) names.set(p.name.toLowerCase(),p.name); });
+const renderDl=()=>{ dl.innerHTML=Array.from(names.values()).map(n=>`<option value="${escapeHtml(n)}">`).join(''); };
+renderDl();
+const hasCatalog=typeof VehicleCatalog!=='undefined'&&VehicleCatalog&&typeof VehicleCatalog.getAll==='function';
+if(!hasCatalog)return;
+VehicleCatalog.getAll().then(items=>{
+(items||[]).forEach(it=>{ const n=it.partName; if(n&&!names.has(n.toLowerCase()))names.set(n.toLowerCase(),n); });
+renderDl();
+}).catch(()=>{});
 },
 renderCatList(){
 const el=document.getElementById('sparepartCatList');
 if(!el)return;
 if(!D.sparepartCats.length){el.innerHTML='<div class="empty"><div class="empty-text">Belum ada kategori sparepart</div></div>';return;}
-el.innerHTML=D.sparepartCats.map((c,i)=>`<div class="tx-item"><div class="tx-icon u-bgaccsoft">🔩</div><div class="tx-info"><div class="tx-name">${escapeHtml(c.name)} <span class="u-fs12 u-fw700 u-cacc u-bgaccsoft u-r6 u-ml4" style="padding:1px 6px">${escapeHtml(c.code||codeFromName(c.name))}</span></div><div class="tx-meta">Setiap ${c.intervalKm.toLocaleString('id-ID')} km</div></div><button class="tx-del u-bgaccsoft u-cacc" style="margin-right:6px" data-action="openSparepartModal" data-args="${escapeHtml(JSON.stringify([i]))}" aria-label="Edit/Buka">✏️</button><button class="tx-del" data-action="delSparepart" data-args="${escapeHtml(JSON.stringify([i]))}" aria-label="Hapus">🗑</button></div>`).join('');
+// Sesi 295 (permintaan eksplisit user): tiap baris sekarang menunjukkan apakah
+// kategori ini AKTIF tampil di 🔔 Pengingat Servis atau tidak -- baik karena
+// belum diatur intervalnya (intervalKm 0, biasanya hasil scan Katalog Suku
+// Cadang) maupun karena user sengaja menyembunyikannya (showInReminder:false).
+// Tap badge status utk toggle langsung tanpa buka modal edit.
+el.innerHTML=D.sparepartCats.map((c,i)=>{
+const noInterval=!(c.intervalKm>0);
+const hidden=c.showInReminder===false;
+const inactive=noInterval||hidden;
+const metaText=noInterval?'⚠️ Belum diatur interval servis':'Setiap '+c.intervalKm.toLocaleString('id-ID')+' km';
+const statusBadge=noInterval
+?`<span class="u-fs11 u-fw700 u-r6" style="padding:2px 7px;background:var(--accent2-soft,rgba(230,80,80,.12));color:var(--accent2,#e65050)">⚠️ Tanpa interval</span>`
+:(hidden
+?`<span class="u-fs11 u-fw700 u-r6 u-pointer" data-action="toggleSparepartShowInReminder" data-args="${escapeHtml(JSON.stringify([c.id]))}" style="padding:2px 7px;background:var(--surface3);color:var(--text2)" title="Tap utk tampilkan lagi di Pengingat Servis">🙈 Disembunyikan dari Pengingat</span>`
+:`<span class="u-fs11 u-fw700 u-r6 u-pointer" data-action="toggleSparepartShowInReminder" data-args="${escapeHtml(JSON.stringify([c.id]))}" style="padding:2px 7px;background:var(--accent3-soft,rgba(80,180,120,.12));color:var(--accent3,#3fa66f)" title="Tap utk sembunyikan dari Pengingat Servis">🔔 Tampil di Pengingat</span>`);
+return `<div class="tx-item"><div class="tx-icon u-bgaccsoft">🔩</div><div class="tx-info"><div class="tx-name">${escapeHtml(c.name)} <span class="u-fs12 u-fw700 u-cacc u-bgaccsoft u-r6 u-ml4" style="padding:1px 6px">${escapeHtml(c.code||codeFromName(c.name))}</span></div><div class="tx-meta"${inactive?' style="color:var(--text3)"':''}>${metaText}</div><div class="u-mt4">${statusBadge}</div></div><button class="tx-del u-bgaccsoft u-cacc" style="margin-right:6px" data-action="openSparepartModal" data-args="${escapeHtml(JSON.stringify([i]))}" aria-label="Edit/Buka">✏️</button><button class="tx-del" data-action="delSparepart" data-args="${escapeHtml(JSON.stringify([i]))}" aria-label="Hapus">🗑</button></div>`;
+}).join('');
 Sparepart.populateDatalist();
 Sparepart.populateStockCatSelect();
+},
+toggleShowInReminder(catId){
+const cat=D.sparepartCats.find(c=>c.id===catId);
+if(!cat)return;
+if(!(cat.intervalKm>0)){
+toast('⚠️ Isi dulu Interval Servis (KM) kategori ini sebelum ditampilkan di Pengingat');
+Sparepart.openCatModal(D.sparepartCats.findIndex(c=>c.id===catId));
+return;
+}
+cat.showInReminder=cat.showInReminder===false?true:false;
+save();Sparepart.renderCatList();renderServisList();renderDashboardServisReminder();
+toast(cat.showInReminder===false?'🙈 "'+cat.name+'" disembunyikan dari Pengingat Servis':'🔔 "'+cat.name+'" ditampilkan lagi di Pengingat Servis');
 },
 openCatModal(idx){
 Sparepart.catEditIdx=(typeof idx==='number')?idx:null;
@@ -99,9 +151,47 @@ const codeEl=document.getElementById('sparepartCode');
 codeEl.value=isEdit?(D.sparepartCats[Sparepart.catEditIdx].code||codeFromName(D.sparepartCats[Sparepart.catEditIdx].name)):'';
 codeEl.dataset.manual=isEdit?'1':'0';
 codeEl.oninput=()=>{codeEl.dataset.manual='1';};
-document.getElementById('sparepartInterval').value=isEdit?D.sparepartCats[Sparepart.catEditIdx].intervalKm:'';
+const curCat=isEdit?D.sparepartCats[Sparepart.catEditIdx]:null;
+document.getElementById('sparepartInterval').value=(curCat&&curCat.intervalKm>0)?curCat.intervalKm:'';
+// Sesi 295: toggle "Tampilkan di Pengingat Servis" -- default AKTIF utk
+// kategori baru (perilaku lama, tidak berubah), ikut nilai tersimpan utk
+// kategori existing (termasuk kategori auto-scan yg default false).
+const showRemEl=document.getElementById('sparepartShowInReminder');
+if(showRemEl)showRemEl.checked=curCat?curCat.showInReminder!==false:true;
+const aiBoxEl=document.getElementById('sparepartAiSuggestBox');
+if(aiBoxEl){aiBoxEl.classList.add('u-dnone');aiBoxEl.innerHTML='';}
 const sparepartDelBtnEl=document.getElementById('sparepartDelBtn'); if(sparepartDelBtnEl) sparepartDelBtnEl.style.display=isEdit?'':'none';
 openModal('sparepartModal');
+},
+// suggestInterval() (Sesi 295, permintaan eksplisit user "tambahkan ai
+// rekomendasi interval pergantian sparepart sesuai panduan pengguna"): isi
+// otomatis field Interval Servis dari data manual resmi yg SUDAH ADA di app
+// -- TORSI_DB (dikutip langsung dari Buku Pedoman Reparasi tiap
+// motor/kendaraan, field `interval` spt "Ganti tiap 8.000 km"), bukan
+// panggilan AI/web baru. Match nama part/servis yg diketik user vs semua
+// entri TORSI_DB (semua kendaraan, prioritaskan kendaraan aktif kalau
+// match lebih dari satu vehicle), fallback ke tabel kata kunci umum kalau
+// tidak ada yg cocok. Murni rule-based & lokal (gratis, tanpa network).
+suggestInterval(){
+const nameEl=document.getElementById('sparepartName');
+const name=(nameEl?nameEl.value:'').trim();
+const boxEl=document.getElementById('sparepartAiSuggestBox');
+if(!name){toast('⚠️ Isi dulu Nama Part/Servis-nya');return;}
+const reko=suggestServiceIntervalKm(name,curVehicleId);
+if(!boxEl)return;
+boxEl.classList.remove('u-dnone');
+if(!reko){
+boxEl.innerHTML=`<div class="u-fs12 u-t2">🤖 Belum ada rekomendasi pasti utk "${escapeHtml(name)}" di data buku panduan yang tersimpan. Isi manual sesuai buku servis kendaraanmu ya.</div>`;
+return;
+}
+boxEl.innerHTML=`<div class="u-fs12" style="line-height:1.5"><b>🤖 Rekomendasi: setiap ${reko.km.toLocaleString('id-ID')} km</b><br><span class="u-t2">Sumber: ${escapeHtml(reko.source)}</span></div><button type="button" class="btn btn-primary btn-sm u-mt6" data-action="applySparepartIntervalSuggestion" data-args="${escapeHtml(JSON.stringify([reko.km]))}">✅ Pakai Angka Ini</button>`;
+},
+applyIntervalSuggestion(km){
+const el=document.getElementById('sparepartInterval');
+if(el)el.value=km;
+const boxEl=document.getElementById('sparepartAiSuggestBox');
+if(boxEl)boxEl.classList.add('u-dnone');
+toast('✅ Interval diisi '+km.toLocaleString('id-ID')+' km, cek dulu sebelum simpan');
 },
 async deleteFromModal(){
 if(Sparepart.catEditIdx===null)return;
@@ -113,16 +203,25 @@ saveCat(){
 const name=document.getElementById('sparepartName').value.trim();
 const interval=parseFloat(document.getElementById('sparepartInterval').value);
 let code=document.getElementById('sparepartCode').value.trim().toUpperCase();
-if(!name||!interval||interval<=0){toast('⚠️ Lengkapi nama & interval servis');return;}
+const showRemEl=document.getElementById('sparepartShowInReminder');
+// Sesi 295: kalau user SENGAJA mematikan toggle "Tampilkan di Pengingat
+// Servis", interval boleh dikosongkan (kategori ini cuma dipakai utk
+// pengelompokan Stok Sparepart, bukan jadwal servis aktif) -- interval
+// tetap WAJIB kalau toggle-nya aktif (perilaku lama tidak berubah).
+const wantShow=showRemEl?showRemEl.checked:true;
+if(!name){toast('⚠️ Lengkapi nama kategori');return;}
+if(wantShow&&(!interval||interval<=0)){toast('⚠️ Lengkapi interval servis, atau matikan toggle "Tampilkan di Pengingat Servis" kalau kategori ini cuma buat stok');return;}
 const clash=matchingVehicleName(name);
 if(clash){toast(`⚠️ "${name}" adalah nama kendaraan, bukan nama part/servis. Isi nama part yang mau diingatkan (mis. Oli Mesin, Ganti Ban, dll).`,4000);return;}
 if(!code) code=codeFromName(name);
+const intervalKm=(interval&&interval>0)?interval:0;
 if(Sparepart.catEditIdx!==null){
 D.sparepartCats[Sparepart.catEditIdx].name=name;
 D.sparepartCats[Sparepart.catEditIdx].code=code;
-D.sparepartCats[Sparepart.catEditIdx].intervalKm=interval;
+D.sparepartCats[Sparepart.catEditIdx].intervalKm=intervalKm;
+D.sparepartCats[Sparepart.catEditIdx].showInReminder=wantShow;
 } else {
-D.sparepartCats.push({id:'sp_'+Date.now(),name,code,intervalKm:interval});
+D.sparepartCats.push({id:'sp_'+Date.now(),name,code,intervalKm,showInReminder:wantShow});
 }
 save();closeModal('sparepartModal');Sparepart.renderCatList();renderServisList();renderDashboardServisReminder();toast('✅ Kategori sparepart disimpan');
 },
@@ -385,6 +484,9 @@ function autoFillStockCode(){return Sparepart.autoFillStockCode();}
 function openStockModal(idx){return Sparepart.openStockModal(idx);}
 function saveStock(){return Sparepart.saveStock();}
 function delStock(i){return Sparepart.delStock(i);}
+function toggleSparepartShowInReminder(catId){return Sparepart.toggleShowInReminder(catId);}
+function suggestSparepartInterval(){return Sparepart.suggestInterval();}
+function applySparepartIntervalSuggestion(km){return Sparepart.applyIntervalSuggestion(km);}
 function populateServisPartSelect(selectedPartId){return Servis.populatePartSelect(selectedPartId);}
 function onServisPartChange(){return Servis.onPartChange();}
 function onServisCatalogPartChange(){return Servis.onCatalogPartChange();}
@@ -560,6 +662,78 @@ function findTorsiDb(vehName){
 if(!vehName)return null;
 const n=vehName.toLowerCase();
 return TORSI_DB.find(s=>s.matchNames.some(m=>n.includes(m)))||null;
+}
+// suggestServiceIntervalKm() (Sesi 295, permintaan eksplisit user "tambahkan
+// ai rekomendasi interval pergantian sparepart sesuai panduan pengguna") --
+// dipakai Sparepart.suggestInterval() di modal 🔧 Kelola Kategori Sparepart.
+// TIDAK panggil AI/web baru: nambang field `interval` yg SUDAH ADA di
+// TORSI_DB (dikutip langsung dari Buku Pedoman Reparasi tiap
+// kendaraan -- lihat `sourceNote` per entri), yg formatnya spt "Periksa
+// tiap 4.000 km · Ganti tiap 8.000 km" atau "Ganti tiap 16.000 km". Prioritas
+// pencarian: (1) kendaraan aktif user dulu (findTorsiDb(vehName)) supaya
+// rekomendasi paling relevan buat motor/mobil yg sedang dipakai, (2) kalau
+// tidak match/tidak ada TORSI_DB utk kendaraan itu, cari di SEMUA entri
+// TORSI_DB. Angka "Ganti" diutamakan drpd "Periksa" (ganti = usia pakai
+// sebenarnya part itu, bukan interval cek). Kalau tetap tidak ketemu,
+// fallback ke tabel kata kunci umum (angka umum dari buku servis motor
+// matic Indonesia) supaya tetap ada saran meski part-nya belum ada di
+// TORSI_DB manapun.
+function _parseIntervalKmFromText(text){
+if(!text)return null;
+const gantiMatch=text.match(/ganti[^0-9]*([\d.,]+)\s*km/i);
+if(gantiMatch)return parseFloat(gantiMatch[1].replace(/\./g,'').replace(',','.'));
+const anyMatch=text.match(/([\d.,]+)\s*km/i);
+if(anyMatch)return parseFloat(anyMatch[1].replace(/\./g,'').replace(',','.'));
+return null;
+}
+function suggestServiceIntervalKm(partName,vehicleId){
+if(!partName)return null;
+const q=partName.trim().toLowerCase();
+if(q.length<3)return null;
+function searchInDb(dbEntry){
+if(!dbEntry)return null;
+for(const catGroup of dbEntry.cats){
+for(const item of catGroup.items){
+if(!item.interval)continue;
+const iname=item.name.toLowerCase();
+if(iname.includes(q)||q.includes(iname)){
+const km=_parseIntervalKmFromText(item.interval);
+if(km)return{km,source:dbEntry.sourceNote,partLabel:item.name};
+}
+}
+}
+return null;
+}
+const veh=D.vehicles.find(v=>v.id===vehicleId);
+if(veh){
+const own=findTorsiDb(veh.name);
+const hit=searchInDb(own);
+if(hit)return hit;
+}
+for(const dbEntry of TORSI_DB){
+const hit=searchInDb(dbEntry);
+if(hit)return hit;
+}
+// Fallback: tabel kata kunci umum (bukan dari TORSI_DB spesifik kendaraan,
+// tapi angka rule-of-thumb yg lazim dipakai buku servis motor matic).
+const FALLBACK_KEYWORDS=[
+{keys:['oli mesin','oli mesin motor'],km:2000,label:'rata-rata rekomendasi ganti oli mesin motor matic'},
+{keys:['filter oli','saringan oli'],km:8000,label:'rata-rata rekomendasi buku servis motor matic'},
+{keys:['oli gardan','oli transmisi','final drive','final reduction'],km:8000,label:'rata-rata rekomendasi buku servis motor matic'},
+{keys:['busi'],km:8000,label:'rata-rata rekomendasi buku servis motor matic'},
+{keys:['filter udara','saringan udara'],km:16000,label:'rata-rata rekomendasi buku servis motor matic'},
+{keys:['kampas rem','brake pad'],km:10000,label:'rata-rata rekomendasi pemeriksaan kampas rem'},
+{keys:['v-belt','vbelt','drive belt','cvt belt'],km:24000,label:'rata-rata rekomendasi ganti v-belt CVT'},
+{keys:['roller','roller cvt'],km:24000,label:'rata-rata rekomendasi ganti roller CVT'},
+{keys:['minyak rem','brake fluid'],km:20000,label:'rata-rata rekomendasi ganti minyak rem (≈2 tahun)'},
+{keys:['coolant','radiator','cairan pendingin'],km:20000,label:'rata-rata rekomendasi ganti coolant (≈2 tahun)'},
+{keys:['aki','accu','battery'],km:15000,label:'rata-rata usia pakai aki motor sebelum dicek ulang'},
+{keys:['ban depan','ban belakang','ban luar'],km:20000,label:'rata-rata usia pakai ban motor'},
+];
+for(const fb of FALLBACK_KEYWORDS){
+if(fb.keys.some(k=>q.includes(k)))return{km:fb.km,source:fb.label+' (bukan dari buku manual kendaraan spesifik ini — sesuaikan lagi kalau ada datanya)'};
+}
+return null;
 }
 const TORSI_NM_PER_KGF=9.80665, TORSI_NM_PER_LBFT=1.35582, TORSI_NM_PER_LBIN=0.112985;
 const VEHICLE_SPEC_DB=[

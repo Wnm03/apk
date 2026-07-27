@@ -82,12 +82,39 @@ function vehicleScannerBuildHints() {
   return hints;
 }
 
+// BUGFIX (lanjutan audit z-index/stacking-context #scrollRoot vs .nav, lihat
+// komentar di styles.css ~baris 81): #mainNav (position:fixed, z-index:
+// var(--z-chrome)=100) ternyata tetap kepaint DI ATAS overlay scanner
+// (z-index:var(--z-scanner)=970) di sebagian browser/mode non-PWA — root
+// cause pastinya beda platform-dependent (hardware compositing utk elemen
+// <video>), TIDAK bisa dipastikan cuma dari 1 aturan CSS. Fix paling aman &
+// portable: sembunyikan #mainNav (dan #mainHeader, biar konsisten) SELAMA
+// scanner terbuka, kembalikan persis seperti semula saat teardown — pola
+// SAMA seperti showMain() yang sudah toggle elemen² ini manual (bukan
+// mengandalkan z-index murni). 0 CSS baru, 0 perubahan ke elemen lain.
+function vehicleScannerHideChrome() {
+  const nav = document.getElementById('mainNav');
+  const header = document.getElementById('mainHeader');
+  const prev = { navDisplay: nav ? nav.style.display : null, headerDisplay: header ? header.style.display : null };
+  if (nav) nav.style.display = 'none';
+  if (header) header.style.display = 'none';
+  return prev;
+}
+function vehicleScannerRestoreChrome(prev) {
+  if (!prev) return;
+  const nav = document.getElementById('mainNav');
+  const header = document.getElementById('mainHeader');
+  if (nav) nav.style.display = prev.navDisplay || '';
+  if (header) header.style.display = prev.headerDisplay || '';
+}
+
 // Bangun overlay fullscreen (video + bingkai target + tombol tutup),
 // dilepas total dari DOM saat scan selesai/dibatalkan — tidak ada elemen
 // nempel/bocor di belakang.
 function vehicleScannerBuildOverlay() {
   const overlay = document.createElement('div');
   overlay.className = 'vehicle-scanner-fullscreen';
+  overlay._prevChrome = vehicleScannerHideChrome();
 
   const video = document.createElement('video');
   video.className = 'vehicle-scanner-video';
@@ -119,6 +146,7 @@ function vehicleScannerBuildOverlay() {
 
 function vehicleScannerTeardown(reader, overlay) {
   try { if (reader && typeof reader.reset === 'function') reader.reset(); } catch (e) { /* no-op, sama pola try/catch existing di modul lain */ }
+  vehicleScannerRestoreChrome(overlay && overlay._prevChrome);
   if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
 }
 

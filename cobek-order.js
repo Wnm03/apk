@@ -67,11 +67,24 @@ const ruteInfo=pr.jarakKm>0?`📍 ${pr.jarakKm} km${pr.biayaPerKm>0?' × '+fmt(p
 return`<div class="tx-item">
         <div class="tx-icon" style="background:var(--accent2-soft)">🏭</div>
         <div class="tx-info"><div class="tx-name">${escapeHtml(pr.name)}</div><div class="tx-meta">${pr.contact?'📞 '+escapeHtml(pr.contact)+' · ':''}${ruteInfo}${escapeHtml(hargaInfo)}</div></div>
-        <button class="tx-del u-cacc3" style="background:var(--accent3-soft);margin-right:6px" data-action="openProdusenHargaModal" data-args="${escapeHtml(JSON.stringify([pr.id]))}" aria-label="Edit/Buka">💰</button>
         <button class="tx-del u-bgaccsoft u-cacc" style="margin-right:6px" data-action="openProdusenModal" data-args="${escapeHtml(JSON.stringify([pr.id]))}" aria-label="Edit/Buka">✏️</button>
-        <button class="tx-del" data-action="delProdusen" data-args="${escapeHtml(JSON.stringify([pr.id]))}" aria-label="Hapus">🗑</button>
+        <button class="tx-del" data-action="openProdusenActionsMenu" data-args="${escapeHtml(JSON.stringify([pr.id]))}" aria-label="Aksi lainnya">⋮</button>
       </div>`;
 }).join('');
+},
+// openProdusenActionsMenu(id) — menu overflow "⋮" utk aksi sekunder kartu produsen
+// (audit tab lain, lanjutan S304: pola SAMA PERSIS openBillActionsMenu() di
+// tagihan-kalender.js — Edit tetap tampil langsung di kartu krn paling sering
+// dipakai, 💰 Atur Harga & 🗑 Hapus dipindah ke sini). Modal qsProdusenActions
+// baru (HTML), reuse penuh class .bill-action-row/.qs-modal-overlay yg sudah ada.
+openProdusenActionsMenu(id){
+const pr=D.produsen.find(x=>x.id===id);
+if(!pr)return;
+document.getElementById('produsenActionsTitle').textContent=`🏭 ${pr.name}`;
+document.getElementById('produsenActionsList').innerHTML=`
+    <div class="bill-action-row" data-action="produsenActionHarga" data-args="${escapeHtml(JSON.stringify([id]))}"><span class="bar-icon u-cacc3">💰</span> Atur Harga</div>
+    <div class="bill-action-row danger" data-action="produsenActionDelete" data-args="${escapeHtml(JSON.stringify([id]))}"><span class="bar-icon">🗑</span> Hapus</div>`;
+openQS('qsProdusenActions');
 },
 openHargaModal(produsenId){
 this.hargaEditId=produsenId;

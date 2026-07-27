@@ -222,6 +222,21 @@ async function catalogUiOpenForm(id) {
   }
   catalogUiRenderPhotos();
   catalogUiRenderVehicleChecklist(compatibleVehicleIds);
+  // Sesi 296 (bugfix, laporan user "tombol edit tidak ada efek"): form ✏️
+  // Edit ini dirender di BAWAH #catalogList (bisa panjang kalau sudah banyak
+  // part hasil scan katalog) -- munculnya form beneran jalan (u-dnone
+  // dilepas), tapi kalau list panjang, form itu ada di luar area kelihatan
+  // (di bawah fold), jadi kelihatan spt tombol tidak bereaksi sama sekali.
+  // Fix: auto-scroll form ke dalam viewport tiap kali dibuka (baik utk Edit
+  // maupun +Tambah Manual). setTimeout 0 supaya browser sempat selesai
+  // reflow dulu (wrap baru saja dilepas dari u-dnone di baris atas) sebelum
+  // dihitung posisi scroll-nya -- scrollIntoView tanpa delay ini kadang
+  // meleset kalau dipanggil di frame yang sama dgn perubahan display.
+  setTimeout(() => {
+    if (wrap && typeof wrap.scrollIntoView === 'function') {
+      wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, 0);
 }
 
 // Checklist kendaraan kompatibel — REUSE D.vehicles apa adanya (tidak baca/

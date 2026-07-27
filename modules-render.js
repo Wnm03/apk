@@ -2,7 +2,7 @@
 // Dipindah ke modules/shared/modules-render.js (Sesi 17-18 restrukturisasi folder — lihat docs/FILE-MAP.md & RENCANA-SESI.md; isi & nama file TIDAK berubah, cuma lokasi folder).
 // Semua fungsi ini murni definisi function global (bukan module), jadi tetap bisa dipanggil dari file manapun
 // yang loadnya belakangan (sama seperti modules-calc.js/features-*.js).
-const MODULE_RENDER_VERSION='s293-datahealth-target-orphan-audit';
+const MODULE_RENDER_VERSION='s308-bibit-detail-scan-invest-detail';
 
 function renderPageContent(name){
 // KW perf fix: jaring pengaman selain hook di save() -- pastikan cache saldo akun juga fresh
@@ -92,12 +92,26 @@ const jenisBadge=jenisLabel?` <span class="u-fs12t2">${escapeHtml(jenisLabel)}</
 const ownResolved=(typeof OwnershipEngine!=='undefined')?OwnershipEngine.resolve(a):null;
 const ownText=ownResolved?` <span class="acc-chip">${escapeHtml(OwnershipEngine.label(ownResolved.type))}</span>`:'';
 const ownDetail=ownResolved?`<div class="u-fs10 u-t2">Ownership<br>${escapeHtml(ownResolved.type)}</div>`:'';
+// investDetail (S308) -- field DINAMIS hasil scan layar Detail Portofolio Bibit (Modal
+// Investasi/Keuntungan/Harga Beli/Jumlah Unit, lihat UniversalScan.importSelected() di
+// modules/shared/scan-ocr.js). MURNI TAMPILAN read-only di sini -- akun tanpa field ini
+// (mayoritas: bank/e-wallet biasa) TIDAK menampilkan baris tambahan sama sekali (guard
+// a.investDetail null/undefined), jadi 0 perubahan tampilan utk akun yang sudah ada.
+const invD=a.investDetail;
+const invDetailLine=invD?(()=>{
+const parts=[];
+if(invD.modal!=null)parts.push('Modal '+fmt(invD.modal));
+if(invD.keuntungan!=null)parts.push((invD.keuntungan<0?'Rugi ':'Untung ')+fmt(Math.abs(invD.keuntungan)));
+if(invD.jumlahUnit!=null)parts.push(Number(invD.jumlahUnit).toLocaleString('id-ID')+' unit');
+return parts.length?`<div class="u-fs11 u-t2" style="margin-top:2px">${escapeHtml(parts.join(' · '))}</div>`:'';
+})():'';
 return`<div class="acc-card" style="${off||linked?'opacity:.55':''}" data-action="openAccTxHistory" data-args="${escapeHtml(JSON.stringify([a.id]))}">
       <button class="acc-card-edit" data-stop="1" data-action="openAccModal" data-args="${escapeHtml(JSON.stringify([i]))}" title="Edit" aria-label="Edit">✏️</button>
       <button class="acc-card-del" data-stop="1" data-action="delAcc" data-args="${escapeHtml(JSON.stringify([i]))}" aria-label="Hapus">🗑</button>
       <div class="acc-card-icon">${a.emoji}</div>
       <div class="acc-card-name">${escapeHtml(a.name)}${badge}${jenisBadge}${ownText}</div>
       ${ownDetail}
+      ${invDetailLine}
       <div class="acc-card-bal ${bal<0?'red':'green'}">${bal<0?'-':''}${fmt(Math.abs(bal))}</div>
     </div>`;
 }).join('');
@@ -313,25 +327,33 @@ return new Date(a._dateForFilter)-new Date(b._dateForFilter);
 const html=sorted.map(b=>{
 const due=new Date(b._dateForFilter);
 const diff=Math.ceil((due-today)/(1000*60*60*24));
-const soon=diff<=7;
 let cicilanBar='';
 if(b.kind==='cicilan'&&b.tenor&&b.sisaTenor!==null){
 const sudah=b.tenor-b.sisaTenor;
 const pct=Math.round((sudah/b.tenor)*100);
-cicilanBar=`<div class="u-mt4"><div class="u-flex u-jcb u-fs12 u-t2 u-mb2"><span>Cicilan ke-${sudah} dari ${b.tenor}x</span><span>${pct}%</span></div><div class="prog-bar" style="height:4px"><div class="prog-fill purple" style="width:${pct}%"></div></div></div>`;
+// Warna progress ikut sisa tenor (S299 UI polish pt.4) — reuse class .prog-fill.green/
+// .orange yg SUDAH ADA (var(--accent)/--accent3/--accent4, 0 warna baru): hijau = masih
+// jauh dari akhir tenor (on-track), oranye = 2x cicilan terakhir (mepet akhir tenor,
+// jadi pengingat siapin pelunasan/cek perpanjangan sebelum tenor habis).
+const barColor=b.sisaTenor<=2?'orange':'green';
+cicilanBar=`<div class="u-mt4"><div class="u-flex u-jcb u-fs12 u-t2 u-mb2"><span>Cicilan ke-${sudah} dari ${b.tenor}x</span><span>${pct}%</span></div><div class="prog-bar" style="height:4px"><div class="prog-fill ${barColor}" style="width:${pct}%"></div></div></div>`;
 }
-const statusBadge=b._lunas?`<span class="bill-due-badge bill-due-ok">✅ Lunas</span>`:`<span class="bill-due-badge ${soon?'bill-due-soon':'bill-due-ok'}">${diff<0?'Lewat':diff===0?'Hari ini':diff+' hari'}</span>`;
+// Urgensi 3-tier (S299 UI polish pt.2): <=3 hari/lewat = merah (urgent), 4-7 hari = oranye
+// (soon), >7 hari = abu-abu netral (far, belum perlu perhatian). Kategori/subkategori/shared/
+// sisaTenor TETAP pakai .acc-chip abu-abu netral (SUDAH begitu dari awal) — jadi sekarang ada
+// urutan jelas: kategori (netral, kecil) vs urgensi (warna, langsung nangkep tanpa baca teks).
+const urgClass=diff<=3?'bill-due-urgent':(diff<=7?'bill-due-soon':'bill-due-far');
+const statusBadge=b._lunas?`<span class="bill-due-badge bill-due-ok">✅ Lunas</span>`:`<span class="bill-due-badge ${urgClass}">${diff<0?'Lewat':diff===0?'Hari ini':diff+' hari'}</span>`;
 const anomaly=b._lunas?null:getBillAnomalyInfo(b.id,b.amount);
 const anomalyNote=anomaly?`<div class="u-fs11 u-mt2 u-fw700" style="color:var(--accent4)">⚠️ Naik ${anomaly.pctChange}% dari rata-rata ${anomaly.count}x terakhir (${fmt(anomaly.avgPrev)}) — cek lagi sebelum bayar</div>`:'';
+const hasDetail=!!(cicilanBar||anomalyNote);
+const chevron=hasDetail?`<span class="bill-card-chevron" data-stop="1" data-action="toggleBillCardDetail" data-args='["$el"]' title="Detail" aria-label="Tampilkan detail">▾</span>`:'';
 const actionBtns=b._lunas?
 `<button class="tx-del u-cacc3" data-stop="1" data-action="openBillHistory" data-args="${escapeHtml(JSON.stringify([b.id]))}" title="Riwayat Pembayaran" aria-label="Riwayat Pembayaran">📋</button>
-       <button class="tx-del u-bgaccsoft u-cacc" data-stop="1" data-action="openBillModal" data-args="${escapeHtml(JSON.stringify([b.id]))}" title="Edit" aria-label="Edit">✏️</button>
-       <button class="tx-del" data-stop="1" data-action="delBill" data-args="${escapeHtml(JSON.stringify([b.id]))}" title="Hapus" aria-label="Hapus">🗑</button>`:
+       <button class="tx-del" data-stop="1" data-action="openBillActionsMenu" data-args="${escapeHtml(JSON.stringify([b.id,true]))}" title="Aksi lainnya" aria-label="Aksi lainnya">⋮</button>`:
 `<button class="tx-del" data-stop="1" data-action="markBillPaid" data-args="${escapeHtml(JSON.stringify([b.id]))}" title="Bayar sekarang" aria-label="Bayar sekarang">✅</button>
-       <button class="tx-del" data-stop="1" data-action="shareBillWA" data-args="${escapeHtml(JSON.stringify([b.id]))}" title="Kirim ke WhatsApp" aria-label="Kirim ke WhatsApp">💬</button>
-       <button class="tx-del u-cacc3" data-stop="1" data-action="openBillHistory" data-args="${escapeHtml(JSON.stringify([b.id]))}" title="Riwayat Pembayaran" aria-label="Riwayat Pembayaran">📋</button>
        <button class="tx-del u-bgaccsoft u-cacc" data-stop="1" data-action="openBillModal" data-args="${escapeHtml(JSON.stringify([b.id]))}" title="Edit" aria-label="Edit">✏️</button>
-       <button class="tx-del" data-stop="1" data-action="delBill" data-args="${escapeHtml(JSON.stringify([b.id]))}" title="Hapus" aria-label="Hapus">🗑</button>`;
+       <button class="tx-del" data-stop="1" data-action="openBillActionsMenu" data-args="${escapeHtml(JSON.stringify([b.id,false]))}" title="Aksi lainnya" aria-label="Aksi lainnya">⋮</button>`;
 return`<div class="bill-item u-pointer" data-action="openBillModal" data-args="${escapeHtml(JSON.stringify([b.id]))}" style="flex-direction:column;align-items:stretch;gap:8px;${b._lunas?'opacity:0.75':''}">
       <div class="u-flex u-aic u-gap10">
         <div class="tx-icon u-bgaccsoft">${icons[b.kind]||'🔔'}</div>
@@ -343,9 +365,9 @@ return`<div class="bill-item u-pointer" data-action="openBillModal" data-args="$
           <div class="tx-amount red">${fmt(b.amount)}</div>
           ${statusBadge}
         </div>
+        ${chevron}
       </div>
-      ${cicilanBar}
-      ${anomalyNote}
+      ${hasDetail?`<div class="bill-card-detail">${cicilanBar}${anomalyNote}</div>`:''}
       <div class="u-flex u-gap6 u-fwrap" style="justify-content:flex-end">
         ${actionBtns}
       </div>
@@ -520,14 +542,19 @@ function renderDashboardServisReminder(){
 const card=document.getElementById('dashServisReminderCard');
 if(!card)return;
 const selfVehicles=_dashServisSelfVehicles();
-if(!selfVehicles.length||!D.sparepartCats.length){card.style.display='none';return;}
+// Sesi 295: sama seperti Servis.renderReminder() (car-notes.js) -- filter ke
+// kategori dgn interval valid & tidak disembunyikan, biar kategori sampah
+// hasil scan Katalog Suku Cadang (intervalKm:0, showInReminder:false) tidak
+// numpuk juga di widget Beranda ini.
+const remindableCats=D.sparepartCats.filter(c=>c.intervalKm>0&&c.showInReminder!==false);
+if(!selfVehicles.length||!remindableCats.length){card.style.display='none';return;}
 const vehChipsHTML=renderDashServisVehChips();
 const vehicles=dashServisVehFilter==='semua'?selfVehicles:selfVehicles.filter(v=>v.id===dashServisVehFilter);
 const rows=[];
 vehicles.forEach(veh=>{
 const curKm=getVehicleKm(veh.id);
 const kmPerDay=estimateKmPerDay(veh.id);
-D.sparepartCats.forEach(cat=>{
+remindableCats.forEach(cat=>{
 const lastKm=getLastServiceKmForCat(veh.id,cat);
 const intervalKm=getEffectiveIntervalKm(veh.id,cat);
 const jarakTempuh=lastKm===null?curKm:curKm-lastKm;

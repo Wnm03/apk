@@ -117,6 +117,11 @@ async function sparepartScannerGalleryAdapter() {
 function sparepartScannerBuildOverlay() {
   const overlay = document.createElement('div');
   overlay.className = 'vehicle-scanner-fullscreen';
+  // BUGFIX (sama seperti vehicle-scanner.js — lihat komentar
+  // vehicleScannerHideChrome()): #mainNav tetap kepaint di atas overlay
+  // scanner di sebagian browser/mode non-PWA walau z-index-nya lebih
+  // rendah. Reuse penuh helper yang sudah ada, TIDAK didefinisikan ulang.
+  overlay._prevChrome = (typeof vehicleScannerHideChrome === 'function') ? vehicleScannerHideChrome() : null;
 
   const video = document.createElement('video');
   video.className = 'vehicle-scanner-video';
@@ -148,6 +153,7 @@ function sparepartScannerBuildOverlay() {
 
 function sparepartScannerTeardownOverlay(reader, overlay) {
   try { if (reader && typeof reader.reset === 'function') reader.reset(); } catch (e) { /* no-op, sama pola try/catch existing di modul lain */ }
+  if (typeof vehicleScannerRestoreChrome === 'function') vehicleScannerRestoreChrome(overlay && overlay._prevChrome);
   if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
 }
 
