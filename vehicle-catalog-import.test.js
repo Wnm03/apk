@@ -231,6 +231,35 @@ test('commitRows() — baris dengan oemCode/barcode yang sudah ada di katalog di
   assert.equal(result.skipped, 1);
 });
 
+test('commitRows() — createdItems berisi item yang BENAR-BENAR berhasil dibuat (bukan baris asli/skip/duplikat)', async () => {
+  const stub = {
+    findByCode: async (code) => (code === 'DUP-1' ? { id: 'existing' } : null),
+    create: async (data) => {
+      if (data.partName === 'Item Gagal') return { success: false, errors: ['gagal'] };
+      return { success: true, item: Object.assign({ id: 'cat_' + data.partName }, data) };
+    },
+  };
+  const ctx = makeCtx(stub);
+  const result = await ctx.VehicleCatalogImport.commitRows([
+    { partName: 'Kampas Rem', oemCode: 'ABC-1' },
+    { partName: 'Item Gagal', oemCode: 'XYZ-1' },
+    { partName: 'Busi Duplikat', oemCode: 'DUP-1' },
+    { partName: '' }, // tanpa nama, skip diam-diam
+  ]);
+  assert.equal(result.imported, 1);
+  assert.equal(Array.isArray(result.createdItems), true);
+  assert.equal(result.createdItems.length, 1);
+  assert.equal(result.createdItems[0].id, 'cat_Kampas Rem');
+  assert.equal(result.createdItems[0].partName, 'Kampas Rem');
+});
+
+test('commitRows() — array kosong -> createdItems tetap array kosong (bukan undefined)', async () => {
+  const ctx = makeCtx({ create: async () => ({ success: true, item: {} }) });
+  const result = await ctx.VehicleCatalogImport.commitRows([]);
+  assert.equal(Array.isArray(result.createdItems), true);
+  assert.equal(result.createdItems.length, 0);
+});
+
 // ------------------------------------------------------------------------
 // extractPdfText() — edge case PDF kosong/rusak
 // ------------------------------------------------------------------------
