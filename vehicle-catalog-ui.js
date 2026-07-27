@@ -34,6 +34,14 @@
 let _catEditId = null;
 let _catPhotos = [];
 
+// Mode "Pilih" (sesi ini) — checkbox per part di list utama supaya bisa
+// hapus beberapa sekaligus, TANPA mengubah alur edit/hapus-1-part yang
+// sudah ada (tap baris di luar mode ini tetap buka form edit apa adanya).
+// _catSelectMode: false = list biasa (tap baris = edit, 🗑 per baris =
+// hapus 1). true = list tampil checkbox, tap baris = toggle centang.
+let _catSelectMode = false;
+let _catSelectedIds = new Set();
+
 // Kompresi ringan sebelum disimpan sbg base64 (IndexedDB) — REUSE penuh
 // downscaleImage() yang sudah ada di scan-ocr.js (dipakai jg oleh scanReceipt
 // dkk sebelum OCR: resize max-width + re-encode JPEG kualitas 0.85), bukan
@@ -56,6 +64,8 @@ function _catPhotoToDataUrl(file) {
 async function catalogUiOpen() {
   await VehicleCatalog.ensureLoaded();
   catalogUiCloseForm();
+  _catSelectMode = false;
+  _catSelectedIds.clear();
   await catalogUiRenderList();
   openModal('catalogModal');
 }
@@ -65,10 +75,33 @@ async function catalogUiRenderList() {
   if (!el) return;
   const items = await VehicleCatalog.getAll();
   if (!items.length) {
+    _catSelectMode = false;
+    _catSelectedIds.clear();
     el.innerHTML = '<div class="empty"><div class="empty-icon">📦</div><div class="empty-text">Belum ada part di katalog</div></div>';
     return;
   }
-  el.innerHTML = items.slice().reverse().map((it) => {
+  // Buang id terpilih yang part-nya sudah tidak ada lagi (mis. terhapus dari
+  // sesi lain) supaya hitungan "N Terpilih" selalu akurat.
+  const validIds = new Set(items.map((it) => String(it.id)));
+  for (const id of Array.from(_catSelectedIds)) {
+    if (!validIds.has(id)) _catSelectedIds.delete(id);
+  }
+
+  const toolbar = _catSelectMode
+    ? ('<div style="display:flex;gap:6px;margin-bottom:8px">'
+        + '<button type="button" class="btn btn-ghost btn-sm u-flex1" data-action="VehicleCatalogUI.selectAll">☑️ Pilih Semua</button>'
+        + '<button type="button" class="btn btn-ghost btn-sm u-flex1" data-action="VehicleCatalogUI.clearSelection">✕ Kosongkan</button>'
+        + '</div>'
+        + '<div style="display:flex;gap:6px;margin-bottom:12px">'
+        + '<button type="button" class="btn btn-danger btn-sm u-flex1" data-action="VehicleCatalogUI.removeSelected"' + (_catSelectedIds.size ? '' : ' disabled') + '>🗑 Hapus Terpilih (' + _catSelectedIds.size + ')</button>'
+        + '<button type="button" class="btn btn-ghost btn-sm u-flex1" data-action="VehicleCatalogUI.toggleSelectMode">Batal</button>'
+        + '</div>')
+    : ('<div style="display:flex;gap:6px;margin-bottom:12px">'
+        + '<button type="button" class="btn btn-ghost btn-sm u-flex1" data-action="VehicleCatalogUI.toggleSelectMode">☑️ Pilih & Hapus</button>'
+        + '<button type="button" class="btn btn-ghost btn-sm u-flex1" style="color:var(--accent2)" data-action="VehicleCatalogUI.removeAllConfirm">🗑 Hapus Semua</button>'
+        + '</div>');
+
+  const rows = items.slice().reverse().map((it) => {
     const thumb = (it.photos && it.photos[0])
       ? '<img src="' + it.photos[0] + '" style="width:40px;height:40px;object-fit:cover;border-radius:8px;flex-shrink:0" alt="">'
       : '<div class="tx-icon u-bgaccsoft">📦</div>';
@@ -76,18 +109,86 @@ async function catalogUiRenderList() {
     if (it.oemCode) metaParts.push('OEM: ' + escapeHtml(it.oemCode));
     if (it.category) metaParts.push(escapeHtml(it.category));
     if (it.compatibleVehicleIds && it.compatibleVehicleIds.length) metaParts.push('🏍️ ' + it.compatibleVehicleIds.length + ' kendaraan');
-    if (typeof D !== 'undefined' && Array.isArray(D.partsStock) && it.partName) {
-      const matchedStock = D.partsStock.find((p) => p.name && p.name.trim().toLowerCase() === it.partName.trim().toLowerCase());
+    if (typeof D !== 'undefined' && Array.isArray(D.partsStock)) {
+      // Sesi 274/275: catalogId dulu (match presisi, tahan rename nama
+      // stok manual — pola sama S273/car-notes.js), name-match jadi
+      // fallback SAJA untuk baris stok lama yang belum punya catalogId.
+      const matchedStock = D.partsStock.find((p) => p.catalogId === it.id)
+        || (it.partName ? D.partsStock.find((p) => p.name && p.name.trim().toLowerCase() === it.partName.trim().toLowerCase()) : null);
       if (matchedStock) metaParts.push('📦 Stok ' + matchedStock.qty + (matchedStock.unit ? ' ' + matchedStock.unit : ''));
     }
     if (it.isDraft) metaParts.push('⚠️ Draft');
     const idArg = escapeHtml(JSON.stringify([it.id]));
-    return '<div class="tx-item">' + thumb
-      + '<div class="tx-info"><div class="tx-name">' + escapeHtml(it.partName || '(Tanpa nama)') + '</div><div class="tx-meta">' + (metaParts.join(' · ') || '-') + '</div></div>'
+    const info = '<div class="tx-info"><div class="tx-name">' + escapeHtml(it.partName || '(Tanpa nama)') + '</div><div class="tx-meta">' + (metaParts.join(' · ') || '-') + '</div></div>';
+    if (_catSelectMode) {
+      const checkedAttr = _catSelectedIds.has(String(it.id)) ? 'checked' : '';
+      return '<div class="tx-item" style="cursor:pointer" data-action="VehicleCatalogUI.toggleSelectItem" data-args="' + idArg + '">'
+        + '<input type="checkbox" ' + checkedAttr + ' style="width:18px;height:18px;margin-right:2px;flex-shrink:0;pointer-events:none" tabindex="-1" aria-hidden="true">'
+        + thumb + info
+        + '</div>';
+    }
+    return '<div class="tx-item">' + thumb + info
       + '<button class="tx-del u-bgaccsoft u-cacc" style="margin-right:6px" data-action="VehicleCatalogUI.openForm" data-args="' + idArg + '" aria-label="Edit">✏️</button>'
       + '<button class="tx-del" data-action="VehicleCatalogUI.remove" data-args="' + idArg + '" aria-label="Hapus">🗑</button>'
       + '</div>';
   }).join('');
+
+  el.innerHTML = toolbar + rows;
+}
+
+// Nyala/matikan mode "Pilih" — mematikan mode selalu mengosongkan seleksi
+// (supaya masuk mode lagi nanti mulai dari nol, tidak menyisakan centang
+// lama yang membingungkan).
+function catalogUiToggleSelectMode() {
+  _catSelectMode = !_catSelectMode;
+  _catSelectedIds.clear();
+  catalogUiRenderList();
+}
+
+function catalogUiToggleSelectItem(id) {
+  const key = String(id);
+  if (_catSelectedIds.has(key)) _catSelectedIds.delete(key);
+  else _catSelectedIds.add(key);
+  catalogUiRenderList();
+}
+
+async function catalogUiSelectAll() {
+  const items = await VehicleCatalog.getAll();
+  _catSelectedIds = new Set(items.map((it) => String(it.id)));
+  await catalogUiRenderList();
+}
+
+function catalogUiClearSelection() {
+  _catSelectedIds.clear();
+  catalogUiRenderList();
+}
+
+async function catalogUiRemoveSelected() {
+  const n = _catSelectedIds.size;
+  if (!n) return;
+  const ok = await askConfirm('Hapus ' + n + ' part terpilih dari katalog? Tindakan ini tidak bisa dibatalkan.', {
+    icon: '🗑', title: 'Hapus ' + n + ' Part', okText: 'Ya, Hapus', danger: true,
+  });
+  if (!ok) return;
+  await VehicleCatalog.removeMany(Array.from(_catSelectedIds));
+  toast('🗑 ' + n + ' part dihapus');
+  _catSelectMode = false;
+  _catSelectedIds.clear();
+  await catalogUiRenderList();
+}
+
+async function catalogUiRemoveAllConfirm() {
+  const items = await VehicleCatalog.getAll();
+  if (!items.length) return;
+  const ok = await askConfirm('Hapus SEMUA ' + items.length + ' part dari katalog? Tindakan ini tidak bisa dibatalkan.', {
+    icon: '⚠️', title: 'Hapus Semua Part', okText: 'Ya, Hapus Semua', danger: true,
+  });
+  if (!ok) return;
+  await VehicleCatalog.removeAll();
+  toast('🗑 Semua part dihapus');
+  _catSelectMode = false;
+  _catSelectedIds.clear();
+  await catalogUiRenderList();
 }
 
 async function catalogUiOpenForm(id) {
@@ -245,6 +346,12 @@ const VehicleCatalogUI = {
   save: catalogUiSave,
   remove: catalogUiRemove,
   onScanResult: catalogUiOnScanResult,
+  toggleSelectMode: catalogUiToggleSelectMode,
+  toggleSelectItem: catalogUiToggleSelectItem,
+  selectAll: catalogUiSelectAll,
+  clearSelection: catalogUiClearSelection,
+  removeSelected: catalogUiRemoveSelected,
+  removeAllConfirm: catalogUiRemoveAllConfirm,
 };
 
 if (typeof window !== 'undefined') {

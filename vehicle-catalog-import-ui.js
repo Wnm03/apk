@@ -12,7 +12,7 @@
 // TERCENTANG (baris valid), tapi commit hanya jalan lewat tombol
 // "Import yang Dicentang" setelah user melihat preview-nya.
 
-let _vehImportRows = []; // state hasil parse, per baris: {partName, oemCode, barcode, price, raw, included}
+let _vehImportRows = []; // state hasil parse, per baris: {partName, oemCode, barcode, price, category, raw, included}
 
 function _vehImportSetStatus(msg) {
   const el = document.getElementById('vehCatImportStatus');
@@ -97,18 +97,38 @@ function catalogImportUiRenderPreview() {
   }
   const includedCount = _vehImportRows.filter((r) => r.included).length;
   const countLabel = '<div style="font-size:11px;color:var(--text2);margin-bottom:8px;font-weight:600">' + includedCount + ' dari ' + _vehImportRows.length + ' dicentang</div>';
-  el.innerHTML = countLabel + _vehImportRows.map((row, idx) => {
-    const checkedAttr = row.included ? 'checked' : '';
-    const priceVal = (typeof row.price === 'number' && !isNaN(row.price)) ? row.price : '';
-    return '<div class="tx-item" style="align-items:flex-start">'
-      + '<input type="checkbox" ' + checkedAttr + ' style="width:18px;height:18px;margin-top:8px;flex-shrink:0" onchange="VehicleCatalogImportUI.toggleRow(' + idx + ')">'
-      + '<div class="tx-info" style="flex:1">'
-      + '<input type="text" class="fi" style="margin-bottom:6px" value="' + escapeHtml(row.partName || '') + '" placeholder="Nama part" oninput="VehicleCatalogImportUI.editField(' + idx + ',\'partName\',this.value)">'
-      + '<div class="u-flex u-gap8">'
-      + '<input type="text" class="fi" style="flex:1" value="' + escapeHtml(row.oemCode || '') + '" placeholder="OEM code (opsional)" oninput="VehicleCatalogImportUI.editField(' + idx + ',\'oemCode\',this.value)">'
-      + '<input type="number" class="fi" style="flex:1" value="' + priceVal + '" placeholder="Harga (opsional)" inputmode="numeric" oninput="VehicleCatalogImportUI.editField(' + idx + ',\'price\',this.value)">'
-      + '</div></div></div>';
+  // Dikelompokkan per kategori (saran user: preview list datar bikin
+  // kategori "nyasar"/salah gabung baru ketahuan SETELAH commit) — reuse
+  // VehicleCatalogImport.groupRowsByCategory() (murni, sudah dites di
+  // vehicle-catalog-import.test.js), TIDAK ada logic pengelompokan baru
+  // di layer UI ini. `idx` di tiap item = index ASLI di _vehImportRows,
+  // dipakai apa adanya oleh toggleRow()/editField() yang sudah ada.
+  const groups = (typeof VehicleCatalogImport !== 'undefined' && VehicleCatalogImport && typeof VehicleCatalogImport.groupRowsByCategory === 'function')
+    ? VehicleCatalogImport.groupRowsByCategory(_vehImportRows)
+    : [{ category: '', items: _vehImportRows.map((row, idx) => ({ row, idx })) }];
+  const catCountLabel = groups.length > 1
+    ? '<div style="font-size:11px;color:var(--text2);margin-bottom:10px;font-weight:600">📂 ' + groups.length + ' kategori terdeteksi</div>'
+    : '';
+  const groupsHtml = groups.map((group) => {
+    const header = group.category
+      ? '<div style="font-size:12px;font-weight:700;color:var(--text2);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.02em">' + escapeHtml(group.category) + ' <span style="font-weight:500;text-transform:none">(' + group.items.length + ')</span></div>'
+      : '';
+    const rowsHtml = group.items.map(({ row, idx }) => {
+      const checkedAttr = row.included ? 'checked' : '';
+      const priceVal = (typeof row.price === 'number' && !isNaN(row.price)) ? row.price : '';
+      return '<div class="tx-item" style="align-items:flex-start">'
+        + '<input type="checkbox" ' + checkedAttr + ' style="width:18px;height:18px;margin-top:8px;flex-shrink:0" onchange="VehicleCatalogImportUI.toggleRow(' + idx + ')">'
+        + '<div class="tx-info" style="flex:1">'
+        + '<input type="text" class="fi" style="margin-bottom:6px" value="' + escapeHtml(row.partName || '') + '" placeholder="Nama part" oninput="VehicleCatalogImportUI.editField(' + idx + ',\'partName\',this.value)">'
+        + '<input type="text" class="fi" style="margin-bottom:6px" value="' + escapeHtml(row.category || '') + '" placeholder="Kategori (opsional, otomatis dari PDF)" oninput="VehicleCatalogImportUI.editField(' + idx + ',\'category\',this.value)">'
+        + '<div class="u-flex u-gap8">'
+        + '<input type="text" class="fi" style="flex:1" value="' + escapeHtml(row.oemCode || '') + '" placeholder="OEM code (opsional)" oninput="VehicleCatalogImportUI.editField(' + idx + ',\'oemCode\',this.value)">'
+        + '<input type="number" class="fi" style="flex:1" value="' + priceVal + '" placeholder="Harga (opsional)" inputmode="numeric" oninput="VehicleCatalogImportUI.editField(' + idx + ',\'price\',this.value)">'
+        + '</div></div></div>';
+    }).join('');
+    return header + rowsHtml;
   }).join('');
+  el.innerHTML = countLabel + catCountLabel + groupsHtml;
   if (commitBtn) commitBtn.disabled = !includedCount;
 }
 

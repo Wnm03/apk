@@ -163,6 +163,7 @@ const GROUP_B = [
   'modules/finance/cicilan.js',
   'modules/finance/tx-bbm.js',
   'modules/finance/tx-stok-sparepart.js',
+  'modules/finance/tx-renov.js',
   'modules/finance/tx-transfer.js',
   'modules/finance/tx-cobek.js',
   'modules/finance/tx-target.js',
@@ -811,6 +812,16 @@ const GROUP_B = [
   // presenter sumber sudah dimuat baris-baris sebelumnya).
   'modules/shop/business-flow-presenter.js',
 
+  // S251 (Business Intelligence tab, lanjutan S250): BusinessIntelligencePresenter
+  // — Health Score/Decision Panel/Trend Analytics/Executive Summary/AI Insight,
+  // 100% REPACKAGING dari ShopBusinessEnginePresenter/TripPresenter/
+  // BusinessFlowPresenter (baris2 di atas)/InventoryEngine/PurchaseEngine/
+  // ProfitEngine/ShopInsight — SEMUA sudah dimuat lebih dulu (GROUP_A lewat
+  // feature-insights.js/ownership-engine.js + baris2 GROUP_B di atas), 0
+  // forward-reference. Ditaruh langsung setelah BusinessFlowPresenter, pola
+  // sama persis presenter-di-atas-presenter lain di blok ini.
+  'modules/shop/business-intelligence-presenter.js',
+
   // S195 (Managed Funds / Dana Kelolaan): reuse OwnershipEngine (S191) +
   // nilai per-entity yang sudah ada di akun.js/aset.js/investasi.js/
   // cobek-order.js — SEMUA sudah dimuat lebih dulu (GROUP_A + GROUP_B di
@@ -841,16 +852,24 @@ function detectCurrentVersion() {
 
 function computeNextVersion(current, explicit) {
   if (explicit) return explicit;
-  const m = current.match(/^(.*-)(\d+)$/);
-  if (!m) {
-    throw new Error(
-      `Format versi "${current}" tidak dikenali (harus diakhiri -angka, mis. ...-32).\n` +
-      `Kasih versi baru manual: node build.js nama-versi-baru`
-    );
+  // Format lama: "...-32" (angka polos di akhir) -> naikkan angka itu.
+  const mTrailing = current.match(/^(.*-)(\d+)$/);
+  if (mTrailing) {
+    return mTrailing[1] + (parseInt(mTrailing[2], 10) + 1);
   }
-  const prefix = m[1];
-  const num = parseInt(m[2], 10) + 1;
-  return prefix + num;
+  // Format konvensi terkini: "sNNN-slug-bebas" (slug TIDAK diakhiri angka,
+  // mis. "s281-lifeos-areas-icon-svg") -> naikkan nomor sesi (sNNN),
+  // slug dipertahankan apa adanya (hanya berarti "rebuild dari versi ini").
+  const mSession = current.match(/^s(\d+)-(.+)$/);
+  if (mSession) {
+    const nextNum = parseInt(mSession[1], 10) + 1;
+    return `s${nextNum}-${mSession[2]}`;
+  }
+  throw new Error(
+    `Format versi "${current}" tidak dikenali (harus diakhiri -angka, mis. ...-32, ` +
+    `atau format sesi "sNNN-slug", mis. s281-nama-fitur).\n` +
+    `Kasih versi baru manual: node build.js nama-versi-baru`
+  );
 }
 
 // 2. Ganti string versi lama -> baru di SEMUA file source yang memuatnya
