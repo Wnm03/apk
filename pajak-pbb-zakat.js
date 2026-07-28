@@ -12,16 +12,29 @@ const cur=sel.value;
 const eligible=(D.assets||[]).filter(a=>a.jenis==='Tanah'||a.jenis==='Rumah/Bangunan');
 sel.innerHTML='<option value="">— Pilih aset Tanah/Rumah —</option>'+eligible.map(a=>`<option value="${a.id}">${escapeHtml(a.name)} (${a.jenis}) — ${fmt(a.nilai)}</option>`).join('');
 if(eligible.some(a=>a.id===cur))sel.value=cur;
-const pbb=D.pajakZakat.pbb;
-const elTKP=document.getElementById('pbbNjoptkp'); if(elTKP&&!elTKP.matches(':focus'))elTKP.value=pbb.njoptkp;
-const elTarif=document.getElementById('pbbTarif'); if(elTarif&&!elTarif.matches(':focus'))elTarif.value=pbb.tarifPersen;
+const pbbDefault=D.pajakZakat.pbb;
+const asset=cur?D.assets.find(a=>sameId(a.id,cur)):null;
+const njoptkp=(asset&&asset.pbbNjoptkp!=null)?asset.pbbNjoptkp:pbbDefault.njoptkp;
+const tarif=(asset&&asset.pbbTarif!=null)?asset.pbbTarif:pbbDefault.tarifPersen;
+const elTKP=document.getElementById('pbbNjoptkp'); if(elTKP&&!elTKP.matches(':focus'))elTKP.value=njoptkp;
+const elTarif=document.getElementById('pbbTarif'); if(elTarif&&!elTarif.matches(':focus'))elTarif.value=tarif;
+const hint=document.getElementById('pbbTarifScopeHint');
+if(hint)hint.textContent=asset?('📍 Tarif & NJOPTKP ini khusus untuk "'+asset.name+'" — aset lain tidak ikut berubah.'):'Isi tanpa pilih aset di atas = tersimpan sebagai nilai default (dipakai aset lain yang belum punya tarif sendiri).';
 PBB.hitung();
 PBB.renderBillStatus();
+},
+// Sesi 319: tarif & NJOPTKP kini per-aset (D.assets[].pbbTarif/pbbNjoptkp) kalau ada aset
+// dipilih di pbbAssetPick — jadi rumah/tanah di kota beda bisa pakai Perda beda.
+// Kalau tidak ada aset dipilih (entri manual), tetap fallback ke D.pajakZakat.pbb (global, lama).
+currentAsset(){
+const id=document.getElementById('pbbAssetPick')?.value||'';
+return id?D.assets.find(a=>sameId(a.id,id)):null;
 },
 renderBillStatus(){
 const el=document.getElementById('pbbBillStatus');
 if(!el)return;
-const bill=D.bills.find(b=>b.pbbLink);
+const asset=PBB.currentAsset();
+const bill=D.bills.find(b=>b.pbbLink&&(asset?sameId(b.pbbLink,asset.id):b.pbbLink===true));
 el.innerHTML=bill?('🔔 Terikat ke tagihan tahunan: jatuh tempo <b>'+bill.nextDue+'</b>, jumlah '+fmtFull(bill.amount)+'. Update kalkulator lalu tap tombol lagi untuk menyesuaikan.'):'Belum diikat ke tagihan. Isi tanggal jatuh tempo lalu tap tombol di atas supaya PBB muncul sebagai reminder tahunan di menu Tagihan.';
 },
 pilihAset(){
@@ -35,15 +48,21 @@ document.getElementById('pbbNjopBangunan').value=a.nilai;
 document.getElementById('pbbNjopBumi').value=a.nilai;
 }
 toast('✅ NJOP diisi dari "'+a.name+'" — sesuaikan lagi kalau perlu (nilai aset ≠ NJOP resmi SPPT)');
-PBB.hitung();
+PBB.render();
 },
 hitung(){
 const njopBumi=parsePzNum(document.getElementById('pbbNjopBumi').value);
 const njopBangunan=parsePzNum(document.getElementById('pbbNjopBangunan').value);
 const njoptkp=parsePzNum(document.getElementById('pbbNjoptkp').value);
 const tarif=parseFloat((document.getElementById('pbbTarif').value||'0').replace(',','.'))||0;
+const asset=PBB.currentAsset();
+if(asset){
+asset.pbbNjoptkp=njoptkp;
+asset.pbbTarif=tarif;
+} else {
 D.pajakZakat.pbb.njoptkp=njoptkp;
 D.pajakZakat.pbb.tarifPersen=tarif;
+}
 save();
 const njopTotal=njopBumi+njopBangunan;
 const njopKenaPajak=Math.max(0,njopTotal-njoptkp);
@@ -57,13 +76,17 @@ const jumlah=parsePzNum(document.getElementById('pbbTerutang').textContent);
 if(jumlah<=0){toast('⚠️ Belum ada PBB terutang untuk diikat ke tagihan');return;}
 const due=document.getElementById('pbbJatuhTempo').value;
 if(!due){toast('⚠️ Isi dulu tanggal jatuh tempo PBB');return;}
-let bill=D.bills.find(b=>b.pbbLink);
+const asset=PBB.currentAsset();
+// pbbLink: id aset (kalau dipilih dari Buku Aset) atau true (entri manual, perilaku lama) —
+// supaya beberapa aset (kota/tarif beda) bisa masing-masing punya tagihan PBB tahunan sendiri.
+let bill=D.bills.find(b=>b.pbbLink&&(asset?sameId(b.pbbLink,asset.id):b.pbbLink===true));
+const nama='PBB (Pajak Bumi & Bangunan)'+(asset?(' — '+asset.name):'');
 if(bill){
-bill.amount=jumlah; bill.nextDue=due; bill.freq='tahunan';
+bill.amount=jumlah; bill.nextDue=due; bill.freq='tahunan'; bill.name=nama;
 save(); refreshBillEverywhere(); PBB.renderBillStatus();
 toast('✅ Tagihan PBB diperbarui: '+fmtFull(jumlah)+' jatuh tempo '+due);
 } else {
-D.bills.push({id:uid(),name:'PBB (Pajak Bumi & Bangunan)',amount:jumlah,nextDue:due,freq:'tahunan',category:'Tagihan',subcategory:'',accountId:D.accounts[0]?.id||null,note:'Otomatis dari Kalkulator PBB',kind:'tagihan',pbbLink:true});
+D.bills.push({id:uid(),name:nama,amount:jumlah,nextDue:due,freq:'tahunan',category:'Tagihan',subcategory:'',accountId:D.accounts[0]?.id||null,note:'Otomatis dari Kalkulator PBB',kind:'tagihan',pbbLink:asset?asset.id:true});
 save(); refreshBillEverywhere(); PBB.renderBillStatus();
 toast('✅ Tagihan tahunan PBB dibuat, reminder aktif di menu Tagihan');
 }
@@ -166,14 +189,23 @@ _draft:null,
 ITEMS:[
 {key:'hargaEmasPerGram',label:'Harga Emas / Gram'},
 {key:'nisabPenghasilanBulan',label:'Nisab Zakat Penghasilan / Bulan'},
-{key:'zakatFitrahPerJiwa',label:'Zakat Fitrah / Jiwa'}
+{key:'zakatFitrahPerJiwa',label:'Zakat Fitrah / Jiwa'},
+// Sesi 319 (KW-165): biaya perpanjangan SIM per jenis — dulu hardcode SIM_JENIS_DEFAULTS di
+// vehicle-core.js, sekarang jadi field D.pajakZakat.simTarif* & ikut alur "Cek Update via AI" ini.
+{key:'simTarifA',label:'Biaya Perpanjang SIM A (PNBP)'},
+{key:'simTarifB1',label:'Biaya Perpanjang SIM B1 (PNBP)'},
+{key:'simTarifB2',label:'Biaya Perpanjang SIM B2 (PNBP)'},
+{key:'simTarifC',label:'Biaya Perpanjang SIM C (PNBP)'},
+{key:'simTarifC1',label:'Biaya Perpanjang SIM C1 (PNBP)'},
+{key:'simTarifC2',label:'Biaya Perpanjang SIM C2 (PNBP)'},
+{key:'simTarifD',label:'Biaya Perpanjang SIM D (PNBP)'}
 ],
 systemPrompt(){
-return `Kamu asisten riset utk aplikasi keuangan keluarga Indonesia. Tugasmu HANYA mencari 3 angka referensi TERBARU berikut lewat web search, lalu balas HANYA dalam format JSON valid (tanpa teks lain, tanpa markdown code fence, tanpa komentar):
+// Dibangun otomatis dari RefAI.ITEMS supaya nambah item baru di masa depan tidak perlu tulis ulang skema JSON manual.
+const schema=RefAI.ITEMS.map(it=>`  "${it.key}": {"value": <angka Rp terbaru buat "${it.label}", atau null kalau tidak ketemu/tidak yakin>, "source": "<nama situs/lembaga & info singkat>", "tanggal": "<tanggal info ini berlaku>"}`).join(',\n');
+return `Kamu asisten riset utk aplikasi keuangan keluarga Indonesia. Tugasmu HANYA mencari angka referensi TERBARU berikut lewat web search — harga emas Antam/logam mulia 24 karat, nisab & zakat fitrah BAZNAS, dan biaya PNBP perpanjangan SIM per jenis (PP tarif PNBP Polri) — lalu balas HANYA dalam format JSON valid (tanpa teks lain, tanpa markdown code fence, tanpa komentar):
 {
-  "hargaEmasPerGram": {"value": <angka Rp per gram, harga emas Antam/logam mulia 24 karat terbaru, atau null kalau tidak ketemu>, "source": "<nama situs/lembaga & info singkat>", "tanggal": "<tanggal info ini berlaku>"},
-  "nisabPenghasilanBulan": {"value": <angka Rp, nisab zakat penghasilan per bulan dari BAZNAS terbaru, atau null>, "source": "<sumber>", "tanggal": "<tanggal>"},
-  "zakatFitrahPerJiwa": {"value": <angka Rp, zakat fitrah per jiwa dari BAZNAS terbaru, atau null>, "source": "<sumber>", "tanggal": "<tanggal>"}
+${schema}
 }
 Kalau salah satu tidak ketemu/tidak yakin, isi value dengan null dan jelaskan alasannya singkat di source. JANGAN mengarang angka kalau tidak ketemu di hasil pencarian.`;
 },

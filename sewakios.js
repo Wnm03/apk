@@ -23,7 +23,19 @@ document.getElementById('skPenyewa').value=u?(u.penyewa||''):'';
 document.getElementById('skHarga').value=u?u.hargaSewaBulanan:'';
 accSel.value=u&&u.accountId?u.accountId:(D.accounts[0]?.id||'');
 document.getElementById('skCatatan').value=u?(u.catatan||''):'';
+SewaKios.onStatusChange();
 openModal('sewaKiosUnitModal');
+},
+// onStatusChange() -- toggle field Nama Penyewa & Harga Sewa/Bulan: keduanya cuma
+// relevan/tampil kalau status "disewa" (kosong = belum ada penyewa & belum ada harga
+// sewa yang berjalan). Pola sama persis onVehJenisChange()/onSimJenisChange()
+// (modules/vehicle/vehicle-core.js) -- render ulang tiap dropdown Status berubah &
+// sekali saat modal dibuka (dari openUnitModal() di atas).
+onStatusChange(){
+const status=document.getElementById('skStatus').value;
+const disewa=status==='disewa';
+document.getElementById('skPenyewaWrap').classList.toggle('u-dnone',!disewa);
+document.getElementById('skHargaWrap').classList.toggle('u-dnone',!disewa);
 },
 saveUnit(){
 const name=document.getElementById('skName').value.trim();

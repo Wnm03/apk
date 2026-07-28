@@ -116,6 +116,7 @@ function qsShopTransaksiBaru(){ closeQS('qsShop'); openOrderModal(); }
 function qsShopRiwayat(){ closeQS('qsShop'); setShopTab('riwayat',document.querySelectorAll('#page-shop .cn-tab')[3]); }
 function qsShopBackup(){ closeQS('qsShop'); openBackupModal(); }
 function qsShopSetelanLanjutan(){ closeQS('qsShop'); showPage('settings'); }
+function qsShopKatalogDinamis(){ closeQS('qsShop'); openShopKatalogDinamis(); }
 
 function qsCarnotesKelolaKendaraan(){ closeQS('qsCarnotes'); openVehicleModal(); }
 function qsCarnotesKatalog(){ closeQS('qsCarnotes'); VehicleCatalogUI.open(); }
@@ -123,6 +124,7 @@ function qsCarnotesUpdateKm(){ closeQS('qsCarnotes'); openKmModal(); }
 function qsCarnotesKategoriPart(){ closeQS('qsCarnotes'); openSparepartModal(); }
 function qsCarnotesCatatServis(){ closeQS('qsCarnotes'); openServisModal(); }
 function qsCarnotesIsiBbm(){ closeQS('qsCarnotes'); openBbmModal(); }
+function qsCarnotesKatalogDinamis(){ closeQS('qsCarnotes'); openShopKatalogDinamis(); }
 
 function qsLaporanBulanIni(){ closeQS('qsLaporan'); setPeriode('bulan',document.querySelectorAll('#periodeChips .chip-btn')[2]); }
 function qsLaporanTahunIni(){ closeQS('qsLaporan'); setPeriode('tahun',document.querySelectorAll('#periodeChips .chip-btn')[3]); }

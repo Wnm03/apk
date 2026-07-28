@@ -246,6 +246,7 @@ document.getElementById('assetTitipanOwnerType').value=a&&a.titipanOwnerType?a.t
 document.getElementById('assetTitipanOwnerName').value=a&&a.titipanOwnerName?a.titipanOwnerName:'';
 document.getElementById('assetTitipanAmount').value=titipanHasAmount?a.titipanAmount:'';
 document.getElementById('assetTitipanWrap').classList.toggle('u-dnone',!titipanHasAmount);
+Aset.onTitipanOwnerTypeChange();
 Aset.renderJenisFields(a);
 Aset.updateProfitPreview();
 // Ownership (S231) — reuse OwnershipEngine, sama pola dgn Akun/Kendaraan. Aset lama tanpa
@@ -319,6 +320,24 @@ btn.className='chip-btn'+(Aset._zakatableState?' active':'');
 toggleTitipan(){
 const on=document.getElementById('assetTitipanToggle').checked;
 document.getElementById('assetTitipanWrap').classList.toggle('u-dnone',!on);
+if(on)Aset.onTitipanOwnerTypeChange();
+},
+// TITIPAN_OWNER_LABELS / onTitipanOwnerTypeChange() -- label & placeholder field Nama
+// berubah sesuai jenis pemberi Dana Titipan dipilih (pola sama persis Debt.JENIS_DEFAULTS/
+// Debt.onJenisChange() di modules/finance/piutang-utang.js). Cuma UI copy yang berubah,
+// TIDAK ada field/skema data baru -- titipanOwnerName tetap 1 field yang sama.
+TITIPAN_OWNER_LABELS:{
+investor:{label:'Nama Investor',placeholder:'Pak Budi, PT Modal Jaya, dll'},
+keluarga:{label:'Nama Anggota Keluarga',placeholder:'Kakak, Ibu, Om Budi, dll'},
+lainnya:{label:'Nama/Keterangan',placeholder:'Koperasi, teman, dll'}
+},
+onTitipanOwnerTypeChange(){
+const type=document.getElementById('assetTitipanOwnerType').value;
+const cfg=Aset.TITIPAN_OWNER_LABELS[type]||Aset.TITIPAN_OWNER_LABELS.investor;
+const lbl=document.getElementById('assetTitipanOwnerNameLabel');
+const inp=document.getElementById('assetTitipanOwnerName');
+if(lbl)lbl.textContent=cfg.label+' (opsional)';
+if(inp)inp.placeholder=cfg.placeholder;
 },
 // _syncTitipanDebt(a) — jaga entry Buku Utang (D.debts) tetap sinkron dgn porsi
 // titipan aset ini, pola SAMA PERSIS dgn Investment._syncTitipanDebt()
