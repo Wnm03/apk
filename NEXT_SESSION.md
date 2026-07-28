@@ -1,5 +1,27 @@
 # NEXT_SESSION.md — Target sesi berikutnya (update setiap sesi)
 
+> **Catatan Sync (S317, Tahap 6 — Migrasi Scanner, lanjutan S316 Tahap 5
+> PD-007, build `s317-tahap6-migrasi-scanner-scannersession`, `?v=827`):**
+> Migrasi `ScannerSession` (dibuat S316) DITUNTASKAN — Scanner Engine
+> (`vehicle-scanner.js`/`sparepart-scanner.js`) sekarang 100% hanya
+> mengurus kamera (ZXing/decode/overlay), 0 sentuhan ke
+> `#mainNav`/`#mainHeader`/modal/toast. `vehicleScannerHideChrome()`/
+> `vehicleScannerRestoreChrome()` DIHAPUS dari `vehicle-scanner.js`; blok
+> IIFE `camera-scan-active` (`MutationObserver`+`setInterval(400ms)`+
+> `document.querySelector('video')`, `modal-navigasi.js`) DIHAPUS total —
+> semua digantikan `ScannerSession.pauseUI()/resumeUI()` dipanggil eksplisit
+> dari `ScannerSession.enter()/exit()` di `vehicleScannerScan()`/
+> `sparepartScannerCameraAdapter()`. PD-007 (`docs/PRODUCT_DECISIONS.md`)
+> sekarang DITEGAKKAN PENUH: satu-satunya titik masuk/keluar Exclusive
+> Scanner Mode, state "scanner aktif" eksplisit (bukan lagi ditebak dari
+> keberadaan `<video>` di DOM). Test lama
+> `tests/scanner-lifecycle-baseline-s317.test.js` (characterization kode
+> SEBELUM refactor) dihapus sesuai catatan di kepalanya sendiri, diganti
+> `tests/scanner-session.test.js` (+15 test baru: pauseUI/resumeUI
+> round-trip, enter/exit guard anti-dobel, AIBus.emit guarded, expose
+> window). Baseline regression **1615/1615 PASS** (2x — sebelum & sesudah
+> build, naik dari 1600). Detail lengkap: `CHANGELOG.md` § Sesi 317.
+
 > **Catatan Sync (S312, lanjutan S311 — item ringan yang ditunda):** Item
 > (b) dari 2 temuan S311 SUDAH DIKERJAKAN — akun auto-buat dari opsi "➕ Buat
 > Akun Baru dari Aset Ini" sekarang mewarisi `ownership` aset sumbernya

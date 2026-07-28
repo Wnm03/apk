@@ -80,9 +80,9 @@
 <link rel="preconnect" href="https://accounts.google.com" crossorigin>
 <link rel="dns-prefetch" href="https://accounts.google.com">
 <title>Keluarga W</title>
-<link rel="stylesheet" href="styles.css?v=825">
-<link rel="stylesheet" href="modern-ui-layer.css?v=825">
-<script src="nav-scroll.js?v=825" defer></script>
+<link rel="stylesheet" href="styles.css?v=838">
+<link rel="stylesheet" href="modern-ui-layer.css?v=838">
+<script src="nav-scroll.js?v=838" defer></script>
 <script>
 /* Debug console (Eruda) — aktifkan sekali lewat ?debug=1 di URL, nempel via localStorage.
    Matikan lagi lewat ?debug=0. Tidak aktif buat user biasa. */
@@ -153,8 +153,8 @@ window.location.reload();
 }catch(e){}
 })();
 </script>
-<script src="app-bundle-a.min.js?v=825" onerror="window.__moduleLoadFail('app-bundle-a.min.js')"></script>
-<script src="modules/shared/smoke-test.js?v=825" defer></script>
+<script src="app-bundle-a.min.js?v=838" onerror="window.__moduleLoadFail('app-bundle-a.min.js')"></script>
+<script src="modules/shared/smoke-test.js?v=838" defer></script>
 <link rel="manifest" id="pwaManifestLink" href="manifest.json">
 </head>
 <body data-theme="fresh">
@@ -1733,6 +1733,8 @@ window.location.reload();
         <div id="sparepartCatList"></div>
         <div class="div"></div>
         <button class="btn btn-primary btn-full btn-sm" data-action="openSparepartModal" aria-label="Edit/Buka">+ Tambah Kategori Sparepart</button>
+        <button class="btn btn-ghost btn-full btn-sm u-mt8" data-action="syncSparepartFromCatalog">🔄 Sinkron dari Katalog Suku Cadang</button>
+        <div style="font-size:11px;color:var(--text2);margin-top:6px;line-height:1.5">💡 Menarik part yang sudah ditandai kompatibel dengan kendaraan ini di 📦 Katalog Suku Cadang, lalu otomatis buat Kategori &amp; Stok Sparepart-nya. Interval servis diisi dari referensi Torsi (🔩) kalau tersedia — bisa diedit lagi kapan saja.</div>
       </div>
     </details>
     <div class="card"><div class="card-title">📊 Dashboard Sparepart</div><div id="sparepartDashboard"></div></div>
@@ -3673,6 +3675,6 @@ window.location.reload();
 <script>document.write(MODAL_HTML[80]);</script><!-- modal:hondaPdfImportModal -->
 <script>document.write(MODAL_HTML[82]);</script><!-- modal:inventoryTransferModal (S244) -->
 
-<script src="app-bundle-b.min.js?v=825" onerror="window.__moduleLoadFail('app-bundle-b.min.js')"></script>
+<script src="app-bundle-b.min.js?v=838" onerror="window.__moduleLoadFail('app-bundle-b.min.js')"></script>
 </body>
 </html>
