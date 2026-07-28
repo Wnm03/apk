@@ -1,4 +1,4 @@
-// app-bundle-b.min.js — DIBUAT OTOMATIS oleh build.js dari: modules/shared/data-default.js, modules/shared/ownership-engine.js, modules/shared/ownership-settings-presenter.js, modules/shared/features-helpers-global-security.js, modules/shared/action-wrappers.js, diagnostik-versi.js, modules/shared/format-tema.js, modules/shared/error-handler.js, modules/shared/helper-teks.js, modules/shared/keamanan-pin.js, modules/home/refleksi-selfcare.js, modules/shared/modal-navigasi.js, modules/shared/scanner-session.js, modules/business/reset-gaji-mingguan.js, modules/shared/debug-console.js, modules/shared/pengaturan-search.js, modules/shared/onboarding.js, modules/shared/kalkulator-input.js, modules/shared/scan-ocr.js, modules/finance/filter-laporan.js, modules/finance/akun.js, modules/business/gaji-calc.js, modules/finance/cicilan.js, modules/finance/tx-bbm.js, modules/finance/tx-stok-sparepart.js, modules/finance/tx-renov.js, modules/finance/tx-transfer.js, modules/finance/tx-cobek.js, modules/finance/tx-target.js, modules/finance/tx-list-cashflow.js, modules/finance/transaksi.js, modules/shared/profil-pengaturan.js, modules/finance/kategori.js, modules/ai/kategorisasi-ai.js, modules/finance/tagihan-kalender.js, modules/shared/backup-restore.js, modules/shared/backup-history-api.js, modules/shared/backup-health-api.js, modules/shared/backup-history-presenter.js, modules/shared/backup-health-presenter.js, modules/business/payroll-absensi.js, modules/business/tukang-absensi.js, modules/business/insight-target-mingguan.js, modules/vehicle/vehicle-core.js, modules/vehicle/vehicle-catalog.js, modules/vehicle/vehicle-scanner.js, modules/vehicle/vehicle-catalog-ui.js, modules/vehicle/sparepart-scanner.js, modules/vehicle/sparepart-scanner-ui.js, modules/vehicle/sparepart-ocr.js, modules/vehicle/sparepart-ocr-parser.js, modules/vehicle/sparepart-ocr-catalog-link.js, modules/vehicle/sparepart-ocr-catalog-detail.js, modules/vehicle/sparepart-ocr-catalog-add.js, modules/vehicle/sparepart-ocr-orchestrator.js, modules/vehicle/vehicle-catalog-import.js, modules/vehicle/vehicle-catalog-import-ui.js, modules/vehicle/vehicle-catalog-import-stock-push.js, modules/vehicle/vehicle-catalog-web-import.js, modules/vehicle/vehicle-catalog-web-import-ui.js, modules/vehicle/vehicle-catalog-servis-link.js, modules/finance/vehicle-catalog-tx-link.js, modules/vehicle/honda-pdf-import.js, modules/vehicle/honda-pdf-import-extract.js, modules/vehicle/honda-pdf-import-parse.js, modules/vehicle/honda-pdf-import-commit.js, modules/vehicle/honda-pdf-import-ui.js, modules/ai/chat-action.js, modules/shared/data-archive.js, modules/vehicle/sparepart-servis.js, modules/vehicle/shop-katalog-dinamis-api.js, modules/vehicle/shop-katalog-dinamis-presenter.js, ai-chat.js, reminder-notif.js, laporan-export.js, gdrive-backup.js, data-health-check.js, global-search.js, sheets-schema.js, sheets-sync.js, pwa-setup.js, self-test.js, pajak-aset-ui-wrappers.js, modules/finance/finance-intelligence.js, modules/finance/finance-dashboard.js, modules/finance/financial-forecast-api.js, modules/finance/financial-forecast-presenter.js, modules/finance/budget-recommendation-api.js, modules/finance/budget-recommendation-presenter.js, modules/finance/cashflow-projection-api.js, modules/finance/cashflow-projection-presenter.js, modules/finance/financial-goal-api.js, modules/finance/financial-goal-presenter.js, modules/finance/investment-planner-api.js, modules/finance/investment-planner-presenter.js, modules/finance/debt-optimizer-api.js, modules/finance/debt-optimizer-presenter.js, modules/finance/retirement-planner-api.js, modules/finance/retirement-planner-presenter.js, modules/finance/financial-health-score-api.js, modules/finance/financial-health-score-presenter.js, modules/finance/financial-risk-dashboard-api.js, modules/finance/financial-risk-dashboard-presenter.js, modules/vehicle/vehicle-intelligence.js, modules/vehicle/vehicle-dashboard.js, modules/vehicle/vehicle-reminder.js, modules/vehicle/vehicle-notif-bridge.js, modules/vehicle/vehicle-ai-hook.js, modules/vehicle/vehicle-insight-presenter.js, modules/vehicle/vehicle-daily-brief.js, modules/vehicle/vehicle-alert-panel.js, modules/vehicle/vehicle-insight-feed.js, modules/vehicle/vehicle-trend-api.js, modules/vehicle/vehicle-cost-summary.js, modules/vehicle/vehicle-fuel-trend.js, modules/vehicle/vehicle-service-trend.js, modules/vehicle/vehicle-analytics-presenter.js, modules/vehicle/fuel-storage.js, modules/vehicle/fuel-tank-profile.js, modules/vehicle/fuel-intelligence-engine.js, modules/vehicle/fuel-gauge-engine.js, modules/vehicle/fuel-history.js, modules/vehicle/fuel-analytics.js, modules/vehicle/fuel-modal.js, modules/vehicle/fuel-card.js, modules/vehicle/fuel-intelligence-ui.js, modules/vehicle/fuel-tank-profile-ui.js, modules/vehicle/fuel-prediction-engine.js, modules/vehicle/fuel-cost-analytics.js, modules/vehicle/fuel-maintenance-engine.js, modules/vehicle/fuel-insight-engine.js, modules/vehicle/fuel-fleet-selector.js, modules/vehicle/fuel-notif-bridge.js, modules/vehicle/fuel-dashboard.js, modules/vehicle/fuel-compare.js, modules/vehicle/fuel-trend-dashboard.js, modules/vehicle/vehicle-decision-api.js, modules/vehicle/vehicle-recommendation-engine.js, modules/vehicle/vehicle-priority-scoring.js, modules/vehicle/vehicle-action-recommendation.js, modules/vehicle/vehicle-decision-presenter.js, modules/vehicle/vehicle-attention-presenter.js, modules/vehicle/vehicle-automation-api.js, modules/vehicle/vehicle-reminder-scheduler.js, modules/vehicle/vehicle-maintenance-automation.js, modules/vehicle/vehicle-tax-document-automation.js, modules/vehicle/vehicle-automation-presenter.js, modules/cross/finance-vehicle-cross-summary.js, modules/cross/cross-ai-hook.js, modules/cross/cross-dashboard-card.js, modules/cross/cross-insight-presenter.js, modules/cross/unified-summary-api.js, modules/cross/unified-ai-briefing.js, modules/cross/unified-briefing-presenter.js, modules/cross/life-dashboard-summary-api.js, modules/cross/priority-engine.js, modules/cross/personal-overview-presenter.js, modules/cross/cross-module-widgets.js, modules/cross/life-priority-panel.js, modules/cross/unified-dashboard-home.js, modules/cross/decision-center-api.js, modules/cross/recommendation-panel.js, modules/cross/action-queue.js, modules/cross/decision-center-home.js, app-bootstrap.js, modules/shared/feature-icons.js, modules/dashboard-hub/dashboard-hub-registry.js, modules/dashboard-hub/dashboard-hub.js, modules/dashboard-hub/dashboard-hub-search.js, modules/dashboard-hub/dashboard-hub-favorit.js, modules/dashboard-hub/dashboard-hub-favorit-view.js, modules/dashboard-hub/dashboard-hub-settings.js, modules/ai/ai-command-center.js, modules/self-reward/self-reward-engine.js, modules/self-reward/self-reward-view.js, modules/self-reward/self-reward-ai-widget.js, modules/asset/investasi.js, modules/asset/asset-portfolio-api.js, modules/asset/asset-portfolio-presenter.js, lifeos/lifeos-store.js, lifeos/lifeos-registry.js, lifeos/lifeos-link-registry.js, lifeos/plugins/lifeos-plugin-manifest.js, lifeos/plugins/lifeos-plugin-validation.js, lifeos/plugins/lifeos-plugin-registry.js, lifeos/plugins/lifeos-plugin-loader.js, lifeos/plugins/lifeos-plugin-runtime.js, lifeos/adapters/area-adapter.js, lifeos/adapters/goal-adapter.js, lifeos/adapters/project-adapter.js, lifeos/adapters/today-adapter.js, lifeos/adapters/review-adapter.js, lifeos/adapters/knowledge-adapter.js, lifeos/lifeos-object-ref.js, lifeos/services/project-service.js, lifeos/services/review-service.js, lifeos/services/knowledge-service.js, lifeos/services/life-object-service.js, lifeos/ui/lifeos-home.js, lifeos/ui/areas.js, lifeos/ui/today.js, lifeos/ui/goals.js, lifeos/ui/projects.js, lifeos/ui/review.js, lifeos/ui/life-objects.js, lifeos/ui/plugins.js, lifeos/ui/knowledge.js, lifeos/lifeos-nav.js, economic-intelligence/eie-bus.js, economic-intelligence/eie-store.js, economic-intelligence/domain/entities.js, economic-intelligence/domain/scoring-formulas.js, economic-intelligence/domain/status-classifier.js, economic-intelligence/adapters/user-finance-adapter.js, economic-intelligence/adapters/macro-data-adapter.js, economic-intelligence/rules/rule-schema.js, economic-intelligence/rules/rule-definitions.js, economic-intelligence/engine/rule-engine.js, economic-intelligence/engine/scoring-engine.js, economic-intelligence/engine/insight-generator.js, economic-intelligence/services/macro-sync-service.js, economic-intelligence/services/notification-service.js, economic-intelligence/services/recommendation-service.js, economic-intelligence/scheduler/eie-scheduler.js, economic-intelligence/ui/eie-dashboard.js, economic-intelligence/ui/eie-insight-feed.js, economic-intelligence/ui/eie-notif-settings.js, economic-intelligence/eie-registry.js, modules/ai/ai-core.js, modules/ai/ai-decision-engine.js, modules/ai/ai-service.js, modules/logistics/logistics-engine.js, modules/logistics/logistics-service.js, modules/shop/purchase-engine.js, modules/shop/trip-engine.js, modules/shop/inventory-engine.js, modules/shop/profit-engine.js, modules/shop/delivery-plan-ui.js, modules/shop/shop-business-engine-presenter.js, modules/shop/trip-presenter.js, modules/shop/business-flow-presenter.js, modules/shop/business-intelligence-presenter.js, modules/finance/dana-kelolaan.js, modules/finance/dana-kelolaan-presenter.js
+// app-bundle-b.min.js — DIBUAT OTOMATIS oleh build.js dari: modules/shared/data-default.js, modules/shared/ownership-engine.js, modules/shared/ownership-settings-presenter.js, modules/shared/features-helpers-global-security.js, modules/shared/action-wrappers.js, diagnostik-versi.js, modules/shared/format-tema.js, modules/shared/error-handler.js, modules/shared/helper-teks.js, modules/shared/keamanan-pin.js, modules/home/refleksi-selfcare.js, modules/shared/modal-navigasi.js, modules/shared/scanner-session.js, modules/business/reset-gaji-mingguan.js, modules/shared/debug-console.js, modules/shared/pengaturan-search.js, modules/shared/onboarding.js, modules/shared/kalkulator-input.js, modules/shared/scan-ocr.js, modules/finance/filter-laporan.js, modules/finance/akun.js, modules/business/gaji-calc.js, modules/finance/cicilan.js, modules/finance/tx-bbm.js, modules/finance/tx-stok-sparepart.js, modules/finance/tx-renov.js, modules/finance/tx-transfer.js, modules/finance/tx-cobek.js, modules/finance/tx-target.js, modules/finance/tx-list-cashflow.js, modules/finance/transaksi.js, modules/shared/profil-pengaturan.js, modules/finance/kategori.js, modules/ai/kategorisasi-ai.js, modules/finance/tagihan-kalender.js, modules/shared/backup-restore.js, modules/shared/backup-history-api.js, modules/shared/backup-health-api.js, modules/shared/backup-history-presenter.js, modules/shared/backup-health-presenter.js, modules/business/payroll-absensi.js, modules/business/tukang-absensi.js, modules/business/insight-target-mingguan.js, modules/vehicle/vehicle-core.js, modules/vehicle/vehicle-catalog.js, modules/vehicle/vehicle-scanner.js, modules/vehicle/vehicle-catalog-ui.js, modules/vehicle/sparepart-scanner.js, modules/vehicle/sparepart-scanner-ui.js, modules/vehicle/sparepart-ocr.js, modules/vehicle/sparepart-ocr-parser.js, modules/vehicle/sparepart-ocr-catalog-link.js, modules/vehicle/sparepart-ocr-catalog-detail.js, modules/vehicle/sparepart-ocr-catalog-add.js, modules/vehicle/sparepart-ocr-orchestrator.js, modules/vehicle/vehicle-catalog-import.js, modules/vehicle/vehicle-catalog-import-ui.js, modules/vehicle/vehicle-catalog-import-stock-push.js, modules/vehicle/vehicle-catalog-web-import.js, modules/vehicle/vehicle-catalog-web-import-ui.js, modules/vehicle/vehicle-catalog-servis-link.js, modules/finance/vehicle-catalog-tx-link.js, modules/vehicle/honda-pdf-import.js, modules/vehicle/honda-pdf-import-extract.js, modules/vehicle/honda-pdf-import-parse.js, modules/vehicle/honda-pdf-import-commit.js, modules/vehicle/honda-pdf-import-ui.js, modules/ai/chat-action.js, modules/shared/data-archive.js, modules/vehicle/sparepart-servis.js, ai-chat.js, reminder-notif.js, laporan-export.js, gdrive-backup.js, data-health-check.js, global-search.js, sheets-schema.js, sheets-sync.js, pwa-setup.js, self-test.js, pajak-aset-ui-wrappers.js, modules/finance/finance-intelligence.js, modules/finance/finance-dashboard.js, modules/finance/financial-forecast-api.js, modules/finance/financial-forecast-presenter.js, modules/finance/budget-recommendation-api.js, modules/finance/budget-recommendation-presenter.js, modules/finance/cashflow-projection-api.js, modules/finance/cashflow-projection-presenter.js, modules/finance/financial-goal-api.js, modules/finance/financial-goal-presenter.js, modules/finance/investment-planner-api.js, modules/finance/investment-planner-presenter.js, modules/finance/debt-optimizer-api.js, modules/finance/debt-optimizer-presenter.js, modules/finance/retirement-planner-api.js, modules/finance/retirement-planner-presenter.js, modules/finance/financial-health-score-api.js, modules/finance/financial-health-score-presenter.js, modules/finance/financial-risk-dashboard-api.js, modules/finance/financial-risk-dashboard-presenter.js, modules/vehicle/vehicle-intelligence.js, modules/vehicle/vehicle-dashboard.js, modules/vehicle/vehicle-reminder.js, modules/vehicle/vehicle-notif-bridge.js, modules/vehicle/vehicle-ai-hook.js, modules/vehicle/vehicle-insight-presenter.js, modules/vehicle/vehicle-daily-brief.js, modules/vehicle/vehicle-alert-panel.js, modules/vehicle/vehicle-insight-feed.js, modules/vehicle/vehicle-trend-api.js, modules/vehicle/vehicle-cost-summary.js, modules/vehicle/vehicle-fuel-trend.js, modules/vehicle/vehicle-service-trend.js, modules/vehicle/vehicle-analytics-presenter.js, modules/vehicle/fuel-storage.js, modules/vehicle/fuel-tank-profile.js, modules/vehicle/fuel-intelligence-engine.js, modules/vehicle/fuel-gauge-engine.js, modules/vehicle/fuel-history.js, modules/vehicle/fuel-analytics.js, modules/vehicle/fuel-modal.js, modules/vehicle/fuel-card.js, modules/vehicle/fuel-intelligence-ui.js, modules/vehicle/fuel-tank-profile-ui.js, modules/vehicle/fuel-prediction-engine.js, modules/vehicle/fuel-cost-analytics.js, modules/vehicle/fuel-maintenance-engine.js, modules/vehicle/fuel-insight-engine.js, modules/vehicle/fuel-fleet-selector.js, modules/vehicle/fuel-notif-bridge.js, modules/vehicle/fuel-dashboard.js, modules/vehicle/fuel-compare.js, modules/vehicle/fuel-trend-dashboard.js, modules/vehicle/vehicle-decision-api.js, modules/vehicle/vehicle-recommendation-engine.js, modules/vehicle/vehicle-priority-scoring.js, modules/vehicle/vehicle-action-recommendation.js, modules/vehicle/vehicle-decision-presenter.js, modules/vehicle/vehicle-attention-presenter.js, modules/vehicle/vehicle-automation-api.js, modules/vehicle/vehicle-reminder-scheduler.js, modules/vehicle/vehicle-maintenance-automation.js, modules/vehicle/vehicle-tax-document-automation.js, modules/vehicle/vehicle-automation-presenter.js, modules/cross/finance-vehicle-cross-summary.js, modules/cross/cross-ai-hook.js, modules/cross/cross-dashboard-card.js, modules/cross/cross-insight-presenter.js, modules/cross/unified-summary-api.js, modules/cross/unified-ai-briefing.js, modules/cross/unified-briefing-presenter.js, modules/cross/life-dashboard-summary-api.js, modules/cross/priority-engine.js, modules/cross/personal-overview-presenter.js, modules/cross/cross-module-widgets.js, modules/cross/life-priority-panel.js, modules/cross/unified-dashboard-home.js, modules/cross/decision-center-api.js, modules/cross/recommendation-panel.js, modules/cross/action-queue.js, modules/cross/decision-center-home.js, app-bootstrap.js, modules/shared/feature-icons.js, modules/dashboard-hub/dashboard-hub-registry.js, modules/dashboard-hub/dashboard-hub.js, modules/dashboard-hub/dashboard-hub-search.js, modules/dashboard-hub/dashboard-hub-favorit.js, modules/dashboard-hub/dashboard-hub-favorit-view.js, modules/dashboard-hub/dashboard-hub-settings.js, modules/ai/ai-command-center.js, modules/self-reward/self-reward-engine.js, modules/self-reward/self-reward-view.js, modules/self-reward/self-reward-ai-widget.js, modules/asset/investasi.js, modules/asset/asset-portfolio-api.js, modules/asset/asset-portfolio-presenter.js, lifeos/lifeos-store.js, lifeos/lifeos-registry.js, lifeos/lifeos-link-registry.js, lifeos/plugins/lifeos-plugin-manifest.js, lifeos/plugins/lifeos-plugin-validation.js, lifeos/plugins/lifeos-plugin-registry.js, lifeos/plugins/lifeos-plugin-loader.js, lifeos/plugins/lifeos-plugin-runtime.js, lifeos/adapters/area-adapter.js, lifeos/adapters/goal-adapter.js, lifeos/adapters/project-adapter.js, lifeos/adapters/today-adapter.js, lifeos/adapters/review-adapter.js, lifeos/adapters/knowledge-adapter.js, lifeos/lifeos-object-ref.js, lifeos/services/project-service.js, lifeos/services/review-service.js, lifeos/services/knowledge-service.js, lifeos/services/life-object-service.js, lifeos/ui/lifeos-home.js, lifeos/ui/areas.js, lifeos/ui/today.js, lifeos/ui/goals.js, lifeos/ui/projects.js, lifeos/ui/review.js, lifeos/ui/life-objects.js, lifeos/ui/plugins.js, lifeos/ui/knowledge.js, lifeos/lifeos-nav.js, economic-intelligence/eie-bus.js, economic-intelligence/eie-store.js, economic-intelligence/domain/entities.js, economic-intelligence/domain/scoring-formulas.js, economic-intelligence/domain/status-classifier.js, economic-intelligence/adapters/user-finance-adapter.js, economic-intelligence/adapters/macro-data-adapter.js, economic-intelligence/rules/rule-schema.js, economic-intelligence/rules/rule-definitions.js, economic-intelligence/engine/rule-engine.js, economic-intelligence/engine/scoring-engine.js, economic-intelligence/engine/insight-generator.js, economic-intelligence/services/macro-sync-service.js, economic-intelligence/services/notification-service.js, economic-intelligence/services/recommendation-service.js, economic-intelligence/scheduler/eie-scheduler.js, economic-intelligence/ui/eie-dashboard.js, economic-intelligence/ui/eie-insight-feed.js, economic-intelligence/ui/eie-notif-settings.js, economic-intelligence/eie-registry.js, modules/ai/ai-core.js, modules/ai/ai-decision-engine.js, modules/ai/ai-service.js, modules/logistics/logistics-engine.js, modules/logistics/logistics-service.js, modules/shop/purchase-engine.js, modules/shop/trip-engine.js, modules/shop/inventory-engine.js, modules/shop/profit-engine.js, modules/shop/delivery-plan-ui.js, modules/shop/shop-business-engine-presenter.js, modules/shop/trip-presenter.js, modules/shop/business-flow-presenter.js, modules/shop/business-intelligence-presenter.js, modules/finance/dana-kelolaan.js, modules/finance/dana-kelolaan-presenter.js
 // JANGAN diedit manual — edit file source-nya lalu jalankan: node build.js
 // data-default.js — Domain Data Default: kategori shop bawaan (DEFAULT_COBEK_KATEGORI),
 // Dipindah ke modules/shared/data-default.js (Sesi 17-18 restrukturisasi folder — lihat docs/FILE-MAP.md & RENCANA-SESI.md; isi & nama file TIDAK berubah, cuma lokasi folder).
@@ -372,8 +372,8 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1')return true;
 }catch(e){ /* anggap bukan dev mode kalau gagal deteksi */ }
 return false;
 }
-const APP_BUILD_VERSION = 's331-sync-katalog-sparepart-updated';
-const PRODUCTION_BUILD_SYNCED_VERSION = 's331-sync-katalog-sparepart-updated';
+const APP_BUILD_VERSION = 'kw322-sewakios-harga-dinamis';
+const PRODUCTION_BUILD_SYNCED_VERSION = 'kw322-sewakios-harga-dinamis';
 let D = {
 schemaVersion:SCHEMA_VERSION,
 transactions:[],cobek:[],products:[],produsen:[],cobekKategori:JSON.parse(JSON.stringify(DEFAULT_COBEK_KATEGORI)),targets:[],eduFunds:[],reminders:[],bills:[],billsArchive:[],inventoryTransfers:[],
@@ -981,7 +981,6 @@ function qsShopTransaksiBaru(){ closeQS('qsShop'); openOrderModal(); }
 function qsShopRiwayat(){ closeQS('qsShop'); setShopTab('riwayat',document.querySelectorAll('#page-shop .cn-tab')[3]); }
 function qsShopBackup(){ closeQS('qsShop'); openBackupModal(); }
 function qsShopSetelanLanjutan(){ closeQS('qsShop'); showPage('settings'); }
-function qsShopKatalogDinamis(){ closeQS('qsShop'); openShopKatalogDinamis(); }
 
 function qsCarnotesKelolaKendaraan(){ closeQS('qsCarnotes'); openVehicleModal(); }
 function qsCarnotesKatalog(){ closeQS('qsCarnotes'); VehicleCatalogUI.open(); }
@@ -989,7 +988,6 @@ function qsCarnotesUpdateKm(){ closeQS('qsCarnotes'); openKmModal(); }
 function qsCarnotesKategoriPart(){ closeQS('qsCarnotes'); openSparepartModal(); }
 function qsCarnotesCatatServis(){ closeQS('qsCarnotes'); openServisModal(); }
 function qsCarnotesIsiBbm(){ closeQS('qsCarnotes'); openBbmModal(); }
-function qsCarnotesKatalogDinamis(){ closeQS('qsCarnotes'); openShopKatalogDinamis(); }
 
 function qsLaporanBulanIni(){ closeQS('qsLaporan'); setPeriode('bulan',document.querySelectorAll('#periodeChips .chip-btn')[2]); }
 function qsLaporanTahunIni(){ closeQS('qsLaporan'); setPeriode('tahun',document.querySelectorAll('#periodeChips .chip-btn')[3]); }
@@ -2090,15 +2088,6 @@ closeModal(openOverlays[0].id);
 // State "scanner aktif" sekarang eksplisit (di-set enter()/exit() sendiri),
 // bukan lagi ditebak dari keberadaan elemen <video> di DOM.
 
-// openShopKatalogDinamis() — trigger tipis utk modal shopKatalogDinamisModal
-// (modals.js) + render pertama ShopKatalogDinamisPresenter (modules/vehicle/
-// shop-katalog-dinamis-presenter.js). 100% REUSE openModal() yang SUDAH ADA
-// di atas — TIDAK ada mekanisme modal baru dibuat.
-function openShopKatalogDinamis(){
-  openModal('shopKatalogDinamisModal');
-  if (typeof ShopKatalogDinamisPresenter !== 'undefined') ShopKatalogDinamisPresenter.render();
-}
-
 // modules/shared/scanner-session.js — ScannerSession (Tahap 5, docs/
 // PRODUCT_DECISIONS.md § "Scanner — Exclusive Scanner Mode via ScannerSession
 // (FINAL — Sesi 316, PD-007)").
@@ -2504,7 +2493,6 @@ if(head)head.setAttribute('aria-expanded',isOpen?'true':'false');
 const STG_EXTERNAL_SETTINGS_INDEX=[
 {label:'💰 Kategori & Import Transaksi → Keuangan',keywords:'kategori import transaksi csv excel',page:'keuangan'},
 {label:'🏍️ Kategori Sparepart → Car Notes',keywords:'kategori sparepart mobil motor car notes',page:'carnotes'},
-{label:'🛒 Katalog Sparepart per Kendaraan (Shop)',keywords:'katalog sparepart kendaraan shop dinamis interval servis',action:'openShopKatalogDinamis'},
 {label:'🕌 Harga Emas, Nisab & PBB → Pajak & Zakat',keywords:'emas nisab zakat pbb pajak njoptkp tarif referensi harga emas',page:'pajak'},
 {label:'🎁 Level & Toleransi → Self Reward',keywords:'self reward hadiah level toleransi telat',action:'SelfRewardView.open'},
 {label:'📊 Pengaturan Anggaran → Keuangan (tab Budget)',keywords:'budget anggaran atur anggaran',page:'keuangan'}
@@ -16446,71 +16434,6 @@ save();closeModal('stockModal');Sparepart.renderStockList();toast('✅ Stok spar
 async delStock(i){
 if(!await askConfirm('Hapus item stok sparepart ini?'))return;
 D.partsStock.splice(i,1);save();Sparepart.renderStockList();toast('🗑 Dihapus');
-},
-// syncFromCatalog() — fitur baru (permintaan eksplisit user): tombol
-// "🔄 Sinkron dari Katalog Suku Cadang" di 🔧 Kelola Kategori Sparepart &
-// Interval Servis. BEDA dari syncPartsStockFromCatalog() (tx-stok-sparepart.js,
-// dipakai alur scan di form transaksi Keuangan) dalam 2 hal sesuai keputusan
-// eksplisit user:
-//  1) Filter per KENDARAAN AKTIF ("beda kendaraan beda katalog") — hanya part
-//     Katalog Suku Cadang yang compatibleVehicleIds-nya EKSPLISIT memuat
-//     curVehicleId yang disinkron, bukan semua part tanpa pandang kendaraan.
-//  2) intervalKm kategori baru diisi dari referensi TORSI_DB lewat
-//     suggestServiceIntervalKm() yang SUDAH ADA (read-only, sama persis
-//     dipakai tombol "🤖 Saran AI: Interval" di modal Tambah Kategori) —
-//     bukan selalu 0 seperti syncPartsStockFromCatalog(). TORSI_DB sendiri
-//     TIDAK disentuh/diubah sama sekali, tetap murni referensi torsi & interval.
-// Alur: preview daftar part+kategori+interval yang akan dibuat lewat
-// askConfirm dulu, baru commit (1x save() di akhir) — kategori yang SUDAH ADA
-// (nama sama) tidak dibuat ulang; kalau kategori sudah ada tapi intervalnya
-// masih kosong, dilengkapi dari referensi Torsi tanpa menimpa yang sudah diisi
-// user secara manual. Part yang sudah pernah tersinkron (ada baris
-// D.partsStock dengan catalogId yang sama) dilewati, idempotent kalau dipanggil
-// berkali-kali.
-async syncFromCatalog(){
-if(typeof VehicleCatalog==='undefined'||!VehicleCatalog||typeof VehicleCatalog.getAll!=='function'){toast('⚠️ Katalog Suku Cadang belum tersedia');return;}
-if(!curVehicleId){toast('⚠️ Pilih kendaraan dulu di atas');return;}
-const veh=D.vehicles.find(v=>v.id===curVehicleId);
-let items;
-try{ items=await VehicleCatalog.getAll(); }catch(e){ toast('⚠️ Gagal membaca Katalog Suku Cadang');return; }
-const candidates=(items||[]).filter(it=>it&&!it.isDraft&&Array.isArray(it.compatibleVehicleIds)&&it.compatibleVehicleIds.some(id=>String(id)===String(curVehicleId)));
-if(!candidates.length){toast('ℹ️ Belum ada part di Katalog Suku Cadang yang ditandai kompatibel dengan '+(veh?veh.name:'kendaraan ini'));return;}
-const rows=candidates.map(it=>{
-const already=D.partsStock.some(p=>p.catalogId===it.id);
-const reko=already?null:suggestServiceIntervalKm(it.partName||'',curVehicleId);
-return{item:it,already,intervalKm:reko?reko.km:0};
-});
-const toAdd=rows.filter(r=>!r.already);
-if(!toAdd.length){toast('ℹ️ Semua part katalog untuk kendaraan ini sudah tersinkron ke Stok Sparepart');return;}
-const previewMsg='Akan menambahkan '+toAdd.length+' part dari Katalog Suku Cadang ke Kelola Kategori & Stok Sparepart untuk "'+(veh?veh.name:'-')+'":\n\n'
-+toAdd.map(r=>'• '+(r.item.partName||'(tanpa nama)')+(r.intervalKm?' — interval '+r.intervalKm.toLocaleString('id-ID')+' km (dari referensi Torsi)':' — interval belum ada di referensi Torsi, isi manual nanti')).join('\n')
-+'\n\nLanjutkan?';
-if(!await askConfirm(previewMsg,{title:'🔄 Sinkron dari Katalog',icon:'📦'}))return;
-let addedCat=0,addedStock=0;
-toAdd.forEach((r,idx)=>{
-const it=r.item;
-const catName=(it.category||'Umum').trim()||'Umum';
-let cat=D.sparepartCats.find(c=>c.name.toLowerCase()===catName.toLowerCase());
-if(!cat){
-cat={id:'sp_'+Date.now()+'_'+idx,name:catName,code:codeFromName(catName),intervalKm:r.intervalKm||0,showInReminder:r.intervalKm>0};
-D.sparepartCats.push(cat);
-addedCat++;
-} else if(r.intervalKm>0&&(!cat.intervalKm||cat.intervalKm<=0)){
-cat.intervalKm=r.intervalKm;
-cat.showInReminder=true;
-}
-const prefix=cat.code||codeFromName(catName);
-const seq=D.partsStock.filter(p=>p.code&&p.code.startsWith(prefix+'-')).length+1;
-const code=(it.barcode||it.oemCode||(prefix+'-'+String(seq).padStart(3,'0')));
-D.partsStock.push({id:'st_'+Date.now()+'_'+idx,name:it.partName||'Part dari Katalog',catId:cat.id,code,qty:0,unit:'pcs',minStock:1,price:it.price||0,note:'Disinkron dari Katalog Suku Cadang',catalogId:it.id});
-addedStock++;
-});
-save();
-Sparepart.renderCatList();
-Sparepart.renderStockList();
-if(typeof renderServisList==='function')renderServisList();
-if(typeof renderDashboardServisReminder==='function')renderDashboardServisReminder();
-toast('✅ Sinkron selesai: '+addedCat+' kategori baru, '+addedStock+' stok baru');
 }
 };
 function autoFillSparepartCode(){return Sparepart.autoFillCatCode();}
@@ -16528,7 +16451,6 @@ function delStock(i){return Sparepart.delStock(i);}
 function toggleSparepartShowInReminder(catId){return Sparepart.toggleShowInReminder(catId);}
 function suggestSparepartInterval(){return Sparepart.suggestInterval();}
 function applySparepartIntervalSuggestion(km){return Sparepart.applyIntervalSuggestion(km);}
-function syncSparepartFromCatalog(){return Sparepart.syncFromCatalog();}
 function populateServisPartSelect(selectedPartId){return Servis.populatePartSelect(selectedPartId);}
 function onServisPartChange(){return Servis.onPartChange();}
 function onServisCatalogPartChange(){return Servis.onCatalogPartChange();}
@@ -17107,240 +17029,6 @@ actions:['Cek filter udara & tekanan ban','Jadwalkan servis bila performa terus 
 _vehicleAIRulesRegistered=true;
 return true;
 }
-
-// modules/vehicle/shop-katalog-dinamis-api.js — Shop Katalog Sparepart
-// Dinamis (per-Kendaraan) API. Batch: "ringan dulu" — cuma layer data
-// (API), TIDAK ada presenter/modal baru di sesi ini (menyusul kalau API
-// ini sudah aman dipakai).
-//
-// PRINSIP (100% REUSE, sama persis pola AssetMaintenanceAPI/
-// PropertyManagementAPI):
-//  - TIDAK ada field baru ditambah ke D.vehicles / D.sparepartCats /
-//    D.partsCatalog / D.servisLogs.
-//  - TIDAK ada rumus interval baru — intervalKm tetap dari
-//    D.sparepartCats (kategori sparepart, sudah ada, lihat
-//    modules/shared/data-default.js DEFAULT_SPAREPARTS).
-//  - Guard berlapis (typeof X==='undefined' -> {ok:false,reason}) biar
-//    file ini aman dimuat berdiri sendiri / sebelum data terkait ada.
-//  - Nama koleksi part katalog per-kendaraan belum pasti seragam di
-//    seluruh build (kandidat: D.partsCatalog / D.vehiclePartsCatalog).
-//    _catalogList() cek KEDUANYA apa adanya, TIDAK memutuskan satu nama
-//    "benar" secara sepihak — supaya tidak salah asumsi struktur data
-//    yang sudah berjalan di produksi.
-//  - Pencocokan part↔kendaraan & part↔kategori sparepart dilakukan
-//    read-only (tidak menulis apa pun), pakai pola matching TOLERAN
-//    (cek beberapa nama field kandidat) karena skema field persis milik
-//    modul Vehicle Catalog (catalogModal, VehicleCatalogUI) tidak
-//    tercakup di batch file ini.
-const ShopKatalogDinamisAPI = {
-
-  // MAX_KENDARAAN — batas tampil selector kendaraan di UI shop (S/K:
-  // "kalau ada 5 kendaraan"). Cuma batas TAMPILAN daftar pilihan, bukan
-  // batas jumlah D.vehicles yang boleh ada (lebih dari 5 tetap aman,
-  // sisanya cukup discroll — lihat daftarKendaraan()).
-  MAX_KENDARAAN: 5,
-
-  // _vehicles() — satu titik akses ke D.vehicles, guard sama persis
-  // AssetMaintenanceAPI._assets().
-  _vehicles() {
-    if (typeof D === 'undefined' || !D || !Array.isArray(D.vehicles)) return [];
-    return D.vehicles;
-  },
-
-  // _catalogList() — satu titik akses ke katalog part per-kendaraan.
-  // Cek 2 nama koleksi kandidat (lihat catatan PRINSIP di atas), pakai
-  // yang pertama ADA & berisi array — TIDAK menggabung keduanya supaya
-  // tidak dobel kalau ternyata sinonim.
-  _catalogList() {
-    if (typeof D === 'undefined' || !D) return [];
-    if (Array.isArray(D.partsCatalog)) return D.partsCatalog;
-    if (Array.isArray(D.vehiclePartsCatalog)) return D.vehiclePartsCatalog;
-    return [];
-  },
-
-  // _sparepartCats() — satu titik akses ke D.sparepartCats (kategori +
-  // intervalKm, SUDAH ADA — DEFAULT_SPAREPARTS).
-  _sparepartCats() {
-    if (typeof D === 'undefined' || !D || !Array.isArray(D.sparepartCats)) return [];
-    return D.sparepartCats;
-  },
-
-  // _servisLogs() — satu titik akses ke D.servisLogs (riwayat servis,
-  // SUDAH ADA — dipakai servisModal/onServisItemAutofillInterval()).
-  _servisLogs() {
-    if (typeof D === 'undefined' || !D || !Array.isArray(D.servisLogs)) return [];
-    return D.servisLogs;
-  },
-
-  // daftarKendaraan() — field "Pilih Kendaraan" utk fitur Shop. Dipotong
-  // ke MAX_KENDARAAN item TERBARU (kendaraan lain tetap ada di
-  // D.vehicles, cuma tidak dimasukkan array ini — UI bisa tambah
-  // "lainnya" sendiri kalau perlu, TIDAK di-handle di sini).
-  daftarKendaraan() {
-    const list = this._vehicles().slice(0, this.MAX_KENDARAAN).map((v) => ({
-      id: v.id,
-      name: v.name,
-      emoji: v.emoji || (v.jenis === 'mobil' ? '🚗' : v.jenis === 'listrik' ? '🔋' : '🏍️'),
-      jenis: v.jenis || 'motor',
-    }));
-    return { ok: true, count: list.length, totalKendaraan: this._vehicles().length, list };
-  },
-
-  // _cocokKendaraan(part, vehicleId) — TOLERAN thd 2 skema compat yang
-  // mungkin dipakai: array id (part.compatVehicleIds) ATAU array objek
-  // {id,...} (part.compatVehicles). Part TANPA daftar compat sama
-  // sekali dianggap "berlaku umum" (cocok semua kendaraan) — konsisten
-  // dgn UI catalogModal yang menandai field ini opsional.
-  _cocokKendaraan(part, vehicleId) {
-    const a = Array.isArray(part.compatVehicleIds) ? part.compatVehicleIds : null;
-    const b = Array.isArray(part.compatVehicles) ? part.compatVehicles : null;
-    if (!a && !b) return true;
-    if (a && a.includes(vehicleId)) return true;
-    if (b && b.some((x) => (x && x.id) === vehicleId)) return true;
-    return false;
-  },
-
-  // _kategoriUntukPart(part) — cocokkan nama part ke D.sparepartCats
-  // (case-insensitive substring, pola sama persis
-  // onServisItemAutofillInterval()/guessSparepartFromReceiptText() yang
-  // sudah ada) supaya dapat intervalKm APA ADANYA, TIDAK dikarang baru.
-  _kategoriUntukPart(part) {
-    const nama = (part.name || '').toLowerCase();
-    const cats = this._sparepartCats();
-    if (!nama || !cats.length) return null;
-    return cats.find((c) => c.name && (nama.includes(c.name.toLowerCase()) || c.name.toLowerCase().includes(nama))) || null;
-  },
-
-  // _servisTerakhir(vehicleId, part) — entri D.servisLogs paling baru
-  // utk kendaraan+part ini (match by vehicleId + nama item mengandung
-  // nama part, TOLERAN thd penamaan bebas user di field "Jenis
-  // Servis/Item"), diurutkan by tanggal desc, APA ADANYA (0 rumus baru).
-  _servisTerakhir(vehicleId, part) {
-    const nama = (part.name || '').toLowerCase();
-    if (!nama) return null;
-    const logs = this._servisLogs()
-      .filter((s) => s && s.vehicleId === vehicleId && (s.item || '').toLowerCase().includes(nama));
-    if (!logs.length) return null;
-    logs.sort((x, y) => String(y.tanggal || '').localeCompare(String(x.tanggal || '')));
-    return logs[0];
-  },
-
-  // katalogUntuk(vehicleId) — INTI fitur: "kendaraan mana -> katalog
-  // part item interval mana", dinamis. Guard berlapis; kalau koleksi
-  // katalog part belum ada di build ini, balikin {ok:false,reason}
-  // TANPA melempar error (aman dipanggil dari presenter manapun).
-  katalogUntuk(vehicleId) {
-    if (!vehicleId) return { ok: false, reason: 'Kendaraan belum dipilih' };
-    const veh = this._vehicles().find((v) => v.id === vehicleId);
-    if (!veh) return { ok: false, reason: 'Kendaraan tidak ditemukan' };
-    const catalog = this._catalogList();
-    if (!catalog.length) return { ok: false, reason: 'Katalog part belum tersedia di perangkat ini' };
-
-    const items = catalog
-      .filter((p) => p && this._cocokKendaraan(p, vehicleId))
-      .map((p) => {
-        const kategori = this._kategoriUntukPart(p);
-        const last = this._servisTerakhir(vehicleId, p);
-        const lastKm = last ? (last.km || null) : null;
-        const kmSekarang = (veh.kmAwal != null) ? veh.kmAwal : null; // apa adanya, 0 estimasi baru
-        const kmSejakServis = (lastKm != null && kmSekarang != null) ? Math.max(0, kmSekarang - lastKm) : null;
-        const intervalKm = kategori ? kategori.intervalKm : null;
-        const status = (intervalKm && kmSejakServis != null)
-          ? (kmSejakServis >= intervalKm ? 'perlu-ganti' : 'aman')
-          : 'belum-diketahui';
-        return {
-          id: p.id,
-          nama: p.name,
-          oemCode: p.oemCode || null,
-          kategori: kategori ? kategori.name : null,
-          intervalKm,
-          lastServisTanggal: last ? last.tanggal : null,
-          lastServisKm: lastKm,
-          kmSejakServis,
-          status,
-        };
-      });
-
-    return { ok: true, kendaraan: { id: veh.id, name: veh.name }, count: items.length, items };
-  },
-
-};
-
-// modules/vehicle/shop-katalog-dinamis-presenter.js — Shop Katalog
-// Sparepart Dinamis Presenter. 100% REUSE ShopKatalogDinamisAPI
-// (modules/vehicle/shop-katalog-dinamis-api.js) — TIDAK ada
-// query/hitungan baru di sini, murni render + simpan pilihan
-// kendaraan terakhir (localStorage-style var, sama pola _txAccManuallySet
-// dkk di codebase: variabel modul biasa, bukan D/localStorage baru).
-//
-// KONTRAK HTML yang diharapkan (container HARUS sudah ada di
-// halaman/modal terkait — presenter ini TIDAK membuat modal baru):
-//   <select id="shopKatalogVehicleSelect"></select>
-//   <div id="shopKatalogList"></div>
-const ShopKatalogDinamisPresenter = {
-
-  _selectedVehicleId: null,
-
-  // render() — titik masuk. Isi <select> pilihan kendaraan (kalau
-  // belum diisi/berubah) lalu render daftar part utk kendaraan
-  // terpilih (default: kendaraan pertama).
-  render() {
-    const sel = document.getElementById('shopKatalogVehicleSelect');
-    const list = document.getElementById('shopKatalogList');
-    if (!sel || !list) return; // container belum ada di halaman ini, aman diam2.
-
-    if (typeof ShopKatalogDinamisAPI === 'undefined') {
-      list.innerHTML = '<div class="empty"><div class="empty-text">Fitur katalog belum tersedia</div></div>';
-      return;
-    }
-
-    const dk = ShopKatalogDinamisAPI.daftarKendaraan();
-    if (!dk.ok || dk.count === 0) {
-      sel.innerHTML = '<option value="">— Belum ada kendaraan —</option>';
-      list.innerHTML = '<div class="empty"><div class="empty-icon">🏍️</div><div class="empty-text">Tambahkan kendaraan dulu lewat Car Notes</div></div>';
-      return;
-    }
-
-    if (!this._selectedVehicleId || !dk.list.some((v) => v.id === this._selectedVehicleId)) {
-      this._selectedVehicleId = dk.list[0].id;
-    }
-
-    sel.innerHTML = dk.list.map((v) => `<option value="${escapeHtml(v.id)}"${v.id === this._selectedVehicleId ? ' selected' : ''}>${v.emoji} ${escapeHtml(v.name)}</option>`).join('');
-    this._renderList(list);
-  },
-
-  // onVehicleChange(selectEl) — dipanggil dari onchange <select>.
-  onVehicleChange(selectEl) {
-    this._selectedVehicleId = selectEl.value || null;
-    const list = document.getElementById('shopKatalogList');
-    if (list) this._renderList(list);
-  },
-
-  // _renderList(el) — murni tampilkan hasil
-  // ShopKatalogDinamisAPI.katalogUntuk() APA ADANYA, 0 logic tambahan.
-  _renderList(el) {
-    if (!this._selectedVehicleId) {
-      el.innerHTML = '<div class="empty"><div class="empty-text">Pilih kendaraan dulu</div></div>';
-      return;
-    }
-    const res = ShopKatalogDinamisAPI.katalogUntuk(this._selectedVehicleId);
-    if (!res.ok) {
-      el.innerHTML = `<div class="empty"><div class="empty-text">${escapeHtml(res.reason || 'Data belum tersedia')}</div></div>`;
-      return;
-    }
-    if (res.count === 0) {
-      el.innerHTML = '<div class="empty"><div class="empty-text">Belum ada part katalog utk kendaraan ini</div></div>';
-      return;
-    }
-    const badge = { 'perlu-ganti': ['🔴', 'Perlu Diganti'], 'aman': ['🟢', 'Aman'], 'belum-diketahui': ['⚪', 'Belum Diketahui'] };
-    el.innerHTML = res.items.map((it) => {
-      const [dot, label] = badge[it.status] || badge['belum-diketahui'];
-      const sub = it.intervalKm ? `Interval ${it.intervalKm.toLocaleString('id-ID')} km` : 'Interval belum diatur';
-      return `<div class="tx-item"><div class="tx-icon u-bgaccsoft">🔧</div><div class="tx-info"><div class="tx-name">${escapeHtml(it.nama)}</div><div class="tx-meta">${sub}${it.kategori ? ' · ' + escapeHtml(it.kategori) : ''}</div></div><div class="tx-amount" style="font-size:11px">${dot} ${label}</div></div>`;
-    }).join('');
-  },
-
-};
 
 // ai-chat.js — Chat AI (RefAI): UI edit aksi chat, kirim pesan ke provider AI (sendChat/
 // callAIProviderRaw), Advisor (rule-based tips) & AIWidget (widget rekomendasi AI generik dipakai

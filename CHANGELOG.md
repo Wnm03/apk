@@ -10457,3 +10457,86 @@ node scripts/build.js kw188-tahap7C4b-sparepart-ocr-add-prefill
 node --test tests/*.test.js   # setelah build
 # tests 684 / pass 684 / fail 0
 ```
+
+---
+
+# Changelog — Sesi 317 (Tahap 6 — Migrasi Scanner): hide nav/toast/modal/header dipindah total ke ScannerSession
+
+## Konteks
+Lanjutan Sesi 316 (Tahap 5 — `modules/shared/scanner-session.js` dibuat,
+`docs/PRODUCT_DECISIONS.md` § "Scanner — Exclusive Scanner Mode via
+ScannerSession (FINAL — Sesi 316, PD-007)"). Tahap 6 menuntaskan migrasi:
+Scanner Engine (`vehicle-scanner.js`/`sparepart-scanner.js`) SEKARANG hanya
+mengurus kamera (ZXing/decode/overlay video), 0 sentuhan ke
+`#mainNav`/`#mainHeader`/modal/toast — tanggung jawab itu 100% pindah ke
+`ScannerSession.pauseUI()`/`resumeUI()`, dipanggil eksplisit dari
+`ScannerSession.enter()`/`exit()`.
+
+## Perubahan
+
+- **`modules/vehicle/vehicle-scanner.js`**: `vehicleScannerHideChrome()`/
+  `vehicleScannerRestoreChrome()` DIHAPUS. `vehicleScannerScan()` sekarang
+  memanggil `ScannerSession.enter()` SEBELUM membangun overlay & mulai
+  decode, dan `ScannerSession.exit()` SETELAH teardown overlay (baik lewat
+  tombol tutup, kode berhasil dibaca, maupun path error) — guard `typeof
+  ScannerSession` supaya tetap aman kalau modul ini belum dimuat (mis. test
+  terisolasi).
+- **`modules/vehicle/sparepart-scanner.js`**: `sparepartScannerBuildOverlay()`
+  tidak lagi memanggil `vehicleScannerHideChrome()` (fungsi itu sudah tidak
+  ada); `sparepartScannerCameraAdapter()` memanggil `ScannerSession.enter()`/
+  `exit()` dgn pola & guard yang sama persis `vehicleScannerScan()`.
+- **`modules/shared/modal-navigasi.js`**: blok IIFE `camera-scan-active`
+  (`MutationObserver` + `document.querySelector('video')` +
+  `setInterval(400ms)` + style injection `_camScanFixStyle`) DIHAPUS total —
+  digantikan `ScannerSession.pauseUI()`/`resumeUI()` (state eksplisit,
+  bukan lagi DOM-Detection reaktif).
+- **`modules/shared/scanner-session.js`**: 0 perubahan API dari Tahap 5 —
+  `pauseUI()`/`resumeUI()` sudah 100% reuse teknik lama (hide
+  `#mainNav`/`#mainHeader`, suspend `.overlay.open`/`#toast` via style
+  `scanner-session-active`) sejak dibuat, Tahap 6 murni menuntaskan
+  pemanggilnya (Scanner Engine + modal-navigasi.js) supaya benar-benar 0
+  jalur lain yang menyentuh chrome/modal/toast di luar file ini (PD-007
+  ditegakkan penuh).
+- **`scripts/build.js`**: 0 perubahan urutan build — `scanner-session.js`
+  sudah terdaftar sejak Sesi 316 (SEBELUM `vehicle-scanner.js`/
+  `sparepart-scanner.js`, keduanya MEMANGGIL `ScannerSession`).
+
+## Test
+
+- `tests/scanner-lifecycle-baseline-s317.test.js` (characterization test
+  kode ASLI SEBELUM refactor, dibuat awal Sesi 317 sesuai catatan di
+  kepalanya sendiri) **DIHAPUS** — persis seperti yang diprediksi di
+  komentarnya: begitu tanggung jawab pindah ke `ScannerSession`, test
+  "Scanner Engine reuse hideChrome/restoreChrome milik dirinya sendiri"
+  seharusnya hilang, sinyal migrasi sudah terjadi.
+- `tests/scanner-session.test.js` (BARU, 15 test) — menggantikan cakupan
+  eksternal test lama (fake DOM manual, pola sama): `pauseUI()`/`resumeUI()`
+  round-trip (nav/header display + body class `scanner-session-active` +
+  style injection idempotent), `enter()`/`exit()` (guard anti-dobel,
+  `isActive()`, aman dipanggil di luar urutan), `AIBus.emit()` guarded
+  (`Scanner:opened`/`Scanner:closed`), expose `window.ScannerSession`.
+- `tests/vehicle-scanner.test.js`/`tests/sparepart-scanner.test.js` — 0
+  perubahan (sudah HANYA mencakup logic murni sejak awal — errorMessage()/
+  buildHints() — 0 referensi ke hideChrome/RestoreChrome yang dihapus).
+
+## Hasil verifikasi
+```
+node --test tests/*.test.js
+# tests 1600 / pass 1600 / fail 0   (baseline SEBELUM Tahap 6, ZIP sesi315)
+
+# setelah Tahap 6 (hapus scanner-lifecycle-baseline-s317.test.js, tambah
+# tests/scanner-session.test.js +15):
+node --test tests/*.test.js
+# tests 1615 / pass 1615 / fail 0   (naik dari 1600, 0 regresi)
+
+node scripts/build.js s317-tahap6-migrasi-scanner-scannersession
+# ✅ Build selesai, ?v=827, index.html & app_production.html identik
+
+node --test tests/*.test.js   # setelah build
+# tests 1615 / pass 1615 / fail 0
+```
+
+PD-007 sekarang DITEGAKKAN PENUH: Scanner Engine 0% menyentuh modal/toast/
+dashboard, `ScannerSession.enter()`/`exit()` adalah satu-satunya titik
+masuk/keluar Exclusive Scanner Mode, state "scanner aktif" 100% eksplisit
+(bukan lagi disimpulkan dari keberadaan `<video>` di DOM).

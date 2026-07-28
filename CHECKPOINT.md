@@ -1016,3 +1016,106 @@ baru ditambahkan — perubahan murni wiring UI, dicek manual lewat build+lint).
 
 `kw_release_kasir-audit-address-delivered-dp_v784.zip` — dibuat & dikirim
 ke user.
+
+---
+
+## Checkpoint — Sesi 320 (2026-07-28): Sewa Kios — Status Kosong/Disewa jadi dinamis
+
+**Konteks:** Audit ulang "field mana lagi yang masih generik" (lanjutan pola
+Sesi 164b–165b: Akun/Kendaraan/SIM/Utang/Worth It). Ditemukan 1 gap baru:
+dropdown Status (`skStatus`) di modal Kelola Unit Kios (`sewaKiosUnitModal`)
+tidak punya `onchange` sama sekali — field "Nama Penyewa" selalu tampil
+walau status masih "Kosong" (belum ada penyewa).
+
+**Dikerjakan sesi ini:** `SewaKios.onStatusChange()` (pola sama persis
+`onVehJenisChange()`/`onSimJenisChange()` di
+`modules/vehicle/vehicle-core.js`) — toggle `u-dnone` pada
+`skPenyewaWrap` (fg wrap baru yang membungkus field `skPenyewa`,
+`modules/shared/modals.js`): status **Disewa** -> field Nama Penyewa
+tampil, status **Kosong** -> disembunyikan. Dipanggil dari `onchange`
+dropdown `skStatus` & sekali saat modal dibuka (`openUnitModal()`,
+`modules/business/sewakios.js`) supaya konsisten baik saat Tambah Unit
+maupun Edit Unit. Data `penyewa` tetap tersimpan apa adanya (tidak ada
+perubahan skema) — cuma visibility field yang berubah, jadi tidak ada
+migrasi data diperlukan.
+
+## Test
+
+`node --test tests/*.test.js` -> **1629/1629 pass, 0 fail** (tidak ada test
+baru — perubahan murni wiring UI/visibility, sama pola dgn Sesi 267).
+
+## Build
+
+`node scripts/build.js kw320-sewakios-status-dinamis` -> sukses, `?v=833`.
+
+## ZIP
+
+`kw_release_sesi320_sewakios-status-dinamis_v833.zip` — dibuat & dikirim
+ke user.
+
+---
+
+## Checkpoint — Sesi 321 (2026-07-28): Dana Titipan Aset — label/placeholder Nama jadi dinamis
+
+**Konteks:** Lanjutan audit "field generik" — kandidat #2 yang sebelumnya
+ditandai "minor, perlu konfirmasi": dropdown "Dana Titipan Dari"
+(`assetTitipanOwnerType`, modal Aset) sudah punya 3 pilihan
+(Investor/Keluarga/Lainnya) tapi label & placeholder field Nama di
+sebelahnya statis ("Nama (opsional)" / "Pak Budi, dll") sama utk ketiganya.
+
+**Dikerjakan sesi ini:** `Aset.TITIPAN_OWNER_LABELS` (config per tipe) +
+`Aset.onTitipanOwnerTypeChange()` — pola sama persis
+`Debt.JENIS_DEFAULTS`/`Debt.onJenisChange()`
+(`modules/finance/piutang-utang.js`). Label & placeholder field Nama
+sekarang berubah sesuai tipe dipilih: Investor -> "Nama Investor" ("Pak
+Budi, PT Modal Jaya, dll"), Keluarga -> "Nama Anggota Keluarga" ("Kakak,
+Ibu, Om Budi, dll"), Lainnya -> "Nama/Keterangan" ("Koperasi, teman, dll").
+Dipanggil dari `onchange` dropdown, dari `Aset.toggleTitipan()` (saat
+toggle Dana Titipan dinyalakan), & sekali saat modal Aset dibuka
+(`openModal()`) supaya konsisten saat Tambah/Edit. Murni UI copy — TIDAK
+ada field/skema data baru (`titipanOwnerName` tetap 1 field yang sama),
+jadi tidak ada migrasi data diperlukan.
+
+## Test
+
+`node --test tests/*.test.js` -> **1629/1629 pass, 0 fail** (tidak ada test
+baru — perubahan murni UI label/placeholder, sama pola dgn Sesi 320).
+
+## Build
+
+`node scripts/build.js kw321-danatitipan-label-dinamis` -> sukses, `?v=834`.
+
+## ZIP
+
+`kw_release_sesi321_danatitipan-label-dinamis_v834.zip` — dibuat & dikirim
+ke user.
+
+---
+
+## Checkpoint — Sesi 322 (2026-07-28): Sewa Kios — Harga Sewa/Bulan ikut disembunyikan saat Kosong
+
+**Konteks:** User minta pastikan field "Harga Sewa / Bulan" (bukan cuma
+"Nama Penyewa") juga ikut mengikuti status Kosong/Disewa — sebelumnya di
+Sesi 320 cuma `skPenyewaWrap` yang ditoggle, `skHarga` masih selalu tampil.
+
+**Dikerjakan sesi ini:** `skHarga` sekarang dibungkus `skHargaWrap`
+(`modules/shared/modals.js`), ikut ditoggle bareng `skPenyewaWrap` di
+`SewaKios.onStatusChange()` (`modules/business/sewakios.js`) — status
+**Disewa** -> Nama Penyewa & Harga Sewa/Bulan sama-sama tampil, status
+**Kosong** -> keduanya disembunyikan. Data `hargaSewaBulanan` tetap
+tersimpan apa adanya kalau sebelumnya sudah diisi (cuma visibility field
+yang berubah, bukan value-nya) — jadi kalau unit balik status ke Disewa
+lagi, harga lama masih ada.
+
+## Test
+
+`node --test tests/*.test.js` -> **1629/1629 pass, 0 fail**.
+
+## Build
+
+`node scripts/build.js kw322-sewakios-harga-dinamis` -> sukses, `?v=835`.
+
+## ZIP
+
+`kw_release_sesi322_sewakios-harga-dinamis_v835.zip` — dibuat & dikirim ke
+user.

@@ -13,6 +13,31 @@ tahunan:{date:'vehTaxTahunan',biaya:'vehBiayaTahunan'},
 limaTahun:{date:'vehTaxLimaTahun',biaya:'vehBiayaLimaTahun'},
 uji:{date:'vehTaxUji',biaya:'vehBiayaUji'}
 };
+// Estimasi biaya pajak kendaraan dari histori pembayaran sebelumnya — pola SAMA PERSIS
+// PriceReko.autoFillTransport() (modules/shop/cobek-pricing.js): rata-rata dari transaksi
+// terakhir, bukan hitung ulang tarif resmi. Sumber data 100% reuse: bayarPajakKendaraan()
+// (di bawah) sudah mencatat tiap pembayaran ke D.transactions dgn note persis
+// `<label tanpa emoji> - <nama kendaraan>` — fungsi ini murni membaca ulang histori itu,
+// TIDAK ada tabel/field baru di D.
+function vehTaxHistoryEstimate(vehicleId,jenis){
+const v=(D.vehicles||[]).find(x=>x.id===vehicleId);
+const cfg=VEHTAX_ITEMS[jenis];
+if(!v||!cfg)return null;
+const noteMatch=cfg.label.replace(/^\S+\s/,'')+' - '+v.name;
+const paid=(D.transactions||[]).filter(t=>t.type==='expense'&&t.note===noteMatch&&t.amount>0).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(-5);
+if(!paid.length)return null;
+return Math.round(paid.reduce((s,t)=>s+t.amount,0)/paid.length);
+}
+function autoFillVehTaxBiaya(jenis){
+const vehicleId=document.getElementById('vehTaxModal').dataset.vehicleId;
+const ids=VEHTAX_INPUT_IDS[jenis];
+if(!ids)return;
+const est=vehTaxHistoryEstimate(vehicleId,jenis);
+if(est===null){toast('⚠️ Belum ada histori pembayaran '+(VEHTAX_ITEMS[jenis]?.label.replace(/^\S+\s/,'')||'')+' buat kendaraan ini — bayar sekali dulu lewat tombol ✅ Bayar biar tercatat.');return;}
+const el=document.getElementById(ids.biaya);
+if(el)el.value=est;
+toast('✅ Diisi dari rata-rata pembayaran sebelumnya: '+fmtFull(est)+' — sesuaikan lagi kalau tarif resmi terbaru beda.',7000);
+}
 const BBM={
 editId:null,
 listPage:1,
