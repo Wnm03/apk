@@ -89,31 +89,15 @@ function vehicleScannerBuildHints() {
   return hints;
 }
 
-// BUGFIX (lanjutan audit z-index/stacking-context #scrollRoot vs .nav, lihat
-// komentar di styles.css ~baris 81): #mainNav (position:fixed, z-index:
-// var(--z-chrome)=100) ternyata tetap kepaint DI ATAS overlay scanner
-// (z-index:var(--z-scanner)=970) di sebagian browser/mode non-PWA — root
-// cause pastinya beda platform-dependent (hardware compositing utk elemen
-// <video>), TIDAK bisa dipastikan cuma dari 1 aturan CSS. Fix paling aman &
-// portable: sembunyikan #mainNav (dan #mainHeader, biar konsisten) SELAMA
-// scanner terbuka, kembalikan persis seperti semula saat teardown — pola
-// SAMA seperti showMain() yang sudah toggle elemen² ini manual (bukan
-// mengandalkan z-index murni). 0 CSS baru, 0 perubahan ke elemen lain.
-function vehicleScannerHideChrome() {
-  const nav = document.getElementById('mainNav');
-  const header = document.getElementById('mainHeader');
-  const prev = { navDisplay: nav ? nav.style.display : null, headerDisplay: header ? header.style.display : null };
-  if (nav) nav.style.display = 'none';
-  if (header) header.style.display = 'none';
-  return prev;
-}
-function vehicleScannerRestoreChrome(prev) {
-  if (!prev) return;
-  const nav = document.getElementById('mainNav');
-  const header = document.getElementById('mainHeader');
-  if (nav) nav.style.display = prev.navDisplay || '';
-  if (header) header.style.display = prev.headerDisplay || '';
-}
+// PD-007 (docs/PRODUCT_DECISIONS.md "Scanner — Exclusive Scanner Mode via
+// ScannerSession"): vehicleScannerHideChrome()/vehicleScannerRestoreChrome()
+// yang DULU ada di sini (sembunyikan #mainNav/#mainHeader selama scanner
+// terbuka — root cause & riwayat bugfix z-index #mainNav vs overlay scanner
+// TETAP sama seperti catatan asli, cuma dipindah) SEKARANG jadi tanggung
+// jawab ScannerSession.pauseUI()/resumeUI() (modules/shared/scanner-
+// session.js), dipanggil dari ScannerSession.enter()/exit() di
+// vehicleScannerScan() di bawah. Scanner Engine (file ini) TIDAK lagi
+// menyentuh #mainNav/#mainHeader langsung.
 
 // Bangun overlay fullscreen (video + bingkai target + tombol tutup),
 // dilepas total dari DOM saat scan selesai/dibatalkan — tidak ada elemen
@@ -121,7 +105,6 @@ function vehicleScannerRestoreChrome(prev) {
 function vehicleScannerBuildOverlay() {
   const overlay = document.createElement('div');
   overlay.className = 'vehicle-scanner-fullscreen';
-  overlay._prevChrome = vehicleScannerHideChrome();
 
   const video = document.createElement('video');
   video.className = 'vehicle-scanner-video';
@@ -151,14 +134,26 @@ function vehicleScannerBuildOverlay() {
   return { overlay, video, closeBtn };
 }
 
+// Teardown overlay scanner ITU SENDIRI (video/frame/hint/closeBtn) — TIDAK
+// lagi memanggil resume UI global di sini, itu tanggung jawab
+// ScannerSession.exit() (dipanggil SETELAH teardown ini, lihat
+// vehicleScannerScan(), sesuai urutan PD-007: scanner engine teardown dulu,
+// baru UI global di-resume).
 function vehicleScannerTeardown(reader, overlay) {
   try { if (reader && typeof reader.reset === 'function') reader.reset(); } catch (e) { /* no-op, sama pola try/catch existing di modul lain */ }
-  vehicleScannerRestoreChrome(overlay && overlay._prevChrome);
   if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
 }
 
 async function vehicleScannerScan() {
   toast('🔍 Membuka kamera...', 4000);
+  // ScannerSession.enter() — satu-satunya titik masuk Exclusive Scanner Mode
+  // (PD-007): suspend UI global (modal/toast/dashboard chrome) DULU, baru
+  // scanner engine (di bawah) boleh membangun overlay & mulai decode. Guard
+  // typeof supaya tetap aman kalau scanner-session.js belum/tidak dimuat
+  // (mis. environment test terisolasi) — fallback: skip suspend, scan tetap
+  // jalan seperti sebelum PD-007 (tanpa proteksi ketiban modal/toast).
+  const _session = (typeof ScannerSession !== 'undefined' && ScannerSession) ? ScannerSession : null;
+  if (_session) _session.enter();
   let reader = null;
   let ui = null;
   let stopped = false;
@@ -171,6 +166,7 @@ async function vehicleScannerScan() {
       if (stopped) return;
       stopped = true;
       vehicleScannerTeardown(reader, ui.overlay);
+      if (_session) _session.exit();
     };
     ui.closeBtn.onclick = stop;
 
@@ -198,6 +194,7 @@ async function vehicleScannerScan() {
     console.error('[VehicleScanner] gagal scan:', err);
     toast('❌ Gagal scan: ' + vehicleScannerErrorMessage(err));
     vehicleScannerTeardown(reader, ui && ui.overlay);
+    if (!stopped) { stopped = true; if (_session) _session.exit(); }
   }
 }
 

@@ -151,6 +151,16 @@ const GROUP_B = [
   'modules/shared/keamanan-pin.js',
   'modules/home/refleksi-selfcare.js',
   'modules/shared/modal-navigasi.js',
+  // scanner-session.js (Tahap 5 — PD-007, docs/PRODUCT_DECISIONS.md
+  // "Scanner — Exclusive Scanner Mode via ScannerSession"): satu-satunya
+  // titik suspend/resume UI global (modal/toast/#mainNav/#mainHeader)
+  // selama scanner kamera aktif, menggantikan blok camera-scan-active yang
+  // DIHAPUS dari modal-navigasi.js (di atas) sesi ini. Ditaruh TEPAT
+  // setelah modal-navigasi.js (dependency: #toast/.overlay.open/openModal-
+  // closeModal punya konvensi yang sama) & SEBELUM vehicle-scanner.js/
+  // sparepart-scanner.js (di bawah, keduanya MEMANGGIL ScannerSession.
+  // enter()/exit() — harus sudah ter-load lebih dulu).
+  'modules/shared/scanner-session.js',
   'modules/business/reset-gaji-mingguan.js',
   'modules/shared/debug-console.js',
   'modules/shared/pengaturan-search.js',
@@ -375,6 +385,15 @@ const GROUP_B = [
   'modules/ai/chat-action.js',
   'modules/shared/data-archive.js',
   'modules/vehicle/sparepart-servis.js',
+  // Sesi 331 (sync-katalog-sparepart, updated): Shop Katalog Sparepart
+  // Dinamis per-Kendaraan — API dulu (murni logic, reuse D.vehicles/
+  // D.sparepartCats/D.servisLogs/D.partsCatalog apa adanya, guard typeof
+  // berlapis), presenter SETELAHNYA (dependency: ShopKatalogDinamisAPI,
+  // file di atas). Ditaruh setelah sparepart-servis.js supaya mengelompok
+  // dengan modul vehicle/sparepart lain. Dipanggil via openShopKatalogDinamis()
+  // (modal-navigasi.js) yang membuka shopKatalogDinamisModal (modals.js).
+  'modules/vehicle/shop-katalog-dinamis-api.js',
+  'modules/vehicle/shop-katalog-dinamis-presenter.js',
   'ai-chat.js',
   'reminder-notif.js',
   'laporan-export.js',
