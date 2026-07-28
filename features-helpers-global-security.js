@@ -43,8 +43,8 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1')return true;
 }catch(e){ /* anggap bukan dev mode kalau gagal deteksi */ }
 return false;
 }
-const APP_BUILD_VERSION = 'sesi312-fix-ownership-akun-baru-dari-aset';
-const PRODUCTION_BUILD_SYNCED_VERSION = 'sesi312-fix-ownership-akun-baru-dari-aset';
+const APP_BUILD_VERSION = 's331-sync-katalog-sparepart-updated';
+const PRODUCTION_BUILD_SYNCED_VERSION = 's331-sync-katalog-sparepart-updated';
 let D = {
 schemaVersion:SCHEMA_VERSION,
 transactions:[],cobek:[],products:[],produsen:[],cobekKategori:JSON.parse(JSON.stringify(DEFAULT_COBEK_KATEGORI)),targets:[],eduFunds:[],reminders:[],bills:[],billsArchive:[],inventoryTransfers:[],
@@ -95,6 +95,12 @@ haulMaalMulai:null,
 asetLain:0, utangJT:0,
 pphBrutoBulan:0, pphIuranBulan:0,
 pbb:{njoptkp:10000000,tarifPersen:0.5},
+// KW-165: biaya perpanjangan SIM per jenis (dulu hardcode SIM_JENIS_DEFAULTS di vehicle-core.js) —
+// dipindah ke sini biar bisa diupdate lewat tombol "🔍 Cek Update via AI" (RefAI) sama seperti
+// hargaEmasPerGram/nisab, tanpa perlu edit source code kalau tarif PNBP resmi naik.
+simTarifA:80000, simTarifB1:80000, simTarifB2:80000,
+simTarifC:75000, simTarifC1:75000, simTarifC2:75000,
+simTarifD:30000,
 zakatLog:[],
 refCheckedAt:null,
 refSources:{}
@@ -321,6 +327,13 @@ if(D.pajakZakat.pphBrutoBulan===undefined) D.pajakZakat.pphBrutoBulan=0;
 if(D.pajakZakat.pphIuranBulan===undefined) D.pajakZakat.pphIuranBulan=0;
 if(D.pajakZakat.refCheckedAt===undefined) D.pajakZakat.refCheckedAt=null;
 if(!D.pajakZakat.refSources) D.pajakZakat.refSources={};
+if(D.pajakZakat.simTarifA===undefined) D.pajakZakat.simTarifA=80000;
+if(D.pajakZakat.simTarifB1===undefined) D.pajakZakat.simTarifB1=80000;
+if(D.pajakZakat.simTarifB2===undefined) D.pajakZakat.simTarifB2=80000;
+if(D.pajakZakat.simTarifC===undefined) D.pajakZakat.simTarifC=75000;
+if(D.pajakZakat.simTarifC1===undefined) D.pajakZakat.simTarifC1=75000;
+if(D.pajakZakat.simTarifC2===undefined) D.pajakZakat.simTarifC2=75000;
+if(D.pajakZakat.simTarifD===undefined) D.pajakZakat.simTarifD=30000;
 if(!D.assets) D.assets=[];
 if(!D.piutang) D.piutang=[];
 if(!D.inventoryTransfers) D.inventoryTransfers=[];

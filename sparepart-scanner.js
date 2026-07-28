@@ -48,6 +48,13 @@
 // ------------------------------------------------------------------------
 const _sparepartScannerAdapters = {};
 
+// Guard anti-dobel — cegah 2 instance adapter (mis. cameraAdapter, 2 stream
+// kamera + video.play() dobel) jalan bersamaan kalau sparepartScannerScan()
+// ke-trigger 2x (double-tap/event delegation nembak 2x). Satu flag di titik
+// orkestrasi ini otomatis melindungi semua adapter (camera & gallery),
+// TIDAK perlu ubah logic masing-masing adapter.
+let _sparepartScannerBusy = false;
+
 function sparepartScannerRegisterAdapter(name, fn) {
   if (!name || typeof fn !== 'function') return false;
   _sparepartScannerAdapters[name] = fn;
@@ -117,11 +124,6 @@ async function sparepartScannerGalleryAdapter() {
 function sparepartScannerBuildOverlay() {
   const overlay = document.createElement('div');
   overlay.className = 'vehicle-scanner-fullscreen';
-  // BUGFIX (sama seperti vehicle-scanner.js — lihat komentar
-  // vehicleScannerHideChrome()): #mainNav tetap kepaint di atas overlay
-  // scanner di sebagian browser/mode non-PWA walau z-index-nya lebih
-  // rendah. Reuse penuh helper yang sudah ada, TIDAK didefinisikan ulang.
-  overlay._prevChrome = (typeof vehicleScannerHideChrome === 'function') ? vehicleScannerHideChrome() : null;
 
   const video = document.createElement('video');
   video.className = 'vehicle-scanner-video';
@@ -151,14 +153,23 @@ function sparepartScannerBuildOverlay() {
   return { overlay, video, closeBtn };
 }
 
+// Teardown overlay scanner ITU SENDIRI — TIDAK lagi memanggil resume UI
+// global di sini (lihat catatan vehicleScannerTeardown() di vehicle-
+// scanner.js, pola SAMA PERSIS): itu tanggung jawab ScannerSession.exit(),
+// dipanggil SETELAH teardown ini di sparepartScannerCameraAdapter() di bawah.
 function sparepartScannerTeardownOverlay(reader, overlay) {
   try { if (reader && typeof reader.reset === 'function') reader.reset(); } catch (e) { /* no-op, sama pola try/catch existing di modul lain */ }
-  if (typeof vehicleScannerRestoreChrome === 'function') vehicleScannerRestoreChrome(overlay && overlay._prevChrome);
   if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
 }
 
 function sparepartScannerCameraAdapter() {
   return new Promise((resolve, reject) => {
+    // ScannerSession.enter() — SAMA PERSIS pola vehicleScannerScan()
+    // (vehicle-scanner.js): suspend UI global dulu, baru overlay kamera
+    // dibangun. Guard typeof supaya aman kalau scanner-session.js belum/
+    // tidak dimuat (mis. test terisolasi) — fallback tanpa suspend.
+    const _session = (typeof ScannerSession !== 'undefined' && ScannerSession) ? ScannerSession : null;
+    if (_session) _session.enter();
     let reader = null;
     let ui = null;
     let stopped = false;
@@ -167,6 +178,7 @@ function sparepartScannerCameraAdapter() {
       if (stopped) return;
       stopped = true;
       sparepartScannerTeardownOverlay(reader, ui && ui.overlay);
+      if (_session) _session.exit();
       resolve(code || null);
     };
 
@@ -205,6 +217,7 @@ function sparepartScannerCameraAdapter() {
         if (stopped) return;
         stopped = true;
         sparepartScannerTeardownOverlay(reader, ui && ui.overlay);
+        if (_session) _session.exit();
         reject(err);
       }
     })();
@@ -251,12 +264,18 @@ async function sparepartScannerHandleCode(code) {
 }
 
 async function sparepartScannerScan(adapterName) {
+  if (_sparepartScannerBusy) {
+    // Scan lain masih berjalan (double-tap/event dobel) — abaikan trigger
+    // kedua, tidak toast error supaya tidak berisik ke user.
+    return null;
+  }
   const name = adapterName || 'gallery';
   const adapter = sparepartScannerGetAdapter(name);
   if (!adapter) {
     toast('⚠️ Metode scan "' + name + '" belum tersedia');
     return null;
   }
+  _sparepartScannerBusy = true;
   toast(name === 'camera' ? '🔍 Membuka kamera...' : '🔍 Memindai gambar...', 4000);
   try {
     const code = await adapter();
@@ -269,6 +288,8 @@ async function sparepartScannerScan(adapterName) {
     console.error('[SparepartScanner] gagal scan:', err);
     toast('❌ Gagal scan: ' + sparepartScannerErrorMessage(err));
     return null;
+  } finally {
+    _sparepartScannerBusy = false;
   }
 }
 

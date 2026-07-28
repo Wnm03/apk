@@ -2,7 +2,7 @@
 // Dipindah ke modules/shared/modules-render.js (Sesi 17-18 restrukturisasi folder — lihat docs/FILE-MAP.md & RENCANA-SESI.md; isi & nama file TIDAK berubah, cuma lokasi folder).
 // Semua fungsi ini murni definisi function global (bukan module), jadi tetap bisa dipanggil dari file manapun
 // yang loadnya belakangan (sama seperti modules-calc.js/features-*.js).
-const MODULE_RENDER_VERSION='sesi312-fix-ownership-akun-baru-dari-aset';
+const MODULE_RENDER_VERSION='s331-sync-katalog-sparepart-updated';
 
 function renderPageContent(name){
 // KW perf fix: jaring pengaman selain hook di save() -- pastikan cache saldo akun juga fresh
@@ -105,7 +105,7 @@ if(invD.keuntungan!=null)parts.push((invD.keuntungan<0?'Rugi ':'Untung ')+fmt(Ma
 if(invD.jumlahUnit!=null)parts.push(Number(invD.jumlahUnit).toLocaleString('id-ID')+' unit');
 return parts.length?`<div class="u-fs11 u-t2" style="margin-top:2px">${escapeHtml(parts.join(' · '))}</div>`:'';
 })():'';
-return`<div class="acc-card" style="${off||linked?'opacity:.55':''}" data-action="openAccTxHistory" data-args="${escapeHtml(JSON.stringify([a.id]))}">
+return`<div class="acc-card" style="${off?'opacity:.55':''}" data-action="openAccTxHistory" data-args="${escapeHtml(JSON.stringify([a.id]))}">
       <button class="acc-card-edit" data-stop="1" data-action="openAccModal" data-args="${escapeHtml(JSON.stringify([i]))}" title="Edit" aria-label="Edit">✏️</button>
       <button class="acc-card-del" data-stop="1" data-action="delAcc" data-args="${escapeHtml(JSON.stringify([i]))}" aria-label="Hapus">🗑</button>
       <div class="acc-card-icon">${a.emoji}</div>
@@ -139,7 +139,7 @@ const bal=recalcAccBalance(a.id);
 const off=a.includeInBalance===false;
 const linked=!off&&isAccLinkedToAsset(a.id);
 const badge=off?' <span class="u-fs12t2">(tidak dihitung)</span>':(linked?' <span class="u-fs12t2">(sudah dihitung via 📋 Buku Aset)</span>':'');
-return`<div class="aset-item" style="${off||linked?'opacity:.5':''};cursor:pointer" data-action="quickToggleInclude" data-args="${escapeHtml(JSON.stringify([a.id]))}">
+return`<div class="aset-item" style="${off?'opacity:.5':''};cursor:pointer" data-action="quickToggleInclude" data-args="${escapeHtml(JSON.stringify([a.id]))}">
       <div class="tx-icon u-bgaccsoft">${a.emoji}</div>
       <div class="tx-info"><div class="tx-name">${escapeHtml(a.name)}${badge}</div></div>
       <div class="tx-amount ${bal<0?'red':'green'}">${bal<0?'-':''}${fmt(Math.abs(bal))}</div>

@@ -470,6 +470,71 @@ save();closeModal('stockModal');Sparepart.renderStockList();toast('✅ Stok spar
 async delStock(i){
 if(!await askConfirm('Hapus item stok sparepart ini?'))return;
 D.partsStock.splice(i,1);save();Sparepart.renderStockList();toast('🗑 Dihapus');
+},
+// syncFromCatalog() — fitur baru (permintaan eksplisit user): tombol
+// "🔄 Sinkron dari Katalog Suku Cadang" di 🔧 Kelola Kategori Sparepart &
+// Interval Servis. BEDA dari syncPartsStockFromCatalog() (tx-stok-sparepart.js,
+// dipakai alur scan di form transaksi Keuangan) dalam 2 hal sesuai keputusan
+// eksplisit user:
+//  1) Filter per KENDARAAN AKTIF ("beda kendaraan beda katalog") — hanya part
+//     Katalog Suku Cadang yang compatibleVehicleIds-nya EKSPLISIT memuat
+//     curVehicleId yang disinkron, bukan semua part tanpa pandang kendaraan.
+//  2) intervalKm kategori baru diisi dari referensi TORSI_DB lewat
+//     suggestServiceIntervalKm() yang SUDAH ADA (read-only, sama persis
+//     dipakai tombol "🤖 Saran AI: Interval" di modal Tambah Kategori) —
+//     bukan selalu 0 seperti syncPartsStockFromCatalog(). TORSI_DB sendiri
+//     TIDAK disentuh/diubah sama sekali, tetap murni referensi torsi & interval.
+// Alur: preview daftar part+kategori+interval yang akan dibuat lewat
+// askConfirm dulu, baru commit (1x save() di akhir) — kategori yang SUDAH ADA
+// (nama sama) tidak dibuat ulang; kalau kategori sudah ada tapi intervalnya
+// masih kosong, dilengkapi dari referensi Torsi tanpa menimpa yang sudah diisi
+// user secara manual. Part yang sudah pernah tersinkron (ada baris
+// D.partsStock dengan catalogId yang sama) dilewati, idempotent kalau dipanggil
+// berkali-kali.
+async syncFromCatalog(){
+if(typeof VehicleCatalog==='undefined'||!VehicleCatalog||typeof VehicleCatalog.getAll!=='function'){toast('⚠️ Katalog Suku Cadang belum tersedia');return;}
+if(!curVehicleId){toast('⚠️ Pilih kendaraan dulu di atas');return;}
+const veh=D.vehicles.find(v=>v.id===curVehicleId);
+let items;
+try{ items=await VehicleCatalog.getAll(); }catch(e){ toast('⚠️ Gagal membaca Katalog Suku Cadang');return; }
+const candidates=(items||[]).filter(it=>it&&!it.isDraft&&Array.isArray(it.compatibleVehicleIds)&&it.compatibleVehicleIds.some(id=>String(id)===String(curVehicleId)));
+if(!candidates.length){toast('ℹ️ Belum ada part di Katalog Suku Cadang yang ditandai kompatibel dengan '+(veh?veh.name:'kendaraan ini'));return;}
+const rows=candidates.map(it=>{
+const already=D.partsStock.some(p=>p.catalogId===it.id);
+const reko=already?null:suggestServiceIntervalKm(it.partName||'',curVehicleId);
+return{item:it,already,intervalKm:reko?reko.km:0};
+});
+const toAdd=rows.filter(r=>!r.already);
+if(!toAdd.length){toast('ℹ️ Semua part katalog untuk kendaraan ini sudah tersinkron ke Stok Sparepart');return;}
+const previewMsg='Akan menambahkan '+toAdd.length+' part dari Katalog Suku Cadang ke Kelola Kategori & Stok Sparepart untuk "'+(veh?veh.name:'-')+'":\n\n'
++toAdd.map(r=>'• '+(r.item.partName||'(tanpa nama)')+(r.intervalKm?' — interval '+r.intervalKm.toLocaleString('id-ID')+' km (dari referensi Torsi)':' — interval belum ada di referensi Torsi, isi manual nanti')).join('\n')
++'\n\nLanjutkan?';
+if(!await askConfirm(previewMsg,{title:'🔄 Sinkron dari Katalog',icon:'📦'}))return;
+let addedCat=0,addedStock=0;
+toAdd.forEach((r,idx)=>{
+const it=r.item;
+const catName=(it.category||'Umum').trim()||'Umum';
+let cat=D.sparepartCats.find(c=>c.name.toLowerCase()===catName.toLowerCase());
+if(!cat){
+cat={id:'sp_'+Date.now()+'_'+idx,name:catName,code:codeFromName(catName),intervalKm:r.intervalKm||0,showInReminder:r.intervalKm>0};
+D.sparepartCats.push(cat);
+addedCat++;
+} else if(r.intervalKm>0&&(!cat.intervalKm||cat.intervalKm<=0)){
+cat.intervalKm=r.intervalKm;
+cat.showInReminder=true;
+}
+const prefix=cat.code||codeFromName(catName);
+const seq=D.partsStock.filter(p=>p.code&&p.code.startsWith(prefix+'-')).length+1;
+const code=(it.barcode||it.oemCode||(prefix+'-'+String(seq).padStart(3,'0')));
+D.partsStock.push({id:'st_'+Date.now()+'_'+idx,name:it.partName||'Part dari Katalog',catId:cat.id,code,qty:0,unit:'pcs',minStock:1,price:it.price||0,note:'Disinkron dari Katalog Suku Cadang',catalogId:it.id});
+addedStock++;
+});
+save();
+Sparepart.renderCatList();
+Sparepart.renderStockList();
+if(typeof renderServisList==='function')renderServisList();
+if(typeof renderDashboardServisReminder==='function')renderDashboardServisReminder();
+toast('✅ Sinkron selesai: '+addedCat+' kategori baru, '+addedStock+' stok baru');
 }
 };
 function autoFillSparepartCode(){return Sparepart.autoFillCatCode();}
@@ -487,6 +552,7 @@ function delStock(i){return Sparepart.delStock(i);}
 function toggleSparepartShowInReminder(catId){return Sparepart.toggleShowInReminder(catId);}
 function suggestSparepartInterval(){return Sparepart.suggestInterval();}
 function applySparepartIntervalSuggestion(km){return Sparepart.applyIntervalSuggestion(km);}
+function syncSparepartFromCatalog(){return Sparepart.syncFromCatalog();}
 function populateServisPartSelect(selectedPartId){return Servis.populatePartSelect(selectedPartId);}
 function onServisPartChange(){return Servis.onPartChange();}
 function onServisCatalogPartChange(){return Servis.onCatalogPartChange();}

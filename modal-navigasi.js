@@ -328,55 +328,23 @@ openOverlays.sort((a,b)=>(parseInt(getComputedStyle(b).zIndex)||0)-(parseInt(get
 closeModal(openOverlays[0].id);
 });
 
-// BUGFIX (dilaporkan user, screenshot Brave Android): saat scanner kamera (SparepartScanner &
-// fitur scan lain yg pakai kamera) dibuka SAMBIL modal lain (mis. txModal/stockModal/insight
-// keuangan) masih 'open', preview kamera ke-tutup/ketiban modal itu -- kelihatan gelap/transparan
-// & user harus manual tap X modal dulu baru kamera kelihatan. Root cause: fitur scan kamera bikin
-// elemen <video> (live preview) di luar sistem .overlay/modal biasa, jadi TIDAK ikut logic
-// openModal/closeModal di atas & bisa ketiban .overlay lain yang masih 'open' & z-index-nya lebih
-// tinggi/sejajar. Fix generik (tidak perlu ubah kode scanner-nya satu2, otomatis kepasang buat
-// SEMUA fitur kamera termasuk yg mungkin ditambah nanti): pantau via MutationObserver kapan ada
-// <video> baru muncul di halaman (ciri khas live-preview kamera) -> sembunyikan sementara semua
-// .overlay yg masih 'open' (bukan ditutup permanen, cuma display:none sementara lewat class body
-// 'camera-scan-active' + <style> yg disisipkan) supaya video kamera pasti kelihatan paling atas
-// tanpa perlu tau z-index modal mana pun. Begitu elemen <video> itu dilepas dari DOM (user selesai
-// scan/batal), modal yg tadi disembunyikan otomatis kelihatan lagi persis seperti semula (tidak ada
-// state yang hilang, cuma visual disembunyikan sementara).
-//
-// BUGFIX LANJUTAN (dilaporkan lagi user, screenshot 27 Juli — modal MASIH ketiban kamera, harus
-// manual tutup dulu): versi sebelumnya nunggu `v.srcObject` (stream kamera) baru toggle
-// 'camera-scan-active'. srcObject BUKAN atribut HTML biasa jadi attributeFilter di atas TIDAK
-// PERNAH benar2 trigger utk itu (sudah dicatat di komentar lama) -- satu2nya jalan deteksinya
-// cuma lewat setInterval 400ms, DAN baru bisa true setelah getUserMedia() sukses dapat izin
-// kamera & stream ke-attach. Kalau user belum sempat tap "Izinkan" di dialog izin kamera browser
-// (lazy-load ZXing dari CDN + nunggu izin bisa beberapa detik), selama itu modal lain masih full
-// nutupin video yang masih kosong (srcObject belum ada) -- makanya user tetap harus manual tutup.
-// Root cause sebenarnya: elemen <video> ITU SENDIRI (dibuat & appendChild ke body di
-// vehicle-scanner.js/sparepart-scanner.js) SUDAH cukup jadi penanda "scanner kamera lagi aktif" --
-// tidak perlu nunggu stream-nya nempel dulu, video kosong pun tetap harus di atas modal lain.
-// Elemen <video> di app ini SATU2NYA dipakai oleh live-preview scanner kamera (grep: tidak ada
-// <video> lain utk pemutar file), jadi aman dideteksi langsung dari KEHADIRAN elemennya di DOM,
-// bukan dari properti srcObject-nya. Fix: cek document.querySelector('video') -- childList
-// mutation ini trigger LANGSUNG/instan persis saat overlay kamera ditambahkan ke body, tidak
-// nunggu izin kamera/stream sama sekali. attributeFilter srcObject & polling 400ms tetap
-// dipertahankan hanya sbg jaring pengaman, bukan jalur utama deteksi lagi.
-(function(){
-if(document.getElementById('_camScanFixStyle'))return;
-const style=document.createElement('style');
-style.id='_camScanFixStyle';
-style.textContent='body.camera-scan-active > .overlay.open{display:none !important;}';
-document.head.appendChild(style);
-function hasLiveVideo(){
-// Kehadiran elemen <video> di DOM sudah cukup (lihat catatan BUGFIX LANJUTAN di atas) -- tidak
-// perlu nunggu srcObject, supaya tidak ada delay/permission-gap sebelum modal disembunyikan.
-return !!document.querySelector('video');
+// PD-007 (docs/PRODUCT_DECISIONS.md "Scanner — Exclusive Scanner Mode via
+// ScannerSession"): blok DOM-Detection reaktif yang dulu ada di sini
+// (MutationObserver + document.querySelector('video') + setInterval 400ms +
+// class body 'camera-scan-active', dipasang utk mencegah preview kamera
+// scanner ketiban modal/toast lain yang masih 'open' -- lihat riwayat bugfix
+// di CHANGELOG) DIHAPUS & digantikan ScannerSession.pauseUI()/resumeUI()
+// (modules/shared/scanner-session.js), dipanggil EKSPLISIT dari
+// ScannerSession.enter()/exit() -- satu-satunya titik masuk/keluar scanner
+// (VehicleScanner.scan()/SparepartScanner.scan() & scanner masa depan).
+// State "scanner aktif" sekarang eksplisit (di-set enter()/exit() sendiri),
+// bukan lagi ditebak dari keberadaan elemen <video> di DOM.
+
+// openShopKatalogDinamis() — trigger tipis utk modal shopKatalogDinamisModal
+// (modals.js) + render pertama ShopKatalogDinamisPresenter (modules/vehicle/
+// shop-katalog-dinamis-presenter.js). 100% REUSE openModal() yang SUDAH ADA
+// di atas — TIDAK ada mekanisme modal baru dibuat.
+function openShopKatalogDinamis(){
+  openModal('shopKatalogDinamisModal');
+  if (typeof ShopKatalogDinamisPresenter !== 'undefined') ShopKatalogDinamisPresenter.render();
 }
-function syncCameraScanState(){
-document.body.classList.toggle('camera-scan-active',hasLiveVideo());
-}
-const camObserver=new MutationObserver(function(){ syncCameraScanState(); });
-camObserver.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['srcObject']});
-// Jaring pengaman tambahan (bukan jalur utama lagi): polling ringan supaya tetap akurat kalau
-// suatu saat ada cara lain video muncul yang lolos dari childList mutation di atas.
-setInterval(syncCameraScanState,400);
-})();

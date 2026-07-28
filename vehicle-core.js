@@ -388,27 +388,22 @@ renderKeuangan();
 toast('✅ Tercatat di Keuangan & jadwal diperpanjang ke '+fmtDateID(v[cfg.tglKey]));
 }
 let editSimId=null;
-// Perkiraan biaya perpanjangan per jenis SIM (KW-164, permintaan sesi ini) — angka umum PNBP
-// SIM di Indonesia (per 5 tahun, di luar biaya tes/asuransi opsional), murni titik awal buat
-// diisi otomatis di field Estimasi Biaya; user tetap bebas edit sendiri.
-const SIM_JENIS_DEFAULTS={
-'SIM A':{biaya:80000},
-'SIM B1':{biaya:80000},
-'SIM B2':{biaya:80000},
-'SIM C':{biaya:75000},
-'SIM C1':{biaya:75000},
-'SIM C2':{biaya:75000},
-'SIM D':{biaya:30000}
-};
+// Perkiraan biaya perpanjangan per jenis SIM (KW-164/165) — angka umum PNBP SIM di Indonesia
+// (per 5 tahun, di luar biaya tes/asuransi opsional), murni titik awal buat diisi otomatis di
+// field Estimasi Biaya; user tetap bebas edit sendiri.
+// Sesi 319 (KW-165): nilainya TIDAK lagi hardcode di sini — dipindah jadi field di D.pajakZakat
+// (simTarifA/B1/B2/C/C1/C2/D), sama seperti hargaEmasPerGram/nisab, supaya bisa diupdate lewat
+// tombol "🔍 Cek Update via AI" di tab Pajak & Zakat (RefAI) tanpa perlu edit source code.
+function simTarifKey(jenis){ return 'simTarif'+String(jenis||'').replace('SIM ','').replace(/\s+/g,''); }
 const SIM_MASA_BERLAKU_TAHUN=5; // semua jenis SIM di Indonesia berlaku 5 tahun
 function onSimJenisChange(){
 const jenisEl=document.getElementById('simJenis');
 const biayaEl=document.getElementById('simBiaya');
 const tglEl=document.getElementById('simTglAkhir');
 if(!jenisEl)return;
-const def=SIM_JENIS_DEFAULTS[jenisEl.value];
+const def=D.pajakZakat&&D.pajakZakat[simTarifKey(jenisEl.value)];
 // Jangan timpa kalau field sudah diisi manual (baik pas edit maupun user sudah ngetik) — autofill cuma buat bantu titik awal.
-if(def&&biayaEl&&!biayaEl.value.trim())biayaEl.value=def.biaya;
+if(def&&biayaEl&&!biayaEl.value.trim())biayaEl.value=def;
 if(tglEl&&!tglEl.value){
 const d=new Date();d.setFullYear(d.getFullYear()+SIM_MASA_BERLAKU_TAHUN);
 tglEl.value=d.toISOString().split('T')[0];
