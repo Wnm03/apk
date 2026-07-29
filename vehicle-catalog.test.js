@@ -743,3 +743,38 @@ test('recommend() — diurutkan skor desc (cocok vehicleId+item dulu, baru salah
   assert.equal(res[0].partName, 'A Kampas Rem Depan');
   assert.equal(res[1].partName, 'Z Kampas Rem Belakang');
 });
+
+// --- filterForVehicle() -- bugfix "katalog masih menampilkan kendaraan
+// lain saat pindah kendaraan" di Car Notes (VehicleCatalogUI.renderList() &
+// Servis.populateCatalogPartSelect() reuse fungsi murni ini). ---
+test('filterForVehicle() — hanya part yang compatibleVehicleIds-nya memuat vehicleId yang lolos', () => {
+  const { ctx } = makeCtx();
+  const items = [
+    { id: 'p1', partName: 'Busi Vario', compatibleVehicleIds: ['veh-1'] },
+    { id: 'p2', partName: 'Aki Mobil', compatibleVehicleIds: ['veh-2'] },
+    { id: 'p3', partName: 'Kampas Rem Vario', compatibleVehicleIds: ['veh-1', 'veh-2'] },
+  ];
+  const res = ctx.VehicleCatalog.filterForVehicle(items, 'veh-1');
+  assert.deepEqual(res.map((it) => it.id), ['p1', 'p3']);
+});
+
+test('filterForVehicle() — part TANPA compatibleVehicleIds (belum ditandai) dianggap universal, tetap lolos utk kendaraan manapun', () => {
+  const { ctx } = makeCtx();
+  const items = [
+    { id: 'p1', partName: 'Oli Universal', compatibleVehicleIds: [] },
+    { id: 'p2', partName: 'Baru Discan' },
+    { id: 'p3', partName: 'Khusus Veh 2', compatibleVehicleIds: ['veh-2'] },
+  ];
+  const res = ctx.VehicleCatalog.filterForVehicle(items, 'veh-1');
+  assert.deepEqual(res.map((it) => it.id), ['p1', 'p2']);
+});
+
+test('filterForVehicle() — vehicleId kosong: kembalikan apa adanya tanpa filter', () => {
+  const { ctx } = makeCtx();
+  const items = [
+    { id: 'p1', compatibleVehicleIds: ['veh-1'] },
+    { id: 'p2', compatibleVehicleIds: ['veh-2'] },
+  ];
+  assert.equal(ctx.VehicleCatalog.filterForVehicle(items, null).length, 2);
+  assert.equal(ctx.VehicleCatalog.filterForVehicle(items, '').length, 2);
+});
