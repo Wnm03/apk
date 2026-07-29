@@ -210,6 +210,53 @@ function vehicleCatalogValidate(data) {
     errors.push('Catatan servis maksimal 500 karakter.');
   }
 
+  // ---- Golongan A (audit UID v1.0 — field additive dari skema part yg
+  // diusulkan): semua opsional, pola SAMA PERSIS field Tahap 4 di atas.
+  // Bukan implementasi UID penuh (Bagian 3/4/5/6/12/13/17/18/23 SENGAJA
+  // tidak dikerjakan — butuh store/arsitektur baru & keputusan produk
+  // terpisah, lihat hasil audit).
+  if (data.oldPartNumber !== undefined && data.oldPartNumber !== null && typeof data.oldPartNumber !== 'string') {
+    errors.push('Old Part Number harus berupa teks.');
+  } else if (data.oldPartNumber && data.oldPartNumber.length > 50) {
+    errors.push('Old Part Number maksimal 50 karakter.');
+  }
+
+  if (data.replacementPartNumber !== undefined && data.replacementPartNumber !== null && typeof data.replacementPartNumber !== 'string') {
+    errors.push('Replacement Part Number harus berupa teks.');
+  } else if (data.replacementPartNumber && data.replacementPartNumber.length > 50) {
+    errors.push('Replacement Part Number maksimal 50 karakter.');
+  }
+
+  if (data.dimension !== undefined && data.dimension !== null && typeof data.dimension !== 'string') {
+    errors.push('Dimensi harus berupa teks.');
+  } else if (data.dimension && data.dimension.length > 100) {
+    errors.push('Dimensi maksimal 100 karakter.');
+  }
+
+  if (data.material !== undefined && data.material !== null && typeof data.material !== 'string') {
+    errors.push('Material harus berupa teks.');
+  } else if (data.material && data.material.length > 100) {
+    errors.push('Material maksimal 100 karakter.');
+  }
+
+  if (data.weight !== undefined && data.weight !== null && data.weight !== '') {
+    const w = Number(data.weight);
+    if (!Number.isFinite(w) || w < 0) errors.push('Berat harus berupa angka >= 0 (gram).');
+  }
+
+  // source — bebas teks (mis. "Service Manual"/"OCR"/"User Input"), TIDAK
+  // dibatasi enum tertutup supaya sumber baru tidak perlu ubah kode ini.
+  if (data.source !== undefined && data.source !== null && typeof data.source !== 'string') {
+    errors.push('Source harus berupa teks.');
+  } else if (data.source && data.source.length > 50) {
+    errors.push('Source maksimal 50 karakter.');
+  }
+
+  const CONFIDENCE_LEVELS = ['HIGH', 'MEDIUM', 'LOW', 'UNKNOWN'];
+  if (data.confidence !== undefined && data.confidence !== null && data.confidence !== '' && CONFIDENCE_LEVELS.indexOf(String(data.confidence).toUpperCase()) === -1) {
+    errors.push('Confidence harus salah satu dari: ' + CONFIDENCE_LEVELS.join(', ') + '.');
+  }
+
   return { valid: errors.length === 0, errors };
 }
 
@@ -234,6 +281,15 @@ function _vehicleCatalogNormalize(data) {
     location: data.location ? String(data.location).trim() : '',
     serviceNotes: data.serviceNotes ? String(data.serviceNotes).trim() : '',
     isDraft: !!data.isDraft,
+    // ---- Golongan A (audit UID v1.0) ----
+    oldPartNumber: data.oldPartNumber ? String(data.oldPartNumber).trim() : '',
+    replacementPartNumber: data.replacementPartNumber ? String(data.replacementPartNumber).trim() : '',
+    dimension: data.dimension ? String(data.dimension).trim() : '',
+    material: data.material ? String(data.material).trim() : '',
+    weight: (data.weight !== undefined && data.weight !== null && data.weight !== '') ? Number(data.weight) : null,
+    consumable: !!data.consumable,
+    source: data.source ? String(data.source).trim() : '',
+    confidence: data.confidence ? String(data.confidence).trim().toUpperCase() : '',
   };
 }
 

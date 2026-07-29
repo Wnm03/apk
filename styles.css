@@ -1291,12 +1291,28 @@ textarea.fi { resize: vertical; min-height: 80px; }
    selector lama yang diubah. Dibuat dinamis lewat JS (vehicle-scanner.js),
    bukan markup statis index.html — konsisten dengan pola elemen dinamis
    lain (mis. input file di scan-ocr.js). */
-.vehicle-scanner-fullscreen{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;background:#000;z-index:var(--z-scanner);display:flex;flex-direction:column;}
+/* AUDIT: elemen ini WAJIB position:fixed + inset:0 + z-index:var(--z-scanner)
+   + background solid #000 + opacity:1, TANPA filter/backdrop-filter/
+   mix-blend-mode — kombinasi apa pun dari 3 properti terakhir bisa bikin
+   dashboard di belakangnya "tembus" (filter/backdrop-filter membentuk
+   containing block baru utk descendant fixed & bisa mengubah compositing;
+   mix-blend-mode mencampur warna dgn layer di bawahnya). Diverifikasi TIDAK
+   ada satupun dari 3 properti itu di rule ini maupun di ancestor-nya
+   (document.body langsung, tidak ada wrapper ber-transform/filter di
+   antaranya) — overlay ini SELALU opaque penuh selama scanner aktif. */
+.vehicle-scanner-fullscreen{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;background:#000;opacity:1;z-index:var(--z-scanner);display:flex;flex-direction:column;}
 .vehicle-scanner-video{flex:1;width:100%;height:100%;object-fit:cover;background:#000;}
 .vehicle-scanner-frame{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(78vw,320px);height:min(48vw,200px);border:3px solid var(--accent);border-radius:var(--r-lg);box-shadow:0 0 0 2000px rgba(0,0,0,0.45);pointer-events:none;}
 .vehicle-scanner-hint{position:absolute;top:calc(50% + min(28vw,116px));left:50%;transform:translateX(-50%);color:#fff;font-size:var(--fs-body);font-weight:600;text-align:center;text-shadow:0 1px 4px rgba(0,0,0,0.6);padding:0 var(--sp-6);}
 .vehicle-scanner-close{position:absolute;top:calc(var(--sp-9) + env(safe-area-inset-top,0px));right:var(--sp-9);width:40px;height:40px;border-radius:var(--r-full);background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:#fff;font-size:var(--fs-icon-lg);display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(6px);}
 .vehicle-scanner-close:active{transform:scale(0.92);}
+/* Tombol Flash/Torch (Target Implementasi #7 — Torch Capability) — token &
+   pola SAMA PERSIS .vehicle-scanner-close, ditempatkan di kiri atas supaya
+   tidak tumpuk dgn tombol tutup. display:none default di JS (overlay
+   builder), hanya ditampilkan kalau track kamera punya kapabilitas torch. */
+.vehicle-scanner-flash{position:absolute;top:calc(var(--sp-9) + env(safe-area-inset-top,0px));left:var(--sp-9);width:40px;height:40px;border-radius:var(--r-full);background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:#fff;font-size:var(--fs-icon-lg);display:flex;align-items:center;justify-content:center;cursor:pointer;backdrop-filter:blur(6px);}
+.vehicle-scanner-flash:active{transform:scale(0.92);}
+.vehicle-scanner-flash.active{background:rgba(255,214,10,0.35);border-color:rgba(255,214,10,0.6);}
 
 /* ===== Finance 2.0 — Sprint 2 Tahap 1: FAB Halaman Keuangan =====
    Aditif murni, 100% pakai token yang sudah ada (--sp-*/--r-full/--r-lg/

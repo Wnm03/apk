@@ -1709,6 +1709,8 @@ return names.sort();
 const EXTRA_MODAL_SWEEP_SPECS=[
 {fn:'openQS',args:['qsKeuangan'],id:'qsKeuangan',close:()=>closeQS('qsKeuangan')},
 {fn:'openQS',args:['qsBillActions'],id:'qsBillActions',close:()=>closeQS('qsBillActions')},
+{fn:'openQS',args:['qsProdusenActions'],id:'qsProdusenActions',close:()=>closeQS('qsProdusenActions')},
+{fn:'openQS',args:['qsAssetActions'],id:'qsAssetActions',close:()=>closeQS('qsAssetActions')},
 {fn:'openQS',args:['qsShop'],id:'qsShop',close:()=>closeQS('qsShop')},
 {fn:'openQS',args:['qsCarnotes'],id:'qsCarnotes',close:()=>closeQS('qsCarnotes')},
 {fn:'openQS',args:['qsLaporan'],id:'qsLaporan',close:()=>closeQS('qsLaporan')},

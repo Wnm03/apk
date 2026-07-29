@@ -207,6 +207,20 @@ async function catalogUiOpenForm(id) {
     document.getElementById('catOemCode').value = item ? (item.oemCode || '') : '';
     document.getElementById('catBarcode').value = item ? (item.barcode || '') : '';
     document.getElementById('catCategory').value = item ? (item.category || '') : '';
+    document.getElementById('catOldPartNumber').value = item ? (item.oldPartNumber || '') : '';
+    document.getElementById('catReplacementPartNumber').value = item ? (item.replacementPartNumber || '') : '';
+    document.getElementById('catDimension').value = item ? (item.dimension || '') : '';
+    document.getElementById('catMaterial').value = item ? (item.material || '') : '';
+    document.getElementById('catWeight').value = (item && item.weight !== null && item.weight !== undefined) ? item.weight : '';
+    document.getElementById('catSource').value = item ? (item.source || '') : '';
+    document.getElementById('catConfidence').value = item ? (item.confidence || '') : '';
+    document.getElementById('catConsumable').checked = !!(item && item.consumable);
+    // Buka otomatis panel "Detail Tambahan" kalau salah satu field-nya sudah terisi (mis. part
+    // hasil scan/import yang sudah punya data ini) -- supaya user tidak perlu tap toggle dulu utk
+    // lihat data yang sebenarnya sudah ada.
+    const hasExtra = !!(item && (item.oldPartNumber || item.replacementPartNumber || item.dimension || item.material || (item.weight !== null && item.weight !== undefined) || item.source || item.confidence || item.consumable));
+    document.getElementById('catExtraToggle').checked = hasExtra;
+    toggleCatExtraFields();
     _catPhotos = (item && Array.isArray(item.photos)) ? item.photos.slice() : [];
     compatibleVehicleIds = (item && Array.isArray(item.compatibleVehicleIds)) ? item.compatibleVehicleIds : [];
     document.getElementById('catSaveBtn').textContent = 'Simpan Perubahan';
@@ -217,6 +231,16 @@ async function catalogUiOpenForm(id) {
     document.getElementById('catOemCode').value = '';
     document.getElementById('catBarcode').value = '';
     document.getElementById('catCategory').value = '';
+    document.getElementById('catOldPartNumber').value = '';
+    document.getElementById('catReplacementPartNumber').value = '';
+    document.getElementById('catDimension').value = '';
+    document.getElementById('catMaterial').value = '';
+    document.getElementById('catWeight').value = '';
+    document.getElementById('catSource').value = '';
+    document.getElementById('catConfidence').value = '';
+    document.getElementById('catConsumable').checked = false;
+    document.getElementById('catExtraToggle').checked = false;
+    toggleCatExtraFields();
     document.getElementById('catSaveBtn').textContent = '+ Tambah Part';
     if (delBtn) delBtn.classList.add('u-dnone');
   }
@@ -265,6 +289,17 @@ function catalogUiCloseForm() {
   _catPhotos = [];
   const wrap = document.getElementById('catalogFormWrap');
   if (wrap) wrap.classList.add('u-dnone');
+}
+
+// Panel "Detail Tambahan (opsional)" (Golongan A) -- pola SAMA PERSIS toggle
+// opsional lain di app (mis. renovItemHargaTotalToggle), field-nya semua
+// opsional di validate()/create() (lihat vehicle-catalog.js), jadi UI-nya
+// juga sengaja disembunyikan default supaya form utama tetap ringkas.
+function toggleCatExtraFields() {
+  const toggle = document.getElementById('catExtraToggle');
+  const wrap = document.getElementById('catExtraWrap');
+  if (!toggle || !wrap) return;
+  wrap.classList.toggle('u-dnone', !toggle.checked);
 }
 
 function catalogUiPickPhoto() {
@@ -316,7 +351,20 @@ async function catalogUiSave() {
   const compatibleVehicleIds = compatWrap
     ? Array.from(compatWrap.querySelectorAll('input[type="checkbox"]:checked')).map((cb) => cb.value)
     : [];
-  const data = { partName, oemCode, barcode, category, photos: _catPhotos.slice(), compatibleVehicleIds };
+  const oldPartNumber = (document.getElementById('catOldPartNumber').value || '').trim();
+  const replacementPartNumber = (document.getElementById('catReplacementPartNumber').value || '').trim();
+  const dimension = (document.getElementById('catDimension').value || '').trim();
+  const material = (document.getElementById('catMaterial').value || '').trim();
+  const weightRaw = (document.getElementById('catWeight').value || '').trim();
+  const source = (document.getElementById('catSource').value || '').trim();
+  const confidence = (document.getElementById('catConfidence').value || '').trim();
+  const consumable = !!document.getElementById('catConsumable').checked;
+  const data = {
+    partName, oemCode, barcode, category, photos: _catPhotos.slice(), compatibleVehicleIds,
+    oldPartNumber, replacementPartNumber, dimension, material,
+    weight: weightRaw === '' ? null : weightRaw,
+    source, confidence, consumable,
+  };
   const res = _catEditId
     ? await VehicleCatalog.update(_catEditId, data)
     : await VehicleCatalog.create(data);

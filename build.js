@@ -70,6 +70,13 @@ const GROUP_A = [
   'modules/shop/cobek-order.js',
   'modules/shop/cobek-tx-cart.js',
   'modules/shop/cobek-io.js',
+  // Sesi (Bagian B, DESIGN_torsi-vehicle-selector_shop-import-export-2.md):
+  // ShopDataIO.commitShopRows()/parseShopCSV() + ShopCsvImport (modal
+  // shopCsvImportModal) — ditaruh SETELAH cobek-io.js (dependency:
+  // resolveShopKategori/uid/save/openModal/closeModal/toast/escapeHtml/
+  // fmtFull/renderProductList sudah dimuat lebih dulu, pola sama
+  // penempatan shop-katalog-dinamis-api.js relatif ke dependency-nya).
+  'modules/business/shop-data-io-api.js',
   'modules/business/kasir.js',
   'modules/finance/piutang-utang.js',
   'modules/finance/pajak-pbb-zakat.js',
@@ -382,6 +389,23 @@ const GROUP_B = [
   // Parse/Commit (file-file di atas) & openModal/closeModal/askConfirm/
   // toast/escapeHtml sudah dimuat lebih dulu.
   'modules/vehicle/honda-pdf-import-ui.js',
+  // shop-pdf-import-ui.js (Bagian B, DESIGN_torsi-vehicle-selector_shop-
+  // import-export-2.md §B.3.2 Import PDF, Sesi N+7 — setelah Sesi N+6
+  // commitShopRows()+Import CSV): modal `shopPdfImportModal`, 100% reuse
+  // VehicleCatalogImport.extractPdfText() (Tahap 5, file di atas) +
+  // ImportKatalog.parseText() (cobek-io.js, GROUP_A) + ShopDataIO.
+  // commitShopRows() (shop-data-io-api.js, GROUP_A) — ditaruh SETELAH
+  // honda-pdf-import-ui.js supaya VehicleCatalogImport/ImportKatalog/
+  // ShopDataIO semuanya sudah termuat lebih dulu.
+  'modules/business/shop-pdf-import-ui.js',
+  // shop-scan-ui.js (Bagian B, DESIGN_torsi-vehicle-selector_shop-import-
+  // export-2.md §B.3.1 Scan, Sesi N+8 — setelah Sesi N+7 Import PDF Shop):
+  // modal `shopScanModal`, 100% reuse ocrRecognize() (scan-ocr.js, GROUP_A) +
+  // ImportKatalog.parseText() (cobek-io.js, GROUP_A) + ShopDataIO.
+  // commitShopRows() (shop-data-io-api.js, GROUP_A) — ditaruh SETELAH
+  // shop-pdf-import-ui.js supaya mengelompok dengan modul import Shop lain
+  // (dependency-nya semua sudah termuat sejak GROUP_A).
+  'modules/business/shop-scan-ui.js',
   'modules/ai/chat-action.js',
   'modules/shared/data-archive.js',
   'modules/vehicle/sparepart-servis.js',
@@ -394,6 +418,12 @@ const GROUP_B = [
   // (modal-navigasi.js) yang membuka shopKatalogDinamisModal (modals.js).
   'modules/vehicle/shop-katalog-dinamis-api.js',
   'modules/vehicle/shop-katalog-dinamis-presenter.js',
+  // Sesi 1 (torsi-vehicle-selector, Bagian A — lihat
+  // DESIGN_torsi-vehicle-selector_shop-import-export.md): TorsiVehicleAPI,
+  // 100% reuse pola ShopKatalogDinamisAPI di atas (daftarKendaraan() dipanggil
+  // ulang dari sana, TIDAK diduplikasi) — makanya ditaruh SETELAH kedua file
+  // itu. Presenter/wiring modal HTML menyusul sesi berikutnya.
+  'modules/vehicle/torsi-vehicle-api.js',
   'ai-chat.js',
   'reminder-notif.js',
   'laporan-export.js',
