@@ -27,7 +27,18 @@
 function fmt(n){return fmtFull(n);}
 function fmtFull(n){return'Rp '+Number(Math.abs(n||0)).toLocaleString('id-ID');}
 function fmtFullSigned(n){n=Number(n||0);return(n<0?'-':'')+'Rp '+Math.abs(n).toLocaleString('id-ID');}
-function toast(msg,dur=2200){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
+// BUGFIX (laporan user: toast pesan error scan sparepart "hilang"/tidak
+// kebaca): dulu tiap panggilan toast() bikin setTimeout sendiri TANPA
+// membatalkan timer dari panggilan sebelumnya -- kalau toast ke-2 (mis.
+// "❌ Gagal scan: ...", durasi default 2200ms) dipanggil SAAT toast ke-1
+// masih tampil (mis. "🔍 Membuka kamera...", durasi custom 4000ms), timer
+// toast ke-1 tetap jalan & menyembunyikan box tepat di detik ke-4 --
+// memotong toast ke-2 sebelum sempat kebaca (kalau toast ke-2 muncul di
+// antara detik 2-4). Sekarang timer sebelumnya di-clearTimeout() dulu tiap
+// toast() dipanggil, jadi durasi SELALU dihitung dari toast yang PALING
+// BARU tampil -- tidak ada lagi timer basi yang nyembunyikan toast baru.
+let _toastHideTimer=null;
+function toast(msg,dur=2200){const t=document.getElementById('toast');if(_toastHideTimer)clearTimeout(_toastHideTimer);t.textContent=msg;t.classList.add('show');_toastHideTimer=setTimeout(()=>{t.classList.remove('show');_toastHideTimer=null;},dur);}
 function setTheme(t){
 D.profile.theme=t; save();
 applyEffectiveTheme();

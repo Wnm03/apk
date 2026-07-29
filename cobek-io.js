@@ -158,7 +158,13 @@ if(typeof BusinessFlowPresenter!=='undefined')BusinessFlowPresenter.render();
 // — Health Score/Decision Panel/Trend Analytics/Executive Summary/AI Insight,
 // 100% reuse 3 presenter di atas + engine Shop (0 rumus baru), lihat
 // modules/shop/business-intelligence-presenter.js.
-if(typeof BusinessIntelligencePresenter!=='undefined')BusinessIntelligencePresenter.render();
+if(typeof BusinessIntelligencePresenter!=='undefined'){BusinessIntelligencePresenter.render();}
+else if(typeof ensureBusinessIntelligence==='function'){
+ensureBusinessIntelligence().then(function(){if(typeof BusinessIntelligencePresenter!=='undefined')BusinessIntelligencePresenter.render();}).catch(function(e){
+console.error('[BusinessIntelligencePresenter] Gagal lazy-load modules/shop/business-intelligence-presenter.js:',e);
+if(typeof window.__moduleLoadFail==='function')window.__moduleLoadFail('modules/shop/business-intelligence-presenter.js');
+});
+}
 }
 }
 // BUGFIX (2026-07-11): alias kompatibilitas mundur. `setCobekTab` di-rename jadi `setShopTab`

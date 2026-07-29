@@ -499,17 +499,19 @@ renderCnTab();
 // tidak hilang.
 const CNI_SUBTAB_ORDER=['ringkasan','rekomendasi'];
 function setCnInsightTab(t,el){
-document.querySelectorAll('#cnTab-insight .cni-subtab').forEach(b=>b.classList.remove('active'));
+const cniSubtabBtns=document.querySelectorAll('#cnTab-insight .cni-subtab');
+cniSubtabBtns.forEach(b=>b.classList.remove('active'));
 if(el) el.classList.add('active');
-else { const idx=CNI_SUBTAB_ORDER.indexOf(t); const btn=document.querySelectorAll('#cnTab-insight .cni-subtab')[idx>=0?idx:0]; if(btn) btn.classList.add('active'); }
+else { const idx=CNI_SUBTAB_ORDER.indexOf(t); const btn=cniSubtabBtns[idx>=0?idx:0]; if(btn) btn.classList.add('active'); }
 document.getElementById('cniTab-ringkasan').classList.toggle('u-dnone', t!=='ringkasan');
 document.getElementById('cniTab-rekomendasi').classList.toggle('u-dnone', t!=='rekomendasi');
 }
 const CNB_SUBTAB_ORDER=['ringkasan','analisis'];
 function setCnBbmTab(t,el){
-document.querySelectorAll('#cnTab-bbm .cnb-subtab').forEach(b=>b.classList.remove('active'));
+const cnbSubtabBtns=document.querySelectorAll('#cnTab-bbm .cnb-subtab');
+cnbSubtabBtns.forEach(b=>b.classList.remove('active'));
 if(el) el.classList.add('active');
-else { const idx=CNB_SUBTAB_ORDER.indexOf(t); const btn=document.querySelectorAll('#cnTab-bbm .cnb-subtab')[idx>=0?idx:0]; if(btn) btn.classList.add('active'); }
+else { const idx=CNB_SUBTAB_ORDER.indexOf(t); const btn=cnbSubtabBtns[idx>=0?idx:0]; if(btn) btn.classList.add('active'); }
 document.getElementById('cnbTab-ringkasan').classList.toggle('u-dnone', t!=='ringkasan');
 document.getElementById('cnbTab-analisis').classList.toggle('u-dnone', t!=='analisis');
 }

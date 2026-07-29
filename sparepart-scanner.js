@@ -268,6 +268,18 @@ async function sparepartScannerGalleryAdapter() {
 function sparepartScannerBuildOverlay() {
   const overlay = document.createElement('div');
   overlay.className = 'vehicle-scanner-fullscreen';
+  // BUGFIX (laporan user: kamera scan sparepart terbuka sbg kotak kecil di
+  // tengah, dashboard tetap kelihatan di sekitarnya alih-alih fullscreen
+  // hitam menutupi semuanya) -- kalau stylesheet .vehicle-scanner-fullscreen
+  // gagal ke-apply (mis. Service Worker/PWA masih nyimpen styles.css versi
+  // lama yg belum punya class ini, kejadian umum di GitHub Pages sebelum
+  // hard refresh/update cache), overlay jatuh ke posisi STATIC & ukurannya
+  // cuma shrink-wrap ke konten (video+frame+hint), BUKAN fixed fullscreen.
+  // Inline style di sini jadi jaring pengaman independen dari CSS eksternal
+  // -- selalu fixed+inset:0+z-index tinggi apa pun keadaan stylesheet-nya,
+  // tanpa mengubah/duplikasi definisi visual lain (warna dll tetap dari
+  // class CSS, cuma properti pemosisian yang di-pastikan di sini).
+  overlay.style.cssText = 'position:fixed;inset:0;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;z-index:2147483000;background:#000;';
 
   const video = document.createElement('video');
   video.className = 'vehicle-scanner-video';

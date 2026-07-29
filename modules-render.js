@@ -2,7 +2,7 @@
 // Dipindah ke modules/shared/modules-render.js (Sesi 17-18 restrukturisasi folder — lihat docs/FILE-MAP.md & RENCANA-SESI.md; isi & nama file TIDAK berubah, cuma lokasi folder).
 // Semua fungsi ini murni definisi function global (bukan module), jadi tetap bisa dipanggil dari file manapun
 // yang loadnya belakangan (sama seperti modules-calc.js/features-*.js).
-const MODULE_RENDER_VERSION='kw-fix-click-0-reaksi-audit';
+const MODULE_RENDER_VERSION='s15-guard-renov-typeof-checks';
 
 function renderPageContent(name){
 // KW perf fix: jaring pengaman selain hook di save() -- pastikan cache saldo akun juga fresh
@@ -1045,8 +1045,8 @@ runDeferredOrNow(function(){
 renderBudgets();
 BudgetReko.init();
 Pensiun.render();
-Renov.render();
-SewaKios.render();
+if(typeof Renov!=='undefined')Renov.render();
+if(typeof SewaKios!=='undefined')SewaKios.render();
 if(typeof FinanceDashboard!=='undefined')FinanceDashboard.render();
 if(typeof FinancialForecastPresenter!=='undefined')FinancialForecastPresenter.render();
 if(typeof BudgetRecommendationPresenter!=='undefined')BudgetRecommendationPresenter.render();
