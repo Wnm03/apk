@@ -48,8 +48,8 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1')return true;
 }catch(e){ /* anggap bukan dev mode kalau gagal deteksi */ }
 return false;
 }
-const APP_BUILD_VERSION = 's16-shop-scan-nota-struk';
-const PRODUCTION_BUILD_SYNCED_VERSION = 's16-shop-scan-nota-struk';
+const APP_BUILD_VERSION = 'kw-fix-click-0-reaksi-audit';
+const PRODUCTION_BUILD_SYNCED_VERSION = 'kw-fix-click-0-reaksi-audit';
 let D = {
 schemaVersion:SCHEMA_VERSION,
 transactions:[],cobek:[],products:[],produsen:[],cobekKategori:JSON.parse(JSON.stringify(DEFAULT_COBEK_KATEGORI)),targets:[],eduFunds:[],reminders:[],bills:[],billsArchive:[],inventoryTransfers:[],
@@ -244,7 +244,8 @@ _writeLocalSnapshot(_buildSaveJson());
 let _lastUid=0;
 function uid(){let n=Date.now();if(n<=_lastUid)n=_lastUid+1;_lastUid=n;return n;}
 function sameId(a,b){return String(a)===String(b);}
-document.addEventListener('click', function(e){
+function _dataActionClickHandler(e){
+try{
 const el = e.target.closest('[data-action]');
 if(!el) return;
 if(el.dataset.stop) e.stopPropagation();
@@ -273,7 +274,27 @@ return a;
 });
 fn.apply(owner, args);
 }
-});
+}catch(err){
+// BUGFIX (audit klik "0 reaksi"): sebelumnya tidak ada try/catch di sini -- kalau SATU
+// action (mis. render() lanjutan setelah navigasi) throw, error itu bisa "membisukan"
+// sisa proses klik itu tanpa jejak jelas ke user. Sekarang minimal selalu ke-log +
+// dikasih toast, tidak pernah diam total.
+console.error('[data-action] handler error:', err);
+if(typeof toast==='function') toast('⚠️ Terjadi error saat memproses tombol. Cek console.',4000);
+}
+}
+// BUGFIX (audit klik "0 reaksi"): didaftarkan di CAPTURE phase (argumen ke-3 = true), bukan
+// bubble phase seperti sebelumnya. Alasan: kalau ada elemen lain di antara target klik dan
+// <document> yang memanggil e.stopPropagation() saat bubbling (mis. listener lain yang
+// ditambah di sesi berikutnya untuk gesture/swipe/ripple), listener BUBBLE lama bisa tidak
+// pernah kebagian giliran sama sekali -- closest('[data-action]') tidak pernah dievaluasi,
+// hasilnya klik terasa "0 reaksi" total (tanpa toast/console error, karena kode di dalam
+// dispatcher ini memang tidak pernah jalan). Capture phase berjalan LEBIH DULU dari listener
+// manapun di bawahnya (termasuk yang stopPropagation di fase bubble), jadi data-action selalu
+// diproses lebih dulu. Perilaku untuk kasus normal (tanpa listener lain yang mengganggu) 100%
+// sama seperti sebelumnya -- 1x klik = 1x eksekusi action, tidak ada duplikasi.
+document.addEventListener('click', _dataActionClickHandler, true);
+if(typeof console!=='undefined' && console.debug) console.debug('[app] data-action click dispatcher terpasang (capture phase).');
 function migrateShopCategory(){
 let incCat=D.categories.income.find(c=>c.id==='cat_cb'||/^bisnis cobek$/i.test(c.name)||/^bisnis$/i.test(c.name));
 if(incCat){

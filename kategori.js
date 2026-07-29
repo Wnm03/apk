@@ -113,8 +113,9 @@ D.categories[type]=D.categories[type].filter(c=>c.id!==id);
 save();renderCatList();populateCatFilter();populateKeuFilters();refreshTxCatIfOpen();toast('🗑 Kategori dihapus');
 }
 function openSubCatModal(catId,type,subId){
+const cat=(D.categories[type]||[]).find(c=>c.id===catId);
+if(!cat){toast('⚠️ Kategori tidak ditemukan');return;}
 subCatParentId=catId; subCatParentType=type; subCatEditId=subId||null;
-const cat=D.categories[type].find(c=>c.id===catId);
 const isEdit=!!subCatEditId;
 document.getElementById('subCatModalTitle').textContent=isEdit?'Edit Subkategori':'Tambah Subkategori';
 document.getElementById('subCatParentLabel').textContent=cat.emoji+' '+cat.name;
