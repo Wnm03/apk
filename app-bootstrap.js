@@ -18,7 +18,20 @@ try{
 Object.assign(window,{
 Etalase,Produsen,Order,FI,DanaDaruratAI,WorthIt,TimelineW,Pensiun,Budget,BudgetTabs,BudgetReko,
 Laporan,Payroll,Tukang,InsightTargetMingguan,BBM,Sparepart,Servis,Torsi,Pelanggan,SiapPulang,RefAI,Zakat,PPh21,PajakUMKM,
-Aset,LifeBalance,Piutang,Debt,DebtStrategy,Renov,RenovAI,SewaKios,RenovCalc,Kekayaan,AlokasiAset,PBB,
+Aset,LifeBalance,Piutang,Debt,DebtStrategy,Kekayaan,AlokasiAset,PBB,
+// Sesi 14 Tahap 1b: SewaKios SENGAJA TIDAK ada di daftar ini lagi --
+// modules/business/sewakios.js sekarang lazy-load (dikeluarkan dari bundle,
+// lihat scripts/build.js GROUP_A), jadi identifier ini belum tentu
+// terdeklarasi saat baris ini jalan. Modul ini sekarang mendaftarkan diri
+// sendiri ke window di akhir modules/business/sewakios.js begitu file itu
+// selesai dimuat.
+// Sesi 13 Tahap 1b: Renov/RenovAI/RenovCalc SENGAJA TIDAK ada di daftar ini
+// lagi -- modules/home/renovasi.js sekarang lazy-load (dikeluarkan dari
+// bundle, lihat scripts/build.js GROUP_A), jadi identifier2 itu belum tentu
+// terdeklarasi saat baris ini jalan (ReferenceError di sini akan bikin
+// SELURUH Object.assign ini gagal, termasuk modul lain di daftar yang sama).
+// Ketiganya sekarang mendaftarkan diri sendiri ke window di akhir
+// modules/home/renovasi.js begitu file itu selesai dimuat.
 IDBStore,LinkTx,Bill,AIWidget,EduFund,PriceReko,OngkirCalc,PriceRekoWidget,StockRekoWidget,Refleksi,Kasir,Advisor,FinCoach,GoldImport,GoldZakat,AIRecommendCard,AIDailyBriefingCard,AISimulateWidget,AIScenarioWidget,AIHealthCheckWidget,BillMultiScan,UniversalScan
 });
 // BUGFIX (audit klik "0 reaksi"): init() adalah `async function` -- try/catch sinkron di

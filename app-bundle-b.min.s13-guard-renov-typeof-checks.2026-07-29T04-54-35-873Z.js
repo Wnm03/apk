@@ -1,4 +1,4 @@
-// app-bundle-b.min.js — DIBUAT OTOMATIS oleh build.js dari: modules/shared/data-default.js, modules/shared/ownership-engine.js, modules/shared/ownership-settings-presenter.js, modules/shared/features-helpers-global-security.js, modules/shared/action-wrappers.js, diagnostik-versi.js, modules/shared/format-tema.js, modules/shared/error-handler.js, modules/shared/helper-teks.js, modules/shared/keamanan-pin.js, modules/home/refleksi-selfcare.js, modules/shared/modal-navigasi.js, modules/shared/scanner-session.js, modules/business/reset-gaji-mingguan.js, modules/shared/debug-console.js, modules/shared/pengaturan-search.js, modules/shared/onboarding.js, modules/shared/kalkulator-input.js, modules/shared/scan-ocr.js, modules/finance/filter-laporan.js, modules/finance/akun.js, modules/business/gaji-calc.js, modules/finance/cicilan.js, modules/finance/tx-bbm.js, modules/finance/tx-stok-sparepart.js, modules/finance/tx-renov.js, modules/finance/tx-transfer.js, modules/finance/tx-cobek.js, modules/finance/tx-target.js, modules/finance/tx-list-cashflow.js, modules/finance/transaksi.js, modules/shared/profil-pengaturan.js, modules/finance/kategori.js, modules/ai/kategorisasi-ai.js, modules/finance/tagihan-kalender.js, modules/shared/backup-restore.js, modules/shared/backup-history-api.js, modules/shared/backup-health-api.js, modules/shared/backup-history-presenter.js, modules/shared/backup-health-presenter.js, modules/business/payroll-absensi.js, modules/business/tukang-absensi.js, modules/business/insight-target-mingguan.js, modules/vehicle/vehicle-core.js, modules/vehicle/vehicle-catalog.js, modules/vehicle/vehicle-scanner.js, modules/vehicle/vehicle-catalog-ui.js, modules/vehicle/sparepart-scanner.js, modules/vehicle/sparepart-scanner-ui.js, modules/vehicle/sparepart-ocr.js, modules/vehicle/sparepart-ocr-parser.js, modules/vehicle/sparepart-ocr-catalog-link.js, modules/vehicle/sparepart-ocr-catalog-detail.js, modules/vehicle/sparepart-ocr-catalog-add.js, modules/vehicle/sparepart-ocr-orchestrator.js, modules/vehicle/vehicle-catalog-import.js, modules/vehicle/vehicle-catalog-import-ui.js, modules/vehicle/vehicle-catalog-import-stock-push.js, modules/vehicle/vehicle-catalog-web-import.js, modules/vehicle/vehicle-catalog-web-import-ui.js, modules/vehicle/vehicle-catalog-servis-link.js, modules/finance/vehicle-catalog-tx-link.js, modules/vehicle/honda-pdf-import.js, modules/vehicle/honda-pdf-import-extract.js, modules/vehicle/honda-pdf-import-parse.js, modules/vehicle/honda-pdf-import-commit.js, modules/vehicle/honda-pdf-import-ui.js, modules/business/shop-pdf-import-ui.js, modules/business/shop-scan-ui.js, modules/ai/chat-action.js, modules/shared/data-archive.js, modules/vehicle/sparepart-servis.js, modules/vehicle/shop-katalog-dinamis-api.js, modules/vehicle/shop-katalog-dinamis-presenter.js, modules/vehicle/torsi-vehicle-api.js, ai-chat.js, reminder-notif.js, laporan-export.js, gdrive-backup.js, data-health-check.js, global-search.js, sheets-schema.js, sheets-sync.js, pwa-setup.js, self-test.js, pajak-aset-ui-wrappers.js, modules/finance/finance-intelligence.js, modules/finance/finance-dashboard.js, modules/finance/financial-forecast-api.js, modules/finance/financial-forecast-presenter.js, modules/finance/budget-recommendation-api.js, modules/finance/budget-recommendation-presenter.js, modules/finance/cashflow-projection-api.js, modules/finance/cashflow-projection-presenter.js, modules/finance/financial-goal-api.js, modules/finance/financial-goal-presenter.js, modules/finance/investment-planner-api.js, modules/finance/investment-planner-presenter.js, modules/finance/debt-optimizer-api.js, modules/finance/debt-optimizer-presenter.js, modules/finance/retirement-planner-api.js, modules/finance/retirement-planner-presenter.js, modules/finance/financial-health-score-api.js, modules/finance/financial-health-score-presenter.js, modules/finance/financial-risk-dashboard-api.js, modules/finance/financial-risk-dashboard-presenter.js, modules/vehicle/vehicle-intelligence.js, modules/vehicle/vehicle-dashboard.js, modules/vehicle/vehicle-reminder.js, modules/vehicle/vehicle-notif-bridge.js, modules/vehicle/vehicle-ai-hook.js, modules/vehicle/vehicle-insight-presenter.js, modules/vehicle/vehicle-daily-brief.js, modules/vehicle/vehicle-alert-panel.js, modules/vehicle/vehicle-insight-feed.js, modules/vehicle/vehicle-trend-api.js, modules/vehicle/vehicle-cost-summary.js, modules/vehicle/vehicle-fuel-trend.js, modules/vehicle/vehicle-service-trend.js, modules/vehicle/vehicle-analytics-presenter.js, modules/vehicle/fuel-storage.js, modules/vehicle/fuel-tank-profile.js, modules/vehicle/fuel-intelligence-engine.js, modules/vehicle/fuel-gauge-engine.js, modules/vehicle/fuel-history.js, modules/vehicle/fuel-analytics.js, modules/vehicle/fuel-modal.js, modules/vehicle/fuel-card.js, modules/vehicle/fuel-intelligence-ui.js, modules/vehicle/fuel-tank-profile-ui.js, modules/vehicle/fuel-prediction-engine.js, modules/vehicle/fuel-cost-analytics.js, modules/vehicle/fuel-maintenance-engine.js, modules/vehicle/fuel-insight-engine.js, modules/vehicle/fuel-fleet-selector.js, modules/vehicle/fuel-notif-bridge.js, modules/vehicle/fuel-dashboard.js, modules/vehicle/fuel-compare.js, modules/vehicle/fuel-trend-dashboard.js, modules/vehicle/vehicle-decision-api.js, modules/vehicle/vehicle-recommendation-engine.js, modules/vehicle/vehicle-priority-scoring.js, modules/vehicle/vehicle-action-recommendation.js, modules/vehicle/vehicle-decision-presenter.js, modules/vehicle/vehicle-attention-presenter.js, modules/vehicle/vehicle-automation-api.js, modules/vehicle/vehicle-reminder-scheduler.js, modules/vehicle/vehicle-maintenance-automation.js, modules/vehicle/vehicle-tax-document-automation.js, modules/vehicle/vehicle-automation-presenter.js, modules/cross/finance-vehicle-cross-summary.js, modules/cross/cross-ai-hook.js, modules/cross/cross-dashboard-card.js, modules/cross/cross-insight-presenter.js, modules/cross/unified-summary-api.js, modules/cross/unified-ai-briefing.js, modules/cross/unified-briefing-presenter.js, modules/cross/life-dashboard-summary-api.js, modules/cross/priority-engine.js, modules/cross/personal-overview-presenter.js, modules/cross/cross-module-widgets.js, modules/cross/life-priority-panel.js, modules/cross/unified-dashboard-home.js, modules/cross/decision-center-api.js, modules/cross/recommendation-panel.js, modules/cross/action-queue.js, modules/cross/decision-center-home.js, app-bootstrap.js, modules/shared/feature-icons.js, modules/dashboard-hub/dashboard-hub-registry.js, modules/dashboard-hub/dashboard-hub.js, modules/dashboard-hub/dashboard-hub-search.js, modules/dashboard-hub/dashboard-hub-favorit.js, modules/dashboard-hub/dashboard-hub-favorit-view.js, modules/dashboard-hub/dashboard-hub-settings.js, modules/ai/ai-command-center.js, modules/self-reward/self-reward-engine.js, modules/self-reward/self-reward-view.js, modules/self-reward/self-reward-ai-widget.js, modules/asset/investasi.js, modules/asset/asset-portfolio-api.js, modules/asset/asset-portfolio-presenter.js, lifeos/lifeos-store.js, lifeos/lifeos-registry.js, lifeos/lifeos-link-registry.js, lifeos/plugins/lifeos-plugin-manifest.js, lifeos/plugins/lifeos-plugin-validation.js, lifeos/plugins/lifeos-plugin-registry.js, lifeos/plugins/lifeos-plugin-loader.js, lifeos/plugins/lifeos-plugin-runtime.js, lifeos/adapters/area-adapter.js, lifeos/adapters/goal-adapter.js, lifeos/adapters/project-adapter.js, lifeos/adapters/today-adapter.js, lifeos/adapters/review-adapter.js, lifeos/adapters/knowledge-adapter.js, lifeos/lifeos-object-ref.js, lifeos/services/project-service.js, lifeos/services/review-service.js, lifeos/services/knowledge-service.js, lifeos/services/life-object-service.js, lifeos/ui/lifeos-home.js, lifeos/ui/areas.js, lifeos/ui/today.js, lifeos/ui/goals.js, lifeos/ui/projects.js, lifeos/ui/review.js, lifeos/ui/life-objects.js, lifeos/ui/plugins.js, lifeos/ui/knowledge.js, lifeos/lifeos-nav.js, economic-intelligence/eie-bus.js, economic-intelligence/eie-store.js, economic-intelligence/domain/entities.js, economic-intelligence/domain/scoring-formulas.js, economic-intelligence/domain/status-classifier.js, economic-intelligence/adapters/user-finance-adapter.js, economic-intelligence/adapters/macro-data-adapter.js, economic-intelligence/rules/rule-schema.js, economic-intelligence/rules/rule-definitions.js, economic-intelligence/engine/rule-engine.js, economic-intelligence/engine/scoring-engine.js, economic-intelligence/engine/insight-generator.js, economic-intelligence/services/macro-sync-service.js, economic-intelligence/services/notification-service.js, economic-intelligence/services/recommendation-service.js, economic-intelligence/scheduler/eie-scheduler.js, economic-intelligence/ui/eie-dashboard.js, economic-intelligence/ui/eie-insight-feed.js, economic-intelligence/ui/eie-notif-settings.js, economic-intelligence/eie-registry.js, modules/ai/ai-core.js, modules/ai/ai-decision-engine.js, modules/ai/ai-service.js, modules/logistics/logistics-engine.js, modules/logistics/logistics-service.js, modules/shop/purchase-engine.js, modules/shop/trip-engine.js, modules/shop/inventory-engine.js, modules/shop/profit-engine.js, modules/shop/delivery-plan-ui.js, modules/shop/shop-business-engine-presenter.js, modules/shop/trip-presenter.js, modules/shop/business-flow-presenter.js, modules/finance/dana-kelolaan.js, modules/finance/dana-kelolaan-presenter.js
+// app-bundle-b.min.js — DIBUAT OTOMATIS oleh build.js dari: modules/shared/data-default.js, modules/shared/ownership-engine.js, modules/shared/ownership-settings-presenter.js, modules/shared/features-helpers-global-security.js, modules/shared/action-wrappers.js, diagnostik-versi.js, modules/shared/format-tema.js, modules/shared/error-handler.js, modules/shared/helper-teks.js, modules/shared/keamanan-pin.js, modules/home/refleksi-selfcare.js, modules/shared/modal-navigasi.js, modules/shared/scanner-session.js, modules/business/reset-gaji-mingguan.js, modules/shared/debug-console.js, modules/shared/pengaturan-search.js, modules/shared/onboarding.js, modules/shared/kalkulator-input.js, modules/shared/scan-ocr.js, modules/finance/filter-laporan.js, modules/finance/akun.js, modules/business/gaji-calc.js, modules/finance/cicilan.js, modules/finance/tx-bbm.js, modules/finance/tx-stok-sparepart.js, modules/finance/tx-renov.js, modules/finance/tx-transfer.js, modules/finance/tx-cobek.js, modules/finance/tx-target.js, modules/finance/tx-list-cashflow.js, modules/finance/transaksi.js, modules/shared/profil-pengaturan.js, modules/finance/kategori.js, modules/ai/kategorisasi-ai.js, modules/finance/tagihan-kalender.js, modules/shared/backup-restore.js, modules/shared/backup-history-api.js, modules/shared/backup-health-api.js, modules/shared/backup-history-presenter.js, modules/shared/backup-health-presenter.js, modules/business/payroll-absensi.js, modules/business/tukang-absensi.js, modules/business/insight-target-mingguan.js, modules/vehicle/vehicle-core.js, modules/vehicle/vehicle-catalog.js, modules/vehicle/vehicle-scanner.js, modules/vehicle/vehicle-catalog-ui.js, modules/vehicle/sparepart-scanner.js, modules/vehicle/sparepart-scanner-ui.js, modules/vehicle/sparepart-ocr.js, modules/vehicle/sparepart-ocr-parser.js, modules/vehicle/sparepart-ocr-catalog-link.js, modules/vehicle/sparepart-ocr-catalog-detail.js, modules/vehicle/sparepart-ocr-catalog-add.js, modules/vehicle/sparepart-ocr-orchestrator.js, modules/vehicle/vehicle-catalog-import.js, modules/vehicle/vehicle-catalog-import-ui.js, modules/vehicle/vehicle-catalog-import-stock-push.js, modules/vehicle/vehicle-catalog-web-import.js, modules/vehicle/vehicle-catalog-web-import-ui.js, modules/vehicle/vehicle-catalog-servis-link.js, modules/finance/vehicle-catalog-tx-link.js, modules/vehicle/honda-pdf-import.js, modules/vehicle/honda-pdf-import-extract.js, modules/vehicle/honda-pdf-import-parse.js, modules/vehicle/honda-pdf-import-commit.js, modules/vehicle/honda-pdf-import-ui.js, modules/business/shop-pdf-import-ui.js, modules/business/shop-scan-ui.js, modules/ai/chat-action.js, modules/shared/data-archive.js, modules/vehicle/sparepart-servis.js, modules/vehicle/shop-katalog-dinamis-api.js, modules/vehicle/shop-katalog-dinamis-presenter.js, modules/vehicle/torsi-vehicle-api.js, ai-chat.js, reminder-notif.js, laporan-export.js, gdrive-backup.js, data-health-check.js, global-search.js, sheets-schema.js, sheets-sync.js, pwa-setup.js, self-test.js, pajak-aset-ui-wrappers.js, modules/finance/finance-intelligence.js, modules/finance/finance-dashboard.js, modules/finance/financial-forecast-api.js, modules/finance/financial-forecast-presenter.js, modules/finance/budget-recommendation-api.js, modules/finance/budget-recommendation-presenter.js, modules/finance/cashflow-projection-api.js, modules/finance/cashflow-projection-presenter.js, modules/finance/financial-goal-api.js, modules/finance/financial-goal-presenter.js, modules/finance/investment-planner-api.js, modules/finance/investment-planner-presenter.js, modules/finance/debt-optimizer-api.js, modules/finance/debt-optimizer-presenter.js, modules/finance/retirement-planner-api.js, modules/finance/retirement-planner-presenter.js, modules/finance/financial-health-score-api.js, modules/finance/financial-health-score-presenter.js, modules/finance/financial-risk-dashboard-api.js, modules/finance/financial-risk-dashboard-presenter.js, modules/vehicle/vehicle-intelligence.js, modules/vehicle/vehicle-dashboard.js, modules/vehicle/vehicle-reminder.js, modules/vehicle/vehicle-notif-bridge.js, modules/vehicle/vehicle-ai-hook.js, modules/vehicle/vehicle-insight-presenter.js, modules/vehicle/vehicle-daily-brief.js, modules/vehicle/vehicle-alert-panel.js, modules/vehicle/vehicle-insight-feed.js, modules/vehicle/vehicle-trend-api.js, modules/vehicle/vehicle-cost-summary.js, modules/vehicle/vehicle-fuel-trend.js, modules/vehicle/vehicle-service-trend.js, modules/vehicle/vehicle-analytics-presenter.js, modules/vehicle/fuel-storage.js, modules/vehicle/fuel-tank-profile.js, modules/vehicle/fuel-intelligence-engine.js, modules/vehicle/fuel-gauge-engine.js, modules/vehicle/fuel-history.js, modules/vehicle/fuel-analytics.js, modules/vehicle/fuel-modal.js, modules/vehicle/fuel-card.js, modules/vehicle/fuel-intelligence-ui.js, modules/vehicle/fuel-tank-profile-ui.js, modules/vehicle/fuel-prediction-engine.js, modules/vehicle/fuel-cost-analytics.js, modules/vehicle/fuel-maintenance-engine.js, modules/vehicle/fuel-insight-engine.js, modules/vehicle/fuel-fleet-selector.js, modules/vehicle/fuel-notif-bridge.js, modules/vehicle/fuel-dashboard.js, modules/vehicle/fuel-compare.js, modules/vehicle/fuel-trend-dashboard.js, modules/vehicle/vehicle-decision-api.js, modules/vehicle/vehicle-recommendation-engine.js, modules/vehicle/vehicle-priority-scoring.js, modules/vehicle/vehicle-action-recommendation.js, modules/vehicle/vehicle-decision-presenter.js, modules/vehicle/vehicle-attention-presenter.js, modules/vehicle/vehicle-automation-api.js, modules/vehicle/vehicle-reminder-scheduler.js, modules/vehicle/vehicle-maintenance-automation.js, modules/vehicle/vehicle-tax-document-automation.js, modules/vehicle/vehicle-automation-presenter.js, modules/cross/finance-vehicle-cross-summary.js, modules/cross/cross-ai-hook.js, modules/cross/cross-dashboard-card.js, modules/cross/cross-insight-presenter.js, modules/cross/unified-summary-api.js, modules/cross/unified-ai-briefing.js, modules/cross/unified-briefing-presenter.js, modules/cross/life-dashboard-summary-api.js, modules/cross/priority-engine.js, modules/cross/personal-overview-presenter.js, modules/cross/cross-module-widgets.js, modules/cross/life-priority-panel.js, modules/cross/unified-dashboard-home.js, modules/cross/decision-center-api.js, modules/cross/recommendation-panel.js, modules/cross/action-queue.js, modules/cross/decision-center-home.js, app-bootstrap.js, modules/shared/feature-icons.js, modules/dashboard-hub/dashboard-hub-registry.js, modules/dashboard-hub/dashboard-hub.js, modules/dashboard-hub/dashboard-hub-search.js, modules/dashboard-hub/dashboard-hub-favorit.js, modules/dashboard-hub/dashboard-hub-favorit-view.js, modules/dashboard-hub/dashboard-hub-settings.js, modules/ai/ai-command-center.js, modules/self-reward/self-reward-engine.js, modules/self-reward/self-reward-view.js, modules/self-reward/self-reward-ai-widget.js, modules/asset/investasi.js, modules/asset/asset-portfolio-api.js, modules/asset/asset-portfolio-presenter.js, lifeos/lifeos-store.js, lifeos/lifeos-registry.js, lifeos/lifeos-link-registry.js, lifeos/plugins/lifeos-plugin-manifest.js, lifeos/plugins/lifeos-plugin-validation.js, lifeos/plugins/lifeos-plugin-registry.js, lifeos/plugins/lifeos-plugin-loader.js, lifeos/plugins/lifeos-plugin-runtime.js, lifeos/adapters/area-adapter.js, lifeos/adapters/goal-adapter.js, lifeos/adapters/project-adapter.js, lifeos/adapters/today-adapter.js, lifeos/adapters/review-adapter.js, lifeos/adapters/knowledge-adapter.js, lifeos/lifeos-object-ref.js, lifeos/services/project-service.js, lifeos/services/review-service.js, lifeos/services/knowledge-service.js, lifeos/services/life-object-service.js, lifeos/ui/lifeos-home.js, lifeos/ui/areas.js, lifeos/ui/today.js, lifeos/ui/goals.js, lifeos/ui/projects.js, lifeos/ui/review.js, lifeos/ui/life-objects.js, lifeos/ui/plugins.js, lifeos/ui/knowledge.js, lifeos/lifeos-nav.js, economic-intelligence/eie-bus.js, economic-intelligence/eie-store.js, economic-intelligence/domain/entities.js, economic-intelligence/domain/scoring-formulas.js, economic-intelligence/domain/status-classifier.js, economic-intelligence/adapters/user-finance-adapter.js, economic-intelligence/adapters/macro-data-adapter.js, economic-intelligence/rules/rule-schema.js, economic-intelligence/rules/rule-definitions.js, economic-intelligence/engine/rule-engine.js, economic-intelligence/engine/scoring-engine.js, economic-intelligence/engine/insight-generator.js, economic-intelligence/services/macro-sync-service.js, economic-intelligence/services/notification-service.js, economic-intelligence/services/recommendation-service.js, economic-intelligence/scheduler/eie-scheduler.js, economic-intelligence/ui/eie-dashboard.js, economic-intelligence/ui/eie-insight-feed.js, economic-intelligence/ui/eie-notif-settings.js, economic-intelligence/eie-registry.js, modules/ai/ai-core.js, modules/ai/ai-decision-engine.js, modules/ai/ai-service.js, modules/logistics/logistics-engine.js, modules/logistics/logistics-service.js, modules/shop/purchase-engine.js, modules/shop/trip-engine.js, modules/shop/inventory-engine.js, modules/shop/profit-engine.js, modules/shop/delivery-plan-ui.js, modules/shop/shop-business-engine-presenter.js, modules/shop/trip-presenter.js, modules/shop/business-flow-presenter.js, modules/shop/business-intelligence-presenter.js, modules/finance/dana-kelolaan.js, modules/finance/dana-kelolaan-presenter.js
 // JANGAN diedit manual — edit file source-nya lalu jalankan: node build.js
 // data-default.js — Domain Data Default: kategori shop bawaan (DEFAULT_COBEK_KATEGORI),
 // Dipindah ke modules/shared/data-default.js (Sesi 17-18 restrukturisasi folder — lihat docs/FILE-MAP.md & RENCANA-SESI.md; isi & nama file TIDAK berubah, cuma lokasi folder).
@@ -377,8 +377,8 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1')return true;
 }catch(e){ /* anggap bukan dev mode kalau gagal deteksi */ }
 return false;
 }
-const APP_BUILD_VERSION = 's15-guard-renov-typeof-checks';
-const PRODUCTION_BUILD_SYNCED_VERSION = 's15-guard-renov-typeof-checks';
+const APP_BUILD_VERSION = 's13-guard-renov-typeof-checks';
+const PRODUCTION_BUILD_SYNCED_VERSION = 's13-guard-renov-typeof-checks';
 let D = {
 schemaVersion:SCHEMA_VERSION,
 transactions:[],cobek:[],products:[],produsen:[],cobekKategori:JSON.parse(JSON.stringify(DEFAULT_COBEK_KATEGORI)),targets:[],eduFunds:[],reminders:[],bills:[],billsArchive:[],inventoryTransfers:[],
@@ -5855,7 +5855,7 @@ Renov.onLinkedTxDeleted(t);
 if(t&&t.wishlistLinkId){
 WorthIt.onLinkedTxDeleted(t);
 }
-if(t&&t.sewaKiosLinkId&&typeof SewaKios!=='undefined'){
+if(t&&t.sewaKiosLinkId){
 SewaKios.onLinkedTxDeleted(t);
 }
 if(t&&t.tukangPaymentEntryIds&&t.tukangPaymentEntryIds.length){
@@ -5971,13 +5971,7 @@ console.error('[Renov] Gagal lazy-load modules/home/renovasi.js:',e);
 if(typeof window.__moduleLoadFail==='function')window.__moduleLoadFail('modules/home/renovasi.js');
 });
 }
-if(typeof SewaKios!=='undefined'){SewaKios.render();}
-else if(typeof ensureSewaKios==='function'){
-ensureSewaKios().then(function(){if(typeof SewaKios!=='undefined')SewaKios.render();}).catch(function(e){
-console.error('[SewaKios] Gagal lazy-load modules/business/sewakios.js:',e);
-if(typeof window.__moduleLoadFail==='function')window.__moduleLoadFail('modules/business/sewakios.js');
-});
-}
+if(typeof SewaKios!=='undefined')SewaKios.render();
 }
 if(t==='laporan'){populateCatFilter();populateAccFilters();renderLaporan();renderKeuangan();}
 }
@@ -6952,7 +6946,7 @@ Renov.onLinkedTxEdited(existingTx);
 if(existingTx.wishlistLinkId){
 WorthIt.onLinkedTxEdited(existingTx);
 }
-if(existingTx.sewaKiosLinkId&&typeof SewaKios!=='undefined'){
+if(existingTx.sewaKiosLinkId){
 SewaKios.onLinkedTxEdited(existingTx);
 }
 savedTxId=existingTx.id;
@@ -6965,7 +6959,7 @@ accountId:accId,payMethod:'tunai',
 note:note,date
 });
 WorthIt.applyBuyLink(savedTxId);
-if(typeof SewaKios!=='undefined')SewaKios.applyPaymentLink(savedTxId);
+SewaKios.applyPaymentLink(savedTxId);
 Tukang.applyPendingPayment(savedTxId);
 }
 applyTxStockFromTx(note,savedTxId,date,amt,existingTx);
@@ -33822,13 +33816,7 @@ try{
 Object.assign(window,{
 Etalase,Produsen,Order,FI,DanaDaruratAI,WorthIt,TimelineW,Pensiun,Budget,BudgetTabs,BudgetReko,
 Laporan,Payroll,Tukang,InsightTargetMingguan,BBM,Sparepart,Servis,Torsi,Pelanggan,SiapPulang,RefAI,Zakat,PPh21,PajakUMKM,
-Aset,LifeBalance,Piutang,Debt,DebtStrategy,Kekayaan,AlokasiAset,PBB,
-// Sesi 14 Tahap 1b: SewaKios SENGAJA TIDAK ada di daftar ini lagi --
-// modules/business/sewakios.js sekarang lazy-load (dikeluarkan dari bundle,
-// lihat scripts/build.js GROUP_A), jadi identifier ini belum tentu
-// terdeklarasi saat baris ini jalan. Modul ini sekarang mendaftarkan diri
-// sendiri ke window di akhir modules/business/sewakios.js begitu file itu
-// selesai dimuat.
+Aset,LifeBalance,Piutang,Debt,DebtStrategy,SewaKios,Kekayaan,AlokasiAset,PBB,
 // Sesi 13 Tahap 1b: Renov/RenovAI/RenovCalc SENGAJA TIDAK ada di daftar ini
 // lagi -- modules/home/renovasi.js sekarang lazy-load (dikeluarkan dari
 // bundle, lihat scripts/build.js GROUP_A), jadi identifier2 itu belum tentu
@@ -45983,6 +45971,569 @@ const BusinessFlowPresenter = {
 
 if (typeof window !== 'undefined') {
   window.BusinessFlowPresenter = BusinessFlowPresenter;
+}
+
+// modules/shop/business-intelligence-presenter.js — Business Intelligence
+// Presenter (Sesi 251, lanjutan tab "🧠 Business Intelligence" Shop yang
+// dibuat Sesi 250, lihat docs/SESI-250-BUSINESS-INTELLIGENCE-MIGRATION.md).
+//
+// Sesi 252 (Drill Down): tambah openDrillDown(section, sub) + _drillContent/
+// _drillHealth/_drillDecision/_drillTrend/_drillExec/_drillInsight/
+// _showDrillModal — SEMUA murni merangkai ulang (repackage) hasil
+// healthScore()/decisionPanel()/trend()/executiveSummary()/aiInsight() yang
+// SUDAH ADA di atas, 0 rumus baru, 0 field D baru, read-only (0 save()).
+// Tiap kartu yang di-render 5 kontainer #shopTab-bi sekarang klik-able
+// (data-action generik yang SUDAH ADA) -> buka `#biDrillDownModal` (baru,
+// ditulis langsung di index.html, 100% pakai class .overlay/.modal/dst yang
+// SUDAH ADA — 0 CSS baru). Lihat docs/SESI-252-BUSINESS-INTELLIGENCE-DRILLDOWN.md.
+//
+// PRINSIP (RULE #1 sesi ini, sama seperti sesi-sesi Business Engine
+// sebelumnya): UI HANYA presenter, 100% REUSE seluruh engine/presenter
+// yang SUDAH ADA — TIDAK ADA rumus/business logic baru, TIDAK ADA field D
+// baru, TIDAK membaca D langsung kecuali murni untuk filter/kelompokkan
+// transaksi (D.cobek) sebelum dioper ke ProfitEngine.summarize() yang
+// SUDAH ADA (persis pola ShopBusinessEnginePresenter.summary() memfilter
+// D.cobek per bulan sebelum memanggil ProfitEngine.summarize()). Semua
+// analitik di sini READ-ONLY (tidak pernah memanggil save()).
+//
+// Sumber data (SEMUA sudah ada sebelum sesi ini):
+//   - ShopBusinessEnginePresenter.summary()   (S199 — purchase/inventory/profit)
+//   - TripPresenter.summary()                 (S204-A — trip/ongkir/margin)
+//   - BusinessFlowPresenter.businessKPI()/costPricingKPI()/loadCostKPI()/
+//     aiDecisionSummary()/decisionDashboard() (S211-S222)
+//   - InventoryEngine.restockScan()           (S198, via StockRekoWidget.scan())
+//   - PurchaseEngine.produsenPrice()          (S198)
+//   - ProfitEngine.summarize()/margin()       (S198) — SATU-SATUNYA fungsi
+//     yang menghitung omzet/untung/marginPct dari daftar transaksi, dipakai
+//     ulang APA ADANYA di tiap bucket (hari/minggu/bulan/tahun/7d/30d) di
+//     bawah — TIDAK ada rumus omzet/untung/margin baru yang ditulis di sini.
+//   - ShopInsight.compute()                   (modules/ai/feature-insights.js)
+//   - isCobekOwnershipSelf()                  (modules/shared/ownership-engine.js)
+//
+// 5 kebutuhan sesi ini (semua MURNI REPACKAGING dari sumber di atas):
+//   1. Business Health Score (0-100) — komposit dari 4 sinyal yang SUDAH
+//      dihitung (margin bulan ini, status restock, cost/pricing, load/
+//      transport), pola bobot SAMA PERSIS FinanceIntelligence.healthScore()
+//      (modules/finance/finance-intelligence.js, S16): tiap komponen bobot
+//      25, HANYA disertakan kalau sumbernya tersedia & ada data, skor akhir
+//      diskalakan ulang dari bobot yang benar-benar tersedia.
+//   2. Decision Panel (Restock/Pricing/Inventory/Supplier) — 4 kartu
+//      keputusan, murni derivasi ambang dari summary()/costPricingKPI()/
+//      restockScan()/produsenPrice() yang sudah ada.
+//   3. Trend Analytics (7/30 hari) — kelompokkan D.cobek (SELF, sudah
+//      tersimpan) per tanggal, tiap bucket harian dihitung lewat
+//      ProfitEngine.summarize() yang sama (0 rumus baru).
+//   4. Executive Summary (Hari/Minggu/Bulan/Tahun) — Bulan 100% reuse
+//      BusinessFlowPresenter.businessKPI() APA ADANYA (0 recompute); Hari/
+//      Minggu/Tahun pakai metodologi bucket SAMA PERSIS trendAnalytics()
+//      di atas (Minggu bahkan reuse trend(7).total langsung).
+//   5. AI Insight (maks. 3) — 100% reuse ShopInsight.compute() (satu sumber
+//      sama dgn kartu Insight Shop yang sudah ada), diurutkan berdasar
+//      level (danger>warning>good>info) lalu dipotong 3 teratas — TIDAK
+//      ada rule/insight baru yang ditulis di sini.
+//
+// Dipanggil dari (tambahan murni, 0 baris lain diubah):
+//   - setShopTab('bi', ...) (cobek-io.js), persis setelah 3 render() lain.
+//   - _safeRender (modules/shared/modules-render.js), pola sama 3 presenter
+//     Business Intelligence lain, supaya tetap live-update.
+const BusinessIntelligencePresenter = {
+
+  _money(n) {
+    return (typeof fmt === 'function') ? fmt(n) : ('Rp ' + Math.round(n || 0));
+  },
+
+  _selfFilter() {
+    return (typeof isCobekOwnershipSelf === 'function') ? isCobekOwnershipSelf : (() => true);
+  },
+
+  // _cobekBetween(from, to) — D.cobek (ownership SELF, pola S194) dengan
+  // t.date di rentang [from, to) — HANYA filter/kelompokkan, 0 rumus baru.
+  _cobekBetween(from, to) {
+    const cobek = (typeof D !== 'undefined' && D.cobek) || [];
+    const selfFilter = this._selfFilter();
+    return cobek
+      .filter((t) => { const d = new Date(t.date); return d >= from && d < to; })
+      .filter(selfFilter);
+  },
+
+  // _dateKey(d) — kunci tanggal lokal YYYY-MM-DD, murni format tampilan
+  // (bukan hitungan bisnis), dipakai buat mengelompokkan trend harian.
+  _dateKey(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  },
+
+  // === 1. Business Health Score (0-100) =================================
+  // Pola bobot SAMA PERSIS FinanceIntelligence.healthScore() (S16): 4
+  // komponen bobot 25 dari sumber yang SUDAH dihitung, skor diskalakan
+  // ulang dari bobot yang benar-benar tersedia.
+  healthScore() {
+    const parts = [];
+
+    if (typeof BusinessFlowPresenter !== 'undefined') {
+      const kpi = BusinessFlowPresenter.businessKPI();
+      // (a) Margin bulan ini — full skor (25) pada margin >=20% (ambang
+      // sama dgn referensi "margin sehat" yang sudah dipakai
+      // BusinessFlowPresenter._recommendationCompute() ["bkpi-sehat"]).
+      if (kpi.tripBulanIni > 0) {
+        parts.push({ key: 'margin', weight: 25, score: Math.max(0, Math.min(1, kpi.marginPctBulanIni / 20)) * 25 });
+      }
+      // (b) Status restock — 'clear' skor penuh, 'pending' skor 0. Selalu
+      // tersedia (purchaseStatus() tidak butuh data transaksi).
+      parts.push({ key: 'restock', weight: 25, score: kpi.purchaseStatus === 'clear' ? 25 : 0 });
+
+      const cp = BusinessFlowPresenter.costPricingKPI();
+      if (cp.ok) {
+        // (c) Cost/Pricing — proporsi trip yang TIDAK bermargin tipis (<10%).
+        parts.push({ key: 'pricing', weight: 25, score: Math.max(0, 1 - cp.thinMarginCount / cp.tripCount) * 25 });
+      }
+
+      const lc = BusinessFlowPresenter.loadCostKPI();
+      if (lc.ok) {
+        // (d) Load/Transport — proporsi trip yang efisien (omzet/ongkir >= 3x).
+        parts.push({ key: 'delivery', weight: 25, score: Math.max(0, 1 - lc.inefficientCount / lc.tripCount) * 25 });
+      }
+    }
+
+    const maxScore = parts.reduce((s, p) => s + p.weight, 0);
+    const rawScore = parts.reduce((s, p) => s + p.score, 0);
+    const score = maxScore > 0 ? Math.round((rawScore / maxScore) * 100) : null;
+    const label = score == null ? 'Belum ada data'
+      : score >= 80 ? 'Sehat' : score >= 60 ? 'Cukup Sehat' : score >= 40 ? 'Waspada' : 'Perlu Perhatian';
+    return { ok: score != null, score, label, parts };
+  },
+
+  // === 2. Decision Panel (Restock/Pricing/Inventory/Supplier) ===========
+  decisionPanel() {
+    return {
+      restock: this._restockDecision(),
+      pricing: this._pricingDecision(),
+      inventory: this._inventoryDecision(),
+      supplier: this._supplierDecision(),
+    };
+  },
+
+  // _restockDecision() — 100% reuse ShopBusinessEnginePresenter.summary().purchase
+  // (S198/S199, InventoryEngine.restockScan()+PurchaseEngine.estimatedCost()).
+  _restockDecision() {
+    if (typeof ShopBusinessEnginePresenter === 'undefined') return { ok: false };
+    const p = ShopBusinessEnginePresenter.summary().purchase;
+    if (!p.ok) return { ok: false };
+    return { ok: true, needed: p.itemCount > 0, itemCount: p.itemCount, totalQty: p.totalQty, totalCost: p.totalCost };
+  },
+
+  // _pricingDecision() — 100% reuse BusinessFlowPresenter.costPricingKPI() (S215-216).
+  _pricingDecision() {
+    if (typeof BusinessFlowPresenter === 'undefined') return { ok: false };
+    const cp = BusinessFlowPresenter.costPricingKPI();
+    if (!cp.ok) return { ok: false };
+    return { ok: true, review: cp.thinMarginCount > 0, thinMarginCount: cp.thinMarginCount, tripCount: cp.tripCount, avgCostPerTrip: cp.avgCostPerTrip, avgMarginPct: cp.avgMarginPct };
+  },
+
+  // _inventoryDecision() — 100% reuse ShopBusinessEnginePresenter.summary().inventory
+  // (S198/S199). "Potensi margin stok" pakai ProfitEngine.margin() APA
+  // ADANYA (fungsi margin generik yang SUDAH ADA, bukan rumus baru) atas
+  // 2 angka yang sudah dihitung (totalNilaiJual-totalModal / totalNilaiJual).
+  _inventoryDecision() {
+    if (typeof ShopBusinessEnginePresenter === 'undefined') return { ok: false };
+    const inv = ShopBusinessEnginePresenter.summary().inventory;
+    if (!inv.ok) return { ok: false };
+    const potensiMarginPct = (typeof ProfitEngine !== 'undefined')
+      ? ProfitEngine.margin(inv.totalNilaiJual, inv.totalNilaiJual - inv.totalModal) : 0;
+    return { ok: true, totalModal: inv.totalModal, totalNilaiJual: inv.totalNilaiJual, potensiMarginPct };
+  },
+
+  // _supplierDecision() — 100% reuse InventoryEngine.restockScan()
+  // (S198, via StockRekoWidget.scan()) + PurchaseEngine.produsenPrice()
+  // (S198, lookup product.hargaByProdusen[produsenId] yang SUDAH ADA) +
+  // D.produsen (SUDAH ADA). TIDAK ADA rumus baru selain Math.min() harga
+  // supplier yang sudah tersimpan per produk, dipakai untuk menjawab
+  // "beli restock ini dari produsen mana yang paling murah".
+  _supplierDecision() {
+    if (typeof InventoryEngine === 'undefined' || typeof PurchaseEngine === 'undefined') return { ok: false };
+    const scan = InventoryEngine.restockScan();
+    if (!scan.ok || !scan.items.length) return { ok: true, itemCount: 0, withPriceCount: 0, missingPriceCount: 0, cheapestSupplier: null };
+    const produsenList = (typeof D !== 'undefined' && D.produsen) || [];
+    let withPriceCount = 0;
+    const cheapestCount = {};
+    scan.items.forEach(({ product }) => {
+      const prices = produsenList
+        .map((pr) => ({ produsen: pr, price: PurchaseEngine.produsenPrice(product, pr.id) }))
+        .filter((x) => x.price != null);
+      if (!prices.length) return;
+      withPriceCount++;
+      const cheapest = prices.reduce((min, x) => (x.price < min.price ? x : min), prices[0]);
+      const name = cheapest.produsen.name || cheapest.produsen.id;
+      cheapestCount[name] = (cheapestCount[name] || 0) + 1;
+    });
+    const ranked = Object.keys(cheapestCount).sort((a, b) => cheapestCount[b] - cheapestCount[a]);
+    return {
+      ok: true,
+      itemCount: scan.items.length,
+      withPriceCount,
+      missingPriceCount: scan.items.length - withPriceCount,
+      cheapestSupplier: ranked.length ? { name: ranked[0], count: cheapestCount[ranked[0]] } : null,
+    };
+  },
+
+  // === 3. Trend Analytics (7/30 hari) ====================================
+  // trend(days) — kelompokkan D.cobek (SELF) `days` hari terakhir
+  // (termasuk hari ini) per tanggal, tiap bucket harian & totalnya dihitung
+  // lewat ProfitEngine.summarize() yang SUDAH ADA — 0 rumus omzet/untung/
+  // margin baru.
+  trend(days) {
+    if (typeof ProfitEngine === 'undefined') return { ok: false };
+    const now = new Date();
+    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const from = new Date(todayEnd.getTime() - days * 24 * 60 * 60 * 1000);
+    const list = this._cobekBetween(from, todayEnd);
+
+    const buckets = {};
+    list.forEach((t) => {
+      const key = this._dateKey(new Date(t.date));
+      (buckets[key] = buckets[key] || []).push(t);
+    });
+    const series = Object.keys(buckets).sort().map((date) => Object.assign({ date }, ProfitEngine.summarize(buckets[date])));
+    const total = ProfitEngine.summarize(list);
+    return { ok: true, days, from: from.toISOString(), to: todayEnd.toISOString(), series, total };
+  },
+
+  // === 4. Executive Summary (Hari/Minggu/Bulan/Tahun) ====================
+  executiveSummary() {
+    if (typeof ProfitEngine === 'undefined') return { ok: false };
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const yearStart = new Date(now.getFullYear(), 0, 1);
+    const yearEnd = new Date(now.getFullYear() + 1, 0, 1);
+
+    const hari = ProfitEngine.summarize(this._cobekBetween(todayStart, todayEnd));
+    // Minggu: reuse trend(7).total (metodologi bucket SAMA, 0 filter baru).
+    const trend7 = this.trend(7);
+    const minggu = trend7.ok ? trend7.total : ProfitEngine.summarize([]);
+    // Bulan: 100% reuse BusinessFlowPresenter.businessKPI() APA ADANYA (0 recompute).
+    let bulan = null;
+    if (typeof BusinessFlowPresenter !== 'undefined') {
+      const kpi = BusinessFlowPresenter.businessKPI();
+      bulan = { trip: kpi.tripBulanIni, omzet: kpi.omzetBulanIni, untung: kpi.untungBulanIni, marginPct: kpi.marginPctBulanIni };
+    } else {
+      bulan = ProfitEngine.summarize(this._cobekBetween(new Date(now.getFullYear(), now.getMonth(), 1), new Date(now.getFullYear(), now.getMonth() + 1, 1)));
+    }
+    const tahun = ProfitEngine.summarize(this._cobekBetween(yearStart, yearEnd));
+
+    return { ok: true, hari, minggu, bulan, tahun };
+  },
+
+  // === 5. AI Insight (maks. 3) ===========================================
+  // 100% reuse ShopInsight.compute() (modules/ai/feature-insights.js, satu
+  // sumber sama dgn kartu "💡 Insight Bisnis Shop" yang sudah ada) — TIDAK
+  // ADA rule/insight baru ditulis di sini, murni prioritaskan &  potong 3.
+  aiInsight() {
+    if (typeof ShopInsight === 'undefined') return [];
+    const LEVEL_ORDER = { danger: 0, warning: 1, good: 2, info: 3 };
+    const items = ShopInsight.compute().slice();
+    items.sort((a, b) => (LEVEL_ORDER[a.level] ?? 9) - (LEVEL_ORDER[b.level] ?? 9));
+    return items.slice(0, 3);
+  },
+
+  // === Drill Down (Sesi 252) =============================================
+  // PRINSIP (sama seperti presenter murni di atas): drill down HANYA
+  // merangkai ulang (repackage) hasil healthScore()/decisionPanel()/trend()/
+  // executiveSummary()/aiInsight() yang SUDAH dihitung di atas — 0 rumus
+  // baru, 0 field D baru, TIDAK PERNAH memanggil save() (read-only). Modal
+  // detailnya sendiri (`#biDrillDownModal`) ditulis LANGSUNG di index.html
+  // (bukan lewat modals.js/MODAL_HTML) supaya tetap 1 file kontainer per
+  // sesi ini, tapi 100% pakai class CSS yang SUDAH ADA (.overlay/.modal/
+  // .modal-handle/.modal-title/.modal-close) — 0 CSS baru. `openModal()`/
+  // `closeModal()` yang dipanggil di sini juga SUDAH ADA (modal-navigasi.js).
+  //
+  // openDrillDown(section, sub) — dipanggil dari data-action pada tiap
+  // card yang di-render _renderHealthScore/_renderDecisionPanel/_renderTrend/
+  // _renderExecutiveSummary/_renderAiInsight di bawah.
+  //   section: 'health' | 'decision' | 'trend' | 'exec' | 'insight'
+  //   sub: tergantung section ('restock'/'pricing'/'inventory'/'supplier'
+  //        utk 'decision'; 7/30 utk 'trend'; 'hari'/'minggu'/'bulan'/'tahun'
+  //        utk 'exec'; tidak dipakai utk 'health'/'insight').
+  openDrillDown(section, sub) {
+    const { title, html } = this._drillContent(section, sub);
+    this._showDrillModal(title, html);
+  },
+
+  // _drillContent(section, sub) — fungsi MURNI (tanpa DOM), gampang dites:
+  // menerima kunci section/sub, balikin {title, html} siap-tampil dari data
+  // yang SUDAH dihitung healthScore()/decisionPanel()/trend()/
+  // executiveSummary()/aiInsight()/ShopInsight.compute() — 0 hitungan baru.
+  _drillContent(section, sub) {
+    if (section === 'health') return this._drillHealth();
+    if (section === 'decision') return this._drillDecision(sub);
+    if (section === 'trend') return this._drillTrend(sub);
+    if (section === 'exec') return this._drillExec(sub);
+    if (section === 'insight') return this._drillInsight();
+    return { title: 'Detail', html: '<div class="u-fs12 u-t2">Data tidak tersedia.</div>' };
+  },
+
+  _drillHealth() {
+    const hs = this.healthScore();
+    if (!hs.ok) {
+      return { title: '❤️ Detail Business Health Score', html: '<div class="u-fs12 u-t2 u-lh15">Belum ada data transaksi Shop bulan ini.</div>' };
+    }
+    const rows = hs.parts.map((p) => {
+      const pct = Math.round((p.score / p.weight) * 100);
+      return `<div class="u-fs12 u-lh15 u-mb8">${escapeHtml(this._partLabel(p.key))}: <b>${pct}%</b> (bobot ${p.weight})</div>`;
+    }).join('');
+    const header = `<div class="u-fs12 u-lh15 u-mb8">Skor total: <b>${hs.score}/100</b> — ${escapeHtml(hs.label)}</div>`;
+    return { title: '❤️ Detail Business Health Score', html: header + rows };
+  },
+
+  // _drillDecision(sub) — 100% reuse decisionPanel() (sudah 100% reuse
+  // summary()/costPricingKPI()/restockScan()/produsenPrice()), murni
+  // menampilkan field yang sudah ada per sub-kartu, tidak menghitung ulang.
+  _drillDecision(sub) {
+    const d = this.decisionPanel();
+    if (sub === 'pricing') {
+      const p = d.pricing;
+      const html = !p.ok ? 'Belum ada data trip.'
+        : `Jumlah trip: <b>${p.tripCount}</b><br>Margin rata-rata: <b>${Math.round(p.avgMarginPct)}%</b><br>Cost rata-rata/trip: <b>${escapeHtml(this._money(p.avgCostPerTrip))}</b><br>Trip bermargin tipis (&lt;10%): <b>${p.thinMarginCount}</b>`;
+      return { title: '💰 Detail Decision: Pricing', html: `<div class="u-fs12 u-lh15">${html}</div>` };
+    }
+    if (sub === 'inventory') {
+      const inv = d.inventory;
+      const html = !inv.ok ? 'Data belum tersedia.'
+        : `Total modal stok: <b>${escapeHtml(this._money(inv.totalModal))}</b><br>Total nilai jual stok: <b>${escapeHtml(this._money(inv.totalNilaiJual))}</b><br>Potensi margin: <b>${Math.round(inv.potensiMarginPct)}%</b>`;
+      return { title: '📦 Detail Decision: Inventory', html: `<div class="u-fs12 u-lh15">${html}</div>` };
+    }
+    if (sub === 'supplier') {
+      const s = d.supplier;
+      const html = (!s.ok || s.itemCount === 0) ? 'Tidak ada restock aktif saat ini.'
+        : `Produk perlu restock: <b>${s.itemCount}</b><br>Sudah ada harga supplier: <b>${s.withPriceCount}</b><br>Belum ada harga supplier: <b>${s.missingPriceCount}</b>${s.cheapestSupplier ? `<br>Produsen termurah: <b>${escapeHtml(s.cheapestSupplier.name)}</b> (unggul di ${s.cheapestSupplier.count}/${s.withPriceCount} produk)` : ''}`;
+      return { title: '🏭 Detail Decision: Supplier', html: `<div class="u-fs12 u-lh15">${html}</div>` };
+    }
+    // default: restock
+    const r = d.restock;
+    const html = !r.ok ? 'Data belum tersedia.'
+      : (!r.needed ? 'Semua stok produk aman, tidak perlu restock saat ini.'
+        : `Perlu restock <b>${r.itemCount}</b> produk (total <b>${r.totalQty}</b> pcs).<br>Estimasi modal: <b>${escapeHtml(this._money(r.totalCost))}</b>.`);
+    return { title: '🧾 Detail Decision: Restock', html: `<div class="u-fs12 u-lh15">${html}</div>` };
+  },
+
+  // _drillTrend(days) — 100% reuse trend(days) (bucket harian sudah
+  // dihitung lewat ProfitEngine.summarize()), murni ditampilkan per-hari.
+  _drillTrend(days) {
+    const t = this.trend(Number(days) || 7);
+    if (!t.ok) return { title: '📈 Detail Trend', html: '<div class="u-fs12 u-t2">Data belum tersedia.</div>' };
+    const header = `<div class="u-fs12 u-lh15 u-mb8">Total ${t.days} hari terakhir: ${t.total.trip} trip · Omzet <b>${escapeHtml(this._money(t.total.omzet))}</b> · Untung <b>${escapeHtml(this._money(t.total.untung))}</b> · Margin <b>${Math.round(t.total.marginPct)}%</b></div>`;
+    const rows = t.series.length
+      ? t.series.map((s) => `<div class="u-fs12 u-lh15 u-mb8">${escapeHtml(s.date)} — ${s.trip} trip · ${escapeHtml(this._money(s.omzet))} · untung ${escapeHtml(this._money(s.untung))} · margin ${Math.round(s.marginPct)}%</div>`).join('')
+      : '<div class="u-fs12 u-t2">Belum ada transaksi di periode ini.</div>';
+    return { title: `📈 Detail Trend ${t.days} Hari Terakhir`, html: header + rows };
+  },
+
+  // _drillExec(period) — 100% reuse executiveSummary() (Bulan reuse
+  // businessKPI() apa adanya, Minggu reuse trend(7).total, Hari/Tahun
+  // dihitung lewat ProfitEngine.summarize() yang sama) — 0 recompute.
+  _drillExec(period) {
+    const s = this.executiveSummary();
+    if (!s.ok) return { title: '🗂️ Detail Executive Summary', html: '<div class="u-fs12 u-t2">Data belum tersedia.</div>' };
+    const labels = { hari: '📅 Detail Hari Ini', minggu: '🗓️ Detail Minggu Ini (7 hari)', bulan: '📆 Detail Bulan Ini', tahun: '🧭 Detail Tahun Ini' };
+    const data = s[period] || s.hari;
+    // BUGFIX (drilldown): utk period 'bulan', field `trip` = jumlah trip
+    // PENGIRIMAN (businessKPI().tripBulanIni, TripPresenter) — beda makna
+    // dgn hari/minggu/tahun yang field `trip`-nya = jumlah TRANSAKSI
+    // (ProfitEngine.summarize().trip). Bulan ini bisa saja ada omzet/
+    // untung penjualan real tapi 0 trip pengiriman — cek presence data
+    // TIDAK BOLEH cuma lihat `trip`, harus ikut cek omzet/untung juga
+    // supaya tidak salah bilang "belum ada transaksi" padahal ada.
+    const hasData = !!(data && (data.trip || data.omzet || data.untung));
+    const html = !hasData
+      ? 'Belum ada transaksi di periode ini.'
+      : `Jumlah trip: <b>${data.trip}</b><br>Omzet: <b>${escapeHtml(this._money(data.omzet))}</b><br>Untung: <b>${escapeHtml(this._money(data.untung))}</b><br>Margin: <b>${Math.round(data.marginPct)}%</b>`;
+    return { title: labels[period] || 'Detail Executive Summary', html: `<div class="u-fs12 u-lh15">${html}</div>` };
+  },
+
+  // _drillInsight() — 100% reuse ShopInsight.compute() TANPA dipotong 3
+  // (beda dgn aiInsight() yang dipotong 3 utk kartu ringkas) — TIDAK ADA
+  // rule/insight baru, murni menampilkan daftar lengkap yang sama.
+  _drillInsight() {
+    if (typeof ShopInsight === 'undefined') return { title: '💡 Detail AI Insight', html: '<div class="u-fs12 u-t2">Belum ada data.</div>' };
+    const items = ShopInsight.compute();
+    if (!items.length) return { title: '💡 Detail AI Insight', html: '<div class="u-fs12 u-t2 u-lh15">Belum ada rekomendasi khusus — data Shop bulan ini terlihat wajar.</div>' };
+    const html = items.map((x) => `<div class="u-fs12 u-lh15 u-mb8">${x.icon} ${x.text}</div>`).join('');
+    return { title: '💡 Semua Insight Bisnis Shop', html };
+  },
+
+  // _showDrillModal(title, html) — satu-satunya titik sentuh DOM utk drill
+  // down: isi #biDrillDownTitle/#biDrillDownBody lalu openModal() (SUDAH
+  // ADA, modal-navigasi.js). Guard permisif kalau document/openModal tidak
+  // ada (mis. dites tanpa DOM) supaya TIDAK throw.
+  _showDrillModal(title, html) {
+    if (typeof document === 'undefined') return;
+    const titleEl = document.getElementById('biDrillDownTitle');
+    const bodyEl = document.getElementById('biDrillDownBody');
+    if (titleEl) titleEl.textContent = title;
+    if (bodyEl) bodyEl.innerHTML = html;
+    if (typeof openModal === 'function') openModal('biDrillDownModal');
+  },
+
+  // === render() — isi seluruh 5 kontainer di #shopTab-bi =================
+  render() {
+    this._renderHealthScore();
+    this._renderDecisionPanel();
+    this._renderTrend();
+    this._renderExecutiveSummary();
+    this._renderAiInsight();
+  },
+
+  _renderHealthScore() {
+    const el = (typeof document !== 'undefined') ? document.getElementById('biHealthScoreGrid') : null;
+    if (!el) return;
+    const hs = this.healthScore();
+    if (!hs.ok) {
+      el.innerHTML = `<div class="findash-card u-pointer" data-action="BusinessIntelligencePresenter.openDrillDown" data-args="${escapeHtml(JSON.stringify(['health']))}"><div class="findash-card-icon">❤️</div><div class="findash-card-body"><div class="findash-card-label">Business Health Score</div><div class="findash-card-val">—</div><div class="findash-card-sub">Belum ada data transaksi Shop bulan ini</div></div></div>`;
+      return;
+    }
+    const cls = hs.score >= 80 ? 'green' : hs.score >= 60 ? '' : hs.score >= 40 ? 'orange' : 'red';
+    const breakdown = hs.parts.map((p) => `${this._partLabel(p.key)} ${Math.round((p.score / p.weight) * 100)}%`).join(' · ');
+    // Sesi 252 (Drill Down): kartu jadi klik-able (data-action generik yang
+    // SUDAH ADA, lihat dispatcher document.addEventListener('click',...) di
+    // app-bootstrap.js) -> BusinessIntelligencePresenter.openDrillDown('health').
+    // 0 modal/logic baru dipanggil di sini, murni atribut HTML.
+    el.innerHTML = `
+      <div class="findash-card u-pointer" data-action="BusinessIntelligencePresenter.openDrillDown" data-args="${escapeHtml(JSON.stringify(['health']))}">
+        <div class="findash-card-icon">❤️</div>
+        <div class="findash-card-body">
+          <div class="findash-card-label">Business Health Score</div>
+          <div class="findash-card-val${cls ? ' ' + cls : ''}">${hs.score}/100 · ${escapeHtml(hs.label)}</div>
+          <div class="findash-card-sub">${escapeHtml(breakdown)}</div>
+        </div>
+      </div>`;
+  },
+
+  _partLabel(key) {
+    return { margin: 'Margin', restock: 'Restock', pricing: 'Pricing', delivery: 'Delivery' }[key] || key;
+  },
+
+  _renderDecisionPanel() {
+    const el = (typeof document !== 'undefined') ? document.getElementById('biDecisionPanelGrid') : null;
+    if (!el) return;
+    const d = this.decisionPanel();
+    const cards = [
+      this._restockCard(d.restock),
+      this._pricingCard(d.pricing),
+      this._inventoryCard(d.inventory),
+      this._supplierCard(d.supplier),
+    ];
+    // Sesi 252 (Drill Down): tiap kartu klik-able -> openDrillDown('decision', sub)
+    // pakai data-action generik yang SUDAH ADA — 0 modal/logic baru di sini.
+    el.innerHTML = cards.map((c) => `
+      <div class="findash-card u-pointer" data-action="BusinessIntelligencePresenter.openDrillDown" data-args="${escapeHtml(JSON.stringify(['decision', c.drillSub]))}">
+        <div class="findash-card-icon">${c.icon}</div>
+        <div class="findash-card-body">
+          <div class="findash-card-label">${escapeHtml(c.label)}</div>
+          <div class="findash-card-val${c.cls ? ' ' + c.cls : ''}">${escapeHtml(c.value)}</div>
+          ${c.sub ? `<div class="findash-card-sub">${escapeHtml(c.sub)}</div>` : ''}
+        </div>
+      </div>
+    `).join('');
+  },
+
+  _restockCard(r) {
+    if (!r.ok) return { icon: '🧾', label: 'Decision: Restock', value: '—', cls: '', sub: '', drillSub: 'restock' };
+    if (!r.needed) return { icon: '🧾', label: 'Decision: Restock', value: 'Tidak perlu restock', cls: '', sub: 'Stok semua produk aman', drillSub: 'restock' };
+    return { icon: '🧾', label: 'Decision: Restock', value: `Restock ${r.itemCount} produk sekarang`, cls: 'red', sub: `Estimasi modal ${this._money(r.totalCost)} (${r.totalQty} pcs)`, drillSub: 'restock' };
+  },
+
+  _pricingCard(p) {
+    if (!p.ok) return { icon: '💰', label: 'Decision: Pricing', value: 'Belum ada trip', cls: '', sub: '', drillSub: 'pricing' };
+    if (!p.review) return { icon: '💰', label: 'Decision: Pricing', value: 'Harga jual sehat', cls: '', sub: `Margin rata-rata ${Math.round(p.avgMarginPct)}%`, drillSub: 'pricing' };
+    return { icon: '💰', label: 'Decision: Pricing', value: `Review harga — ${p.thinMarginCount} trip margin tipis`, cls: 'red', sub: `Cost/trip rata-rata ${this._money(p.avgCostPerTrip)}`, drillSub: 'pricing' };
+  },
+
+  _inventoryCard(inv) {
+    if (!inv.ok) return { icon: '📦', label: 'Decision: Inventory', value: '—', cls: '', sub: '', drillSub: 'inventory' };
+    return { icon: '📦', label: 'Decision: Inventory', value: `Potensi margin stok ${Math.round(inv.potensiMarginPct)}%`, cls: '', sub: `Modal ${this._money(inv.totalModal)} · Nilai jual ${this._money(inv.totalNilaiJual)}`, drillSub: 'inventory' };
+  },
+
+  _supplierCard(s) {
+    if (!s.ok || s.itemCount === 0) return { icon: '🏭', label: 'Decision: Supplier', value: 'Tidak ada restock aktif', cls: '', sub: '', drillSub: 'supplier' };
+    if (!s.cheapestSupplier) return { icon: '🏭', label: 'Decision: Supplier', value: `${s.missingPriceCount} produk belum ada harga supplier`, cls: 'orange', sub: 'Lengkapi harga produsen per produk', drillSub: 'supplier' };
+    return { icon: '🏭', label: 'Decision: Supplier', value: `Termurah: ${s.cheapestSupplier.name}`, cls: '', sub: `Unggul di ${s.cheapestSupplier.count}/${s.withPriceCount} produk berharga${s.missingPriceCount ? ` · ${s.missingPriceCount} produk belum ada harga` : ''}`, drillSub: 'supplier' };
+  },
+
+  _renderTrend() {
+    const el = (typeof document !== 'undefined') ? document.getElementById('biTrendGrid') : null;
+    if (!el) return;
+    const t7 = this.trend(7);
+    const t30 = this.trend(30);
+    const cards = [this._trendCard('7 Hari Terakhir', t7, 7), this._trendCard('30 Hari Terakhir', t30, 30)];
+    // Sesi 252 (Drill Down): kartu klik-able -> openDrillDown('trend', days).
+    el.innerHTML = cards.map((c) => `
+      <div class="findash-card u-pointer" data-action="BusinessIntelligencePresenter.openDrillDown" data-args="${escapeHtml(JSON.stringify(['trend', c.days]))}">
+        <div class="findash-card-icon">📈</div>
+        <div class="findash-card-body">
+          <div class="findash-card-label">${escapeHtml(c.label)}</div>
+          <div class="findash-card-val">${escapeHtml(c.value)}</div>
+          ${c.sub ? `<div class="findash-card-sub">${escapeHtml(c.sub)}</div>` : ''}
+        </div>
+      </div>
+    `).join('');
+  },
+
+  _trendCard(label, t, days) {
+    if (!t.ok || t.total.trip === 0) return { label, value: 'Belum ada transaksi', sub: '', days };
+    return { label, value: `${t.total.trip} trip · margin ${Math.round(t.total.marginPct)}%`, sub: `Omzet ${this._money(t.total.omzet)} · Untung ${this._money(t.total.untung)} · ${t.series.length} hari aktif`, days };
+  },
+
+  _renderExecutiveSummary() {
+    const el = (typeof document !== 'undefined') ? document.getElementById('biExecSummaryGrid') : null;
+    if (!el) return;
+    const s = this.executiveSummary();
+    if (!s.ok) { el.innerHTML = ''; return; }
+    const cards = [
+      this._execCard('📅 Hari Ini', s.hari, 'hari'),
+      this._execCard('🗓️ Minggu Ini (7 hari)', s.minggu, 'minggu'),
+      this._execCard('📆 Bulan Ini', s.bulan, 'bulan'),
+      this._execCard('🧭 Tahun Ini', s.tahun, 'tahun'),
+    ];
+    // Sesi 252 (Drill Down): kartu klik-able -> openDrillDown('exec', period).
+    el.innerHTML = cards.map((c) => `
+      <div class="findash-card u-pointer" data-action="BusinessIntelligencePresenter.openDrillDown" data-args="${escapeHtml(JSON.stringify(['exec', c.period]))}">
+        <div class="findash-card-icon">${c.icon}</div>
+        <div class="findash-card-body">
+          <div class="findash-card-label">${escapeHtml(c.label)}</div>
+          <div class="findash-card-val">${escapeHtml(c.value)}</div>
+          ${c.sub ? `<div class="findash-card-sub">${escapeHtml(c.sub)}</div>` : ''}
+        </div>
+      </div>
+    `).join('');
+  },
+
+  _execCard(labelWithIcon, s, period) {
+    const [icon, ...rest] = labelWithIcon.split(' ');
+    const label = rest.join(' ');
+    if (!s || !s.trip) return { icon, label, value: 'Belum ada transaksi', sub: '', period };
+    return { icon, label, value: `${s.trip} trip · ${this._money(s.omzet)}`, sub: `Untung ${this._money(s.untung)} · Margin ${Math.round(s.marginPct)}%`, period };
+  },
+
+  // Sesi 252 (Drill Down): seluruh body kartu jadi klik-able -> openDrillDown
+  // ('insight') yang menampilkan SEMUA insight (bukan cuma 3 teratas), masih
+  // 100% reuse ShopInsight.compute() (0 rule baru), lihat _drillInsight().
+  _renderAiInsight() {
+    const el = (typeof document !== 'undefined') ? document.getElementById('biAiInsightBody') : null;
+    if (!el) return;
+    el.setAttribute('data-action', 'BusinessIntelligencePresenter.openDrillDown');
+    el.setAttribute('data-args', JSON.stringify(['insight']));
+    el.classList.add('u-pointer');
+    const items = this.aiInsight();
+    if (!items.length) { el.innerHTML = '<div class="u-fs12 u-t2 u-lh15">Belum ada rekomendasi khusus — data Shop bulan ini terlihat wajar.</div>'; return; }
+    el.innerHTML = items.map((x) => `<div class="u-fs12 u-lh15 u-mb8">${x.icon} ${x.text}</div>`).join('');
+  },
+
+};
+
+if (typeof window !== 'undefined') {
+  window.BusinessIntelligencePresenter = BusinessIntelligencePresenter;
 }
 
 // dana-kelolaan.js — Dana Kelolaan / Managed Funds (Sesi 195).
