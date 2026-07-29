@@ -42,37 +42,50 @@
 
 let _scannerSessionActive = false;
 let _scannerSessionPrevChrome = null;
-let _scannerSessionPrevFabDisplay = null;
 
-// Hotfix Scanner Session/FAB — FAB (`.keu-fab`, dipakai Finance/Shop/Laporan/
-// Car Notes, lihat styles.css) posisinya `position:fixed` sehingga TETAP
-// kepaint di atas overlay scanner (masalah yang sama persis dengan
-// #mainNav/#mainHeader yang sudah ditangani pauseUI() sejak Tahap 5/6) — FAB
-// harus ikut disembunyikan selama Exclusive Scanner Mode aktif. TIDAK
-// hardcode ID krn ada banyak instance FAB per halaman (keuFab/shopFab/
-// laporanFab/shopLaporanFab/carNotesFab, dst, & FAB baru masa depan) — pakai
-// `document.querySelectorAll('.keu-fab')` supaya otomatis mencakup semuanya,
-// termasuk FAB yang ditambah nanti tanpa perlu update file ini lagi.
-function _scannerSessionQueryFabs() {
-  if (typeof document === 'undefined' || typeof document.querySelectorAll !== 'function') return [];
-  try {
-    return Array.prototype.slice.call(document.querySelectorAll('.keu-fab'));
-  } catch (e) {
-    return [];
-  }
-}
+// AUDIT (Reference Counter): enter()/exit() DULU murni boolean (_active),
+// jadi rentan race kalau ada 2 pemanggil yang saling tidak tahu (mis.
+// sparepartScannerScan() orkestrasi enter() lalu adapter camera-nya sendiri
+// juga sempat enter() di path lain) — exit() pertama yang jalan akan
+// langsung resumeUI() walau pemanggil lain masih menganggap sesi aktif.
+// Sekarang pakai internal reference counter (_scannerSessionCount):
+// enter() menaikkan counter, HANYA pauseUI() kalau counter naik dari 0->1;
+// exit() menurunkan counter, HANYA resumeUI() kalau counter turun ke 0.
+// Public API TIDAK berubah (enter()/exit()/isActive() tetap sama, tetap
+// return boolean) — murni penguatan internal, 0 breaking change ke
+// pemanggil existing (vehicle-scanner.js/sparepart-scanner.js).
+let _scannerSessionCount = 0;
 
-// Style suspend modal/toast SELAMA scanner aktif — SAMA PERSIS aturan CSS
-// yang dulu dipasang blok camera-scan-active (modal-navigasi.js), cuma
-// selector class-nya diganti 'scanner-session-active' (di-toggle eksplisit
-// oleh pauseUI()/resumeUI() di bawah, bukan MutationObserver lagi) &
-// disuntik sekali di sini (idempotent, guard by id, pola sama persis
-// _camScanFixStyle yang digantikannya).
+// AUDIT (lanjutan PD-007): CSS sekarang jadi mekanisme UTAMA utk
+// menyembunyikan overlay & FAB selama Exclusive Scanner Mode aktif — bukan
+// lagi JS snapshot/restore per elemen (pola lama _scannerSessionQueryFabs()+
+// _scannerSessionPrevFabDisplay yang DIHAPUS sesi ini). Alasan: selector
+// generik (`.overlay.open`, `.keu-fab`, dst) otomatis meng-cover elemen yang
+// di-mount SETELAH enter() dipanggil (mis. FAB/modal baru), yang TIDAK bisa
+// dicover snapshot sekali-jalan berbasis querySelectorAll di pauseUI().
+// pauseUI()/resumeUI() jadi HANYA menangani state global sejati (toggle
+// class body + #mainNav/#mainHeader, yang memang butuh restore nilai
+// display ASLI, bukan sekadar '' vs 'none').
+//
+// Selector diperluas dari `.overlay.open` saja jadi mencakup SEMUA varian
+// overlay/modal fixed yang ada di app (root cause bug ditemukan saat audit:
+// `.qs-modal-overlay` & `.calc-overlay` PAKAI CLASS BERBEDA dari `.overlay`,
+// jadi TIDAK ke-cover rule lama — modal QuickSelect/Kalkulator bisa tetap
+// aktif di belakang scanner). Child combinator `>` juga DIHAPUS (rule lama
+// `body.scanner-session-active > .overlay.open` cuma match kalau `.overlay`
+// direct child <body> — modal yang nested di wrapper lain lolos dari
+// suppression).
 function _scannerSessionEnsureStyle() {
   if (document.getElementById('_scannerSessionStyle')) return;
   const style = document.createElement('style');
   style.id = '_scannerSessionStyle';
-  style.textContent = 'body.scanner-session-active > .overlay.open, body.scanner-session-active #toast{display:none !important;}';
+  style.textContent = [
+    'body.scanner-session-active .overlay.open{display:none !important;}',
+    'body.scanner-session-active .qs-modal-overlay{display:none !important;}',
+    'body.scanner-session-active .calc-overlay{display:none !important;}',
+    'body.scanner-session-active .keu-fab{display:none !important;}',
+    'body.scanner-session-active #toast{display:none !important;}',
+  ].join('');
   document.head.appendChild(style);
 }
 
@@ -93,9 +106,9 @@ function scannerSessionPauseUI() {
   };
   if (nav) nav.style.display = 'none';
   if (header) header.style.display = 'none';
-  const fabs = _scannerSessionQueryFabs();
-  _scannerSessionPrevFabDisplay = fabs.map((el) => ({ el, display: el.style.display }));
-  fabs.forEach((el) => { el.style.display = 'none'; });
+  // FAB (.keu-fab) TIDAK lagi di-snapshot/di-hide di sini — ditangani CSS
+  // (`_scannerSessionEnsureStyle()`) via class body.scanner-session-active,
+  // di-toggle di baris berikut.
   document.body.classList.add('scanner-session-active');
 }
 
@@ -110,12 +123,6 @@ function scannerSessionResumeUI() {
     if (header) header.style.display = _scannerSessionPrevChrome.headerDisplay || '';
   }
   _scannerSessionPrevChrome = null;
-  if (_scannerSessionPrevFabDisplay) {
-    _scannerSessionPrevFabDisplay.forEach((entry) => {
-      entry.el.style.display = entry.display || '';
-    });
-  }
-  _scannerSessionPrevFabDisplay = null;
   document.body.classList.remove('scanner-session-active');
 }
 
@@ -124,7 +131,13 @@ function scannerSessionResumeUI() {
 // jalan) — no-op kalau sudah aktif, supaya _scannerSessionPrevChrome asli
 // tidak ketiban nilai 'none' dari sesi scanner sebelumnya.
 function scannerSessionEnter() {
-  if (_scannerSessionActive) return false;
+  _scannerSessionCount++;
+  if (_scannerSessionCount > 1) {
+    // Sudah ada sesi aktif (nested enter()) — cuma naikkan counter, TIDAK
+    // pauseUI() lagi (supaya _scannerSessionPrevChrome asli tidak ketiban
+    // nilai dari enter() ke-2), no-op sama seperti guard lama.
+    return false;
+  }
   _scannerSessionActive = true;
   scannerSessionPauseUI();
   if (typeof AIBus !== 'undefined' && AIBus && typeof AIBus.emit === 'function') {
@@ -137,7 +150,19 @@ function scannerSessionEnter() {
 // walau enter() belum pernah/gagal (mis. Scanner Engine error sebelum sempat
 // enter()) — no-op kalau memang belum aktif.
 function scannerSessionExit() {
-  if (!_scannerSessionActive) return false;
+  if (_scannerSessionCount <= 0) {
+    // exit() dipanggil walau tidak ada enter() yang "berhutang" (belum
+    // pernah enter(), atau sudah di-exit() sampai 0 sebelumnya) — no-op,
+    // JANGAN turun ke negatif (kalau tidak, enter() berikutnya butuh 2x
+    // exit() baru resumeUI(), padahal counter seharusnya sudah balik ke 0).
+    return false;
+  }
+  _scannerSessionCount--;
+  if (_scannerSessionCount > 0) {
+    // Masih ada sesi lain yang "berhutang" exit() (nested enter()) — belum
+    // boleh resumeUI(), tunggu exit() yang menurunkan counter ke 0.
+    return false;
+  }
   _scannerSessionActive = false;
   scannerSessionResumeUI();
   if (typeof AIBus !== 'undefined' && AIBus && typeof AIBus.emit === 'function') {

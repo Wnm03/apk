@@ -4,6 +4,13 @@
 // dari teks), wrapper tab/tombol UI ringan, ShopExport (ekspor XLSX), ImportShopExcel (impor
 // dari file Excel). Bagian ke-5 (terakhir) dari 5 hasil pemecahan cobek.js — lihat catatan
 // urutan load di cobek-etalase.js.
+//
+// Sesi ini (Bagian B, DESIGN_torsi-vehicle-selector_shop-import-export-2.md,
+// §B.3.2 Import PDF): tambah `ImportKatalog.parseText(text)`, wrapper publik
+// TIPIS di atas `_parse()` yang sudah ada (dipakai `preview()`) — supaya
+// regex parsing "Nama Rp30.000"/"Nama 60rb"/kategori-tanpa-harga jadi 1
+// SUMBER KEBENARAN yang dipakai bareng oleh paste manual & Import PDF Shop
+// (modules/business/shop-pdf-import-ui.js, baru) — 0 logic parsing baru.
 
 const ImportKatalog={
 parsed:[],
@@ -54,6 +61,16 @@ currentCat=line;
 }
 return items;
 },
+// parseText(text) — wrapper publik TIPIS di atas _parse() (dipakai internal
+// oleh preview() di atas), supaya ATURAN PARSING (format "Nama Rp30.000" /
+// "Nama 60rb", baris tanpa harga = kategori) punya 1 SUMBER KEBENARAN yang
+// dipakai bareng oleh paste manual (importKatalogModal, lewat preview()) &
+// Import PDF Shop (shop-pdf-import-ui.js) sekaligus — TIDAK ada regex/logic
+// parsing baru/duplikat di file lain. Return shape SAMA PERSIS _parse():
+// {name, price, kategori}[].
+parseText(text){
+return this._parse(text||'');
+},
 preview(){
 const ta=document.getElementById('importKatalogText');
 const text=ta?ta.value:'';
@@ -86,28 +103,25 @@ html+=`<div style="display:flex;justify-content:space-between;gap:8px;padding:4p
 box.innerHTML=html;
 if(btn)btn.disabled=false;
 },
+// commit() — DIREROUTE ke ShopDataIO.commitShopRows() (shop-data-io-api.js,
+// §B.4) sbg SATU-SATUNYA sumber logic match-by-name + create/update produk,
+// dipakai bareng Scan/PDF/CSV. Perilaku Paste TIDAK berubah: hargaJual
+// selalu diisi dari it.price; target 'reseller' TAMBAH mengisi
+// hargaReseller, target 'beli' TAMBAH mengisi hargaBeli — dipetakan lewat
+// field rows opsional (kategori/hargaJual/hargaReseller/hargaBeli), bukan
+// diduplikasi ulang di sini.
 commit(){
 if(!this.parsed||!this.parsed.length){toast('⚠️ Klik Pratinjau dulu sebelum Import');return;}
-let created=0,updated=0;
-this.parsed.forEach(it=>{
-const kategoriId=it.kategori?resolveShopKategori(it.kategori):'';
-let product=D.products.find(p=>p.name.toLowerCase()===it.name.toLowerCase());
-if(product){
-product.hargaJual=it.price;
-if(this.target==='reseller')product.hargaReseller=it.price;
-else if(this.target==='beli')product.hargaBeli=it.price;
-if(kategoriId)product.kategoriId=kategoriId;
-updated++;
-} else {
-product={id:'prod_'+Date.now()+'_'+uid(),name:it.name,stock:0,hargaBeli:(this.target==='beli'?it.price:0),hargaJual:it.price,hargaReseller:(this.target==='reseller'?it.price:null),diskonPersen:0,kategoriId,produsenId:'',hargaByProdusen:{}};
-D.products.push(product);
-created++;
-}
+const rows=this.parsed.map(it=>{
+const row={nama:it.name,kategori:it.kategori,hargaJual:it.price};
+if(this.target==='reseller')row.hargaReseller=it.price;
+else if(this.target==='beli')row.hargaBeli=it.price;
+return row;
 });
-save();
+const res=ShopDataIO.commitShopRows(rows);
 closeModal('importKatalogModal');
 renderProductList();
-toast(`✅ Import selesai: ${created} produk baru, ${updated} diperbarui`);
+toast(`✅ Import selesai: ${res.created} produk baru, ${res.updated} diperbarui`);
 this.parsed=[];
 }
 };

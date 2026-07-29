@@ -4,7 +4,7 @@
 // data-default.js (v79) — file itu HARUS dimuat SEBELUM file ini karena dibaca langsung di `let D = {...}`.
 // PENTING: file ini HARUS dimuat sesuai urutan build.js (GROUP_A/GROUP_B) karena beberapa modul saling referensi. Urutan grup ini: data-default.js, features-helpers-global-security.js, diagnostik-versi.js, format-tema.js, error-handler.js, helper-teks.js, keamanan-pin.js, modal-navigasi.js, reset-gaji-mingguan.js, debug-console.js, pengaturan-search.js, onboarding.js, kalkulator-input.js, scan-ocr.js, akun.js, gaji-calc.js, transaksi.js, profil-pengaturan.js, kategori.js, tagihan-kalender.js, backup-restore.js, payroll-absensi.js, tukang-absensi.js
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 const DATA_MIGRATIONS=[
 {toVersion:2,desc:'Tambah kategori baku Investasi & Sedekah/Donasi (pengeluaran) utk user lama',migrate(d){
 if(!d.categories||!d.categories.expense)return;
@@ -19,6 +19,11 @@ exp.splice(Math.max(0,exp.length-1),0,{id:'cat_sedekah',name:'Sedekah/Donasi',em
 {toVersion:3,desc:'Tambah id ke entri gajiMingguanHistory lama (dulu tidak punya id unik -- dibutuhkan sekarang karena modul ini ikut disync ke Google Sheets, yang butuh id per-baris utk diffing)',migrate(d){
 if(!Array.isArray(d.gajiMingguanHistory))return;
 d.gajiMingguanHistory.forEach(h=>{ if(!h.id) h.id=uid(); });
+}},
+{toVersion:4,desc:'Torsi: pindahkan D.torsiChecklist flat lama (jaring pengaman) ke kendaraan pertama -- lihat TorsiVehicleAPI._migrateFlatToPerVehicle() (modules/vehicle/torsi-vehicle-api.js). Sesi "Revisi migrasi" (DESIGN_torsi-vehicle-selector_shop-import-export.md, Bagian A.2): menggantikan mekanisme flag D._migratedTorsiVehicle -- 0 logic baru, cuma dipindah ke jalur migrasi formal supaya ikut ter-trigger juga saat restore JSON.',migrate(d){
+if(typeof TorsiVehicleAPI!=='undefined'&&typeof TorsiVehicleAPI._migrateFlatToPerVehicle==='function'){
+TorsiVehicleAPI._migrateFlatToPerVehicle(d);
+}
 }},
 ];
 function runDataMigrations(fromVersion){
@@ -43,8 +48,8 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1')return true;
 }catch(e){ /* anggap bukan dev mode kalau gagal deteksi */ }
 return false;
 }
-const APP_BUILD_VERSION = 's331-sync-katalog-sparepart-updated';
-const PRODUCTION_BUILD_SYNCED_VERSION = 's331-sync-katalog-sparepart-updated';
+const APP_BUILD_VERSION = 's16-shop-scan-nota-struk';
+const PRODUCTION_BUILD_SYNCED_VERSION = 's16-shop-scan-nota-struk';
 let D = {
 schemaVersion:SCHEMA_VERSION,
 transactions:[],cobek:[],products:[],produsen:[],cobekKategori:JSON.parse(JSON.stringify(DEFAULT_COBEK_KATEGORI)),targets:[],eduFunds:[],reminders:[],bills:[],billsArchive:[],inventoryTransfers:[],
@@ -375,6 +380,14 @@ if(!D.bills) D.bills=[];
 if(!D.billsArchive) D.billsArchive=[];
 if(!D.vehicles||!D.vehicles.length) D.vehicles=[{id:'veh_1',name:'Vario 125',emoji:'🏍️',serviceIntervalKm:3000}];
 D.vehicles.forEach(v=>{if(!v.serviceIntervalKm)v.serviceIntervalKm=3000;});
+if(!D.torsiChecklist||typeof D.torsiChecklist!=='object'||Array.isArray(D.torsiChecklist)) D.torsiChecklist={};
+// Sesi "Revisi migrasi" (torsi-vehicle-selector, Bagian A): migrasi jaring
+// pengaman D.torsiChecklist flat->per-kendaraan SUDAH ditangani otomatis
+// lewat DATA_MIGRATIONS (toVersion:4) + runDataMigrations() di atas (baris
+// ~318, dipanggil SEBELUM blok default ini) -- lihat
+// TorsiVehicleAPI._migrateFlatToPerVehicle(). Tidak perlu pemanggilan ad hoc
+// terpisah di sini lagi (dulu initTorsiVehicleMigration() + flag
+// D._migratedTorsiVehicle, sekarang dihapus).
 if(!D.simList) D.simList=[];
 if(!D.bbmLogs) D.bbmLogs=[];
 if(!D.servisLogs) D.servisLogs=[];
