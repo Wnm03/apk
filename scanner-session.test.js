@@ -21,11 +21,13 @@
 // tests/dash-card-show-hide.test.js, karena scanner-session.js baca/tulis
 // document.getElementById/classList/style langsung.
 //
-// HOTFIX Scanner Session/FAB (lanjutan Tahap 6): + cakupan hide/restore
-// seluruh `.keu-fab` via `document.querySelectorAll('.keu-fab')` di
-// pauseUI()/resumeUI() — fake DOM di bawah diperluas dgn `querySelectorAll()`
-// (selector class sederhana, cukup utk kebutuhan source) & opsi daftar FAB
-// dinamis (`fabs`), TANPA mengubah satu pun test lama di atas garis ini.
+// AUDIT (menggantikan hotfix querySelectorAll('.keu-fab') lama): FAB & semua
+// varian overlay (.overlay.open/.qs-modal-overlay/.calc-overlay) sekarang
+// disembunyikan MURNI lewat CSS (stylesheet yang disuntik
+// _scannerSessionEnsureStyle()) — pauseUI()/resumeUI() tidak lagi
+// menyimpan/menulis style.display FAB. `querySelectorAll()` di fake DOM di
+// bawah dipertahankan (masih dipakai test lama yang membangun fabs via
+// makeFab()) walau source tidak lagi memanggilnya utk FAB.
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -265,69 +267,46 @@ test('window.ScannerSession expose semua method publik', () => {
 });
 
 // ============================================================
-// HOTFIX Scanner Session/FAB — hide/restore seluruh `.keu-fab` (dinamis via
-// querySelectorAll, TIDAK hardcode ID), pola & guard sama persis
-// #mainNav/#mainHeader.
+// AUDIT (menggantikan blok "HOTFIX Scanner Session/FAB" lama) — FAB
+// (.keu-fab) & overlay (.overlay.open/.qs-modal-overlay/.calc-overlay)
+// SEKARANG disembunyikan murni lewat CSS (rule di stylesheet yang disuntik
+// _scannerSessionEnsureStyle()), BUKAN lagi JS snapshot/restore per elemen
+// (querySelectorAll('.keu-fab') + style.display dihapus dari pauseUI()/
+// resumeUI()). Konsekuensinya: pauseUI()/resumeUI() TIDAK LAGI menyentuh
+// style.display FAB sama sekali — tesnya dibalik jadi "style.display FAB
+// TIDAK berubah", dan cakupan CSS-nya dites lewat isi stylesheet yang
+// disuntik.
 // ============================================================
 
-test('scannerSessionEnter() — semua .keu-fab disembunyikan (style.display="none")', () => {
+test('scannerSessionEnter() — style.display .keu-fab TIDAK disentuh JS (disembunyikan via CSS, bukan inline style)', () => {
   const keuFab = makeFab('keuFab');
   const shopFab = makeFab('shopFab');
   keuFab.style.display = 'flex';
   shopFab.style.display = 'flex';
   const { ctx } = makeCtx({}, {}, [keuFab, shopFab]);
   ctx.scannerSessionEnter();
-  assert.equal(keuFab.style.display, 'none');
-  assert.equal(shopFab.style.display, 'none');
-});
-
-test('scannerSessionExit() — semua .keu-fab dikembalikan ke display asli masing-masing (round-trip)', () => {
-  const keuFab = makeFab('keuFab');
-  const shopFab = makeFab('shopFab');
-  keuFab.style.display = 'flex';
-  shopFab.style.display = 'grid'; // sengaja beda, supaya tidak lolos kalau kode nge-hardcode 1 nilai untuk semua
-  const { ctx } = makeCtx({}, {}, [keuFab, shopFab]);
-  ctx.scannerSessionEnter();
+  assert.equal(keuFab.style.display, 'flex', 'pauseUI() tidak boleh lagi menulis style.display FAB');
+  assert.equal(shopFab.style.display, 'flex');
   ctx.scannerSessionExit();
-  assert.equal(keuFab.style.display, 'flex');
-  assert.equal(shopFab.style.display, 'grid');
+  assert.equal(keuFab.style.display, 'flex', 'resumeUI() juga tidak menyentuh — tidak ada apa pun utk di-restore');
+  assert.equal(shopFab.style.display, 'flex');
 });
 
-test('multiple enter()/exit() berturut-turut — display FAB tidak drift (tetap sama persis nilai awal tiap putaran)', () => {
-  const keuFab = makeFab('keuFab');
-  keuFab.style.display = 'flex';
-  const { ctx } = makeCtx({}, {}, [keuFab]);
-  for (let i = 0; i < 5; i += 1) {
-    ctx.scannerSessionEnter();
-    assert.equal(keuFab.style.display, 'none', `putaran ke-${i + 1}: harus none saat aktif`);
-    ctx.scannerSessionExit();
-    assert.equal(keuFab.style.display, 'flex', `putaran ke-${i + 1}: harus kembali 'flex', tidak drift`);
-  }
-});
-
-test('scannerSessionEnter() — guard anti-dobel juga melindungi FAB: enter() ke-2 tidak menimpa display asli yang tersimpan', () => {
-  const keuFab = makeFab('keuFab');
-  keuFab.style.display = 'flex';
-  const { ctx } = makeCtx({}, {}, [keuFab]);
-  ctx.scannerSessionEnter();
-  keuFab.style.display = 'CUSTOM'; // simulasikan sesuatu menimpa manual selagi aktif
-  const result2 = ctx.scannerSessionEnter();
-  assert.equal(result2, false);
-  ctx.scannerSessionExit();
-  assert.equal(keuFab.style.display, 'flex', 'harus tetap restore ke nilai ASLI sebelum enter() pertama, bukan CUSTOM');
-});
-
-test('scannerSessionExit() dipanggil dua kali berturut-turut (double exit) — ke-2 no-op, FAB tidak berubah lagi', () => {
-  const keuFab = makeFab('keuFab');
-  keuFab.style.display = 'flex';
-  const { ctx } = makeCtx({}, {}, [keuFab]);
-  ctx.scannerSessionEnter();
-  const result1 = ctx.scannerSessionExit();
-  assert.equal(result1, true);
-  assert.equal(keuFab.style.display, 'flex');
-  const result2 = ctx.scannerSessionExit();
-  assert.equal(result2, false, 'exit() ke-2 harus no-op');
-  assert.equal(keuFab.style.display, 'flex', 'tidak berubah lagi setelah double exit');
+test('_scannerSessionEnsureStyle() — stylesheet berisi rule suppression utk .keu-fab, .overlay.open, .qs-modal-overlay, .calc-overlay, #toast', () => {
+  const { ctx, document } = makeCtx();
+  ctx.scannerSessionPauseUI();
+  const styleEl = document.head.children.find((c) => c.id === '_scannerSessionStyle');
+  assert.ok(styleEl, 'style _scannerSessionStyle harus ada di <head>');
+  const css = styleEl.textContent;
+  assert.match(css, /body\.scanner-session-active \.keu-fab\{display:none !important;\}/);
+  assert.match(css, /body\.scanner-session-active \.overlay\.open\{display:none !important;\}/);
+  assert.match(css, /body\.scanner-session-active \.qs-modal-overlay\{display:none !important;\}/);
+  assert.match(css, /body\.scanner-session-active \.calc-overlay\{display:none !important;\}/);
+  assert.match(css, /body\.scanner-session-active #toast\{display:none !important;\}/);
+  // Rule lama pakai child combinator `body.scanner-session-active > .overlay.open`
+  // — dihapus krn cuma match kalau `.overlay` direct child <body>. Pastikan
+  // TIDAK ada lagi `>` di rule .overlay.open.
+  assert.doesNotMatch(css, />\s*\.overlay\.open/);
 });
 
 test('enter()/exit() — tidak ada .keu-fab sama sekali di DOM -> tidak throw, nav/header tetap normal', () => {
@@ -339,7 +318,7 @@ test('enter()/exit() — tidak ada .keu-fab sama sekali di DOM -> tidak throw, n
   assert.equal(byId.mainNav.style.display, 'flex');
 });
 
-test('enter()/exit() — document.querySelectorAll tidak tersedia (browser lama) -> tidak throw, nav/header tetap berfungsi', () => {
+test('enter()/exit() — document.querySelectorAll tidak tersedia (browser lama) -> tidak throw, nav/header tetap berfungsi (FAB tidak lagi butuh querySelectorAll sama sekali)', () => {
   const { ctx, byId, document } = makeCtx({}, {}, [], { noQuerySelectorAll: true });
   assert.equal(typeof document.querySelectorAll, 'undefined');
   byId.mainNav.style.display = 'flex';
@@ -347,4 +326,66 @@ test('enter()/exit() — document.querySelectorAll tidak tersedia (browser lama)
   assert.equal(byId.mainNav.style.display, 'none');
   assert.doesNotThrow(() => ctx.scannerSessionExit());
   assert.equal(byId.mainNav.style.display, 'flex');
+});
+
+// ============================================================
+// Reference counter — enter()/exit() nested (TARGET IMPLEMENTASI #1)
+// ============================================================
+
+test('reference counter — enter() x2 lalu exit() x1: sesi TETAP aktif (counter 1), pauseUI TIDAK diulang', () => {
+  const { ctx, byId, document } = makeCtx();
+  byId.mainNav.style.display = 'flex';
+  ctx.scannerSessionEnter(); // counter=1, pauseUI() jalan
+  byId.mainNav.style.display = 'CUSTOM'; // simulasikan enter() ke-2 TIDAK menimpa lagi
+  const r2 = ctx.scannerSessionEnter(); // counter=2, no-op pauseUI
+  assert.equal(r2, false);
+  assert.equal(byId.mainNav.style.display, 'CUSTOM', 'enter() ke-2 tidak boleh pauseUI() ulang');
+  const r3 = ctx.scannerSessionExit(); // counter=1, belum resumeUI
+  assert.equal(r3, false, 'exit() pertama dari 2 enter() belum boleh resumeUI()');
+  assert.ok(document.body.classList.contains('scanner-session-active'), 'sesi masih aktif selama counter > 0');
+  assert.equal(ctx.scannerSessionIsActive(), true);
+});
+
+test('reference counter — enter() x2 lalu exit() x2: baru resumeUI() & class dilepas pada exit() ke-2 (counter 0)', () => {
+  const { ctx, byId, document } = makeCtx();
+  byId.mainNav.style.display = 'flex';
+  ctx.scannerSessionEnter();
+  ctx.scannerSessionEnter();
+  ctx.scannerSessionExit();
+  assert.ok(document.body.classList.contains('scanner-session-active'), 'masih aktif setelah exit() pertama');
+  const r = ctx.scannerSessionExit();
+  assert.equal(r, true, 'exit() kedua (counter jadi 0) harus resumeUI() & return true');
+  assert.equal(byId.mainNav.style.display, 'flex');
+  assert.ok(!document.body.classList.contains('scanner-session-active'));
+  assert.equal(ctx.scannerSessionIsActive(), false);
+});
+
+test('reference counter — exit() berlebih (lebih banyak dari enter()) tidak membuat counter negatif (enter() berikutnya tetap 1x pauseUI, bukan butuh 2x exit())', () => {
+  const { ctx, byId } = makeCtx();
+  byId.mainNav.style.display = 'flex';
+  ctx.scannerSessionEnter();
+  ctx.scannerSessionExit();
+  // exit() ekstra tanpa enter() yang menyertainya — harus no-op, tidak turun ke -1.
+  const extra = ctx.scannerSessionExit();
+  assert.equal(extra, false);
+  // enter() baru sesudahnya harus tetap 1x pauseUI() & 1x exit() saja cukup
+  // utk resumeUI() (bukti counter tidak "berhutang" dari exit() berlebih tadi).
+  byId.mainNav.style.display = 'CUSTOM';
+  ctx.scannerSessionEnter();
+  assert.equal(byId.mainNav.style.display, 'none');
+  const r = ctx.scannerSessionExit();
+  assert.equal(r, true);
+  assert.equal(byId.mainNav.style.display, 'CUSTOM');
+});
+
+test('reference counter — enter() x3 / exit() x3: hanya transisi 0->1 dan 1->0 yang memicu pauseUI()/resumeUI()', () => {
+  const emitted = [];
+  const { ctx } = makeCtx({}, { AIBus: { emit: (name) => emitted.push(name) } });
+  ctx.scannerSessionEnter();
+  ctx.scannerSessionEnter();
+  ctx.scannerSessionEnter();
+  ctx.scannerSessionExit();
+  ctx.scannerSessionExit();
+  ctx.scannerSessionExit();
+  assert.deepEqual(emitted, ['Scanner:opened', 'Scanner:closed'], 'AIBus.emit hanya sekali per transisi, bukan per enter()/exit() individual');
 });
