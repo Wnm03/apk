@@ -72,6 +72,28 @@ return code.toUpperCase();
 const Sparepart={
 catEditIdx:null,
 stockEditIdx:null,
+// isPartForVehicle(part, vehicleId) — bugfix (laporan user): Stok Sparepart
+// & dropdown "Gunakan Stok Sparepart"/"Tambah ke Stok Sparepart" dulu
+// selalu tampil SEMUA item D.partsStock tanpa pandang kendaraan aktif.
+// D.partsStock TIDAK punya field vehicleId sendiri (lihat catatan desain),
+// jadi filter ini REUSE tautan `catalogId` yg sudah ada ke Katalog Suku
+// Cadang (VehicleCatalog) + compatibleVehicleIds part itu di sana -- 0
+// skema baru. Part tanpa catalogId (input manual lama) ATAU yang
+// compatibleVehicleIds-nya kosong dianggap UNIVERSAL (tetap tampil semua
+// kendaraan) supaya tidak ada stok lama yang tiba-tiba "hilang" dari
+// tampilan (backward compatible). Kalau VehicleCatalog belum sempat
+// dimuat sesi ini (isLoaded()===false) atau vehicleId kosong, jangan
+// filter apa pun (fail-open, bukan fail-hidden).
+isPartForVehicle(part,vehicleId){
+if(!vehicleId||!part)return true;
+if(!part.catalogId)return true;
+if(typeof VehicleCatalog==='undefined'||typeof VehicleCatalog.isLoaded!=='function'||!VehicleCatalog.isLoaded())return true;
+const store=VehicleCatalog.getStore();
+const catItem=(store&&Array.isArray(store.items))?store.items.find(it=>it.id===part.catalogId):null;
+if(!catItem)return true;
+if(!Array.isArray(catItem.compatibleVehicleIds)||!catItem.compatibleVehicleIds.length)return true;
+return catItem.compatibleVehicleIds.some(id=>String(id)===String(vehicleId));
+},
 autoFillCatCode(){
 const codeEl=document.getElementById('sparepartCode');
 if(!codeEl||codeEl.dataset.manual==='1')return;
@@ -371,8 +393,11 @@ renderStockList(){
 Sparepart.renderDashboard();
 const el=document.getElementById('stockList');
 if(!el)return;
-if(!D.partsStock.length){el.innerHTML='<div class="empty"><div class="empty-icon">📦</div><div class="empty-text">Belum ada stok sparepart</div></div>';return;}
-el.innerHTML=D.partsStock.map((p,i)=>{
+const vid=(typeof curVehicleId!=='undefined')?curVehicleId:null;
+const list=D.partsStock.filter(p=>Sparepart.isPartForVehicle(p,vid));
+if(!list.length){el.innerHTML='<div class="empty"><div class="empty-icon">📦</div><div class="empty-text">Belum ada stok sparepart untuk kendaraan ini</div></div>';return;}
+el.innerHTML=list.map((p)=>{
+const i=D.partsStock.indexOf(p);
 const cat=D.sparepartCats.find(c=>c.id===p.catId);
 const low=p.minStock>0&&p.qty<=p.minStock;
 const meta=[`${p.qty}${p.unit?' '+p.unit:''}`,cat?cat.name:null,p.price?'Rata2 '+fmtFull(p.price):null,p.lastPrice?'Terakhir '+fmtFull(p.lastPrice):null,p.lastPurchaseDate?'Dibeli '+p.lastPurchaseDate:null].filter(Boolean).join(' • ');

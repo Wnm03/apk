@@ -557,6 +557,22 @@ async function vehicleCatalogRecommend(opts) {
   return scored;
 }
 
+/** Filter array item katalog utk 1 kendaraan (dipakai bersama oleh
+ * VehicleCatalogUI.renderList() & Servis.populateCatalogPartSelect() —
+ * bugfix "katalog masih menampilkan kendaraan lain saat pindah kendaraan"
+ * di Car Notes). Part dengan `compatibleVehicleIds` KOSONG/belum diisi
+ * dianggap berlaku utk SEMUA kendaraan (part universal, mis. baru discan/
+ * belum sempat ditandai) — bukan disembunyikan, supaya tidak ada data yang
+ * tiba-tiba "hilang" dari tampilan (backward compatible). Kalau `vehicleId`
+ * kosong (belum ada kendaraan aktif), kembalikan apa adanya tanpa filter. */
+function vehicleCatalogFilterForVehicle(items, vehicleId) {
+  const list = Array.isArray(items) ? items : [];
+  if (!vehicleId) return list.slice();
+  const vid = String(vehicleId);
+  return list.filter((it) => !Array.isArray(it.compatibleVehicleIds) || !it.compatibleVehicleIds.length
+    || it.compatibleVehicleIds.some((id) => sameId(id, vid)));
+}
+
 // ------------------------------------------------------------------------
 // Namespace publik — pola sama seperti AIBus/AIContext (const object,
 // perlu expose eksplisit ke window karena Node vm & browser non-module
@@ -584,6 +600,7 @@ const VehicleCatalog = {
   getStore: vehicleCatalogGetStore,
   invalidateCache: vehicleCatalogInvalidateCache,
   isLoaded: vehicleCatalogIsLoaded,
+  filterForVehicle: vehicleCatalogFilterForVehicle,
 };
 
 // Expose ke window kalau dijalankan di browser (pola sama dgn AIBus/

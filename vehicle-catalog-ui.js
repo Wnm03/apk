@@ -73,11 +73,18 @@ async function catalogUiOpen() {
 async function catalogUiRenderList() {
   const el = document.getElementById('catalogList');
   if (!el) return;
-  const items = await VehicleCatalog.getAll();
+  const allItems = await VehicleCatalog.getAll();
+  // Bugfix (laporan user): dulu selalu tampil SEMUA part tanpa pandang
+  // kendaraan aktif. Sekarang di-filter ke curVehicleId, reuse field
+  // compatibleVehicleIds yang sudah ada (part tanpa tag dianggap universal
+  // -- lihat VehicleCatalog.filterForVehicle()). 0 perubahan skema data.
+  const items = (typeof curVehicleId !== 'undefined')
+    ? VehicleCatalog.filterForVehicle(allItems, curVehicleId)
+    : allItems;
   if (!items.length) {
     _catSelectMode = false;
     _catSelectedIds.clear();
-    el.innerHTML = '<div class="empty"><div class="empty-icon">📦</div><div class="empty-text">Belum ada part di katalog</div></div>';
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📦</div><div class="empty-text">Belum ada part di katalog untuk kendaraan ini</div></div>';
     return;
   }
   // Buang id terpilih yang part-nya sudah tidak ada lagi (mis. terhapus dari
@@ -243,6 +250,10 @@ async function catalogUiOpenForm(id) {
     toggleCatExtraFields();
     document.getElementById('catSaveBtn').textContent = '+ Tambah Part';
     if (delBtn) delBtn.classList.add('u-dnone');
+    // Bugfix terkait: default-centang kendaraan yg sedang aktif di Car Notes
+    // supaya part baru langsung kelihatan di sana (bukan "universal" tanpa
+    // sengaja) -- user tetap bisa uncheck/tambah kendaraan lain manual.
+    if (typeof curVehicleId !== 'undefined' && curVehicleId) compatibleVehicleIds = [curVehicleId];
   }
   catalogUiRenderPhotos();
   catalogUiRenderVehicleChecklist(compatibleVehicleIds);

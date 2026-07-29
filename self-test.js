@@ -1742,6 +1742,21 @@ call:()=>HondaPdfImportUI.open(),close:()=>closeModal('hondaPdfImportModal')},
 call:()=>VehicleCatalogWebImportUI.open(),close:()=>closeModal('vehCatWebImportModal')},
 {label:'BusinessFlowPresenter.openTransferModal()',id:'inventoryTransferModal',
 call:()=>BusinessFlowPresenter.openTransferModal(),close:()=>closeModal('inventoryTransferModal')},
+// openSubCatModal butuh (catId, type) valid -- kalau dipanggil tanpa argumen
+// (lewat auto-detect computeModalSweepFnNames) D.categories[undefined].find()
+// akan throw. Pakai kategori default 'cat_ki' (expense) yg SELALU ada dari
+// DEFAULT_CATS (lihat renovasi.js) supaya sweep ini representatif dgn
+// pemanggilan asli dari UI, bukan false-positive.
+{label:'openSubCatModal',id:'subCatModal',
+call:()=>openSubCatModal('cat_ki','expense'),close:()=>closeModal('subCatModal')},
+{label:'ShopPdfImportUI.open()',id:'shopPdfImportModal',
+call:()=>openModal('shopPdfImportModal'),close:()=>closeModal('shopPdfImportModal')},
+{label:'ShopScanUI.open()',id:'shopScanModal',
+call:()=>openModal('shopScanModal'),close:()=>closeModal('shopScanModal')},
+{label:'DeliveryPlanUI.open()',id:'deliveryPlanModal',
+call:()=>DeliveryPlanUI.open(),close:()=>closeModal('deliveryPlanModal')},
+{label:'ShopKatalogDinamisPresenter (buka overlay)',id:'shopKatalogDinamisModal',
+call:()=>openModal('shopKatalogDinamisModal'),close:()=>closeModal('shopKatalogDinamisModal')},
 ];
 const RISKY_OPENER_SPECS=[
 {label:'LinkTx.open(renov)',id:'linkTxModal',
