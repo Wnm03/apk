@@ -28,18 +28,20 @@ function makeCtx(opts) {
     buildHints: () => ({}),
     errorMessage: (err) => 'VS:' + ((err && err.message) || String(err)),
   }, opts.vehicleScanner || {});
-  const ctx = loadSource(
-    ['modules/vehicle/sparepart-scanner.js'],
-    {
-      toast: (msg) => toasts.push(msg),
-      VehicleScanner: vehicleScannerStub,
-      VehicleCatalog: {
-        handleScan: async (code) => {
-          handleScanCalls.push(code);
-          return handleScanResult(code);
-        },
+  const extraGlobals = {
+    toast: (msg) => toasts.push(msg),
+    VehicleScanner: vehicleScannerStub,
+    VehicleCatalog: {
+      handleScan: async (code) => {
+        handleScanCalls.push(code);
+        return handleScanResult(code);
       },
     },
+  };
+  if (opts.scannerSession) extraGlobals.ScannerSession = opts.scannerSession;
+  const ctx = loadSource(
+    ['modules/vehicle/sparepart-scanner.js'],
+    extraGlobals,
     ['SparepartScanner']
   );
   return { ctx, toasts, handleScanCalls };
@@ -195,4 +197,164 @@ test('scan() — adapter melempar error -> toast pesan gagal (reuse errorMessage
   const result = await ctx.SparepartScanner.scan('stub-throw');
   assert.equal(result, null);
   assert.ok(toasts.some((t) => /Gagal scan/.test(t) && /gagal dekode/.test(t)));
+});
+
+// ------------------------------------------------------------------------
+// scan() — double-open protection (_sparepartScannerBusy), existing guard,
+// dites lewat efek sampingnya (adapter kedua TIDAK dipanggil selagi yang
+// pertama masih pending)
+// ------------------------------------------------------------------------
+test('scan() — dipanggil dobel selagi scan pertama masih pending -> panggilan kedua diabaikan (return null, adapter tidak dipanggil 2x)', async () => {
+  const { ctx } = makeCtx();
+  let resolveFirst;
+  const calls = [];
+  ctx.SparepartScanner.registerAdapter('slow', () => {
+    calls.push(1);
+    return new Promise((resolve) => { resolveFirst = resolve; });
+  });
+  const p1 = ctx.SparepartScanner.scan('slow');
+  const p2 = ctx.SparepartScanner.scan('slow');
+  const r2 = await p2;
+  assert.equal(r2, null, 'panggilan kedua selagi masih busy harus diabaikan');
+  assert.equal(calls.length, 1, 'adapter hanya dipanggil 1x, bukan 2x');
+  resolveFirst('CODE-1');
+  await p1;
+});
+
+// ------------------------------------------------------------------------
+// scan('camera') — Cross-Scanner Guard (ScannerSession.isActive()): pola
+// SAMA PERSIS vehicleScannerScan() — dicek sebelum enter(), supaya tidak
+// ada 2 overlay/stream kamera menumpuk kalau VehicleScanner kebetulan lagi
+// aktif. Adapter 'gallery' TIDAK pakai ScannerSession sama sekali, jadi
+// tidak kena guard ini (dites terpisah di bawah).
+// ------------------------------------------------------------------------
+test('scan("camera") — ScannerSession.isActive()=true -> batal, toast peringatan, adapter TIDAK dipanggil, enter() TIDAK terpanggil', async () => {
+  let entered = false;
+  const cameraCalls = [];
+  const { ctx, toasts } = makeCtx({
+    scannerSession: { isActive: () => true, enter: () => { entered = true; }, exit: () => {} },
+  });
+  ctx.SparepartScanner.registerAdapter('camera', () => { cameraCalls.push(1); return Promise.resolve('CODE'); });
+  const result = await ctx.SparepartScanner.scan('camera');
+  assert.equal(result, null);
+  assert.equal(entered, false);
+  assert.equal(cameraCalls.length, 0);
+  assert.ok(toasts.some((t) => t.includes('Scanner lain sedang aktif')));
+});
+
+test('scan("camera") — ScannerSession.isActive()=false -> lanjut, enter() & adapter terpanggil', async () => {
+  let entered = false;
+  const { ctx, handleScanCalls } = makeCtx({
+    scannerSession: { isActive: () => false, enter: () => { entered = true; }, exit: () => {} },
+  });
+  ctx.SparepartScanner.registerAdapter('camera', () => Promise.resolve('CODE-CAM'));
+  await ctx.SparepartScanner.scan('camera');
+  assert.equal(entered, true);
+  assert.deepEqual(handleScanCalls, ['CODE-CAM']);
+});
+
+test('scan("gallery") — tidak kena guard ScannerSession sama sekali (adapter tetap dipanggil walau isActive()=true)', async () => {
+  const isActiveCalls = [];
+  const { ctx, handleScanCalls } = makeCtx({
+    scannerSession: { isActive: () => { isActiveCalls.push(1); return true; }, enter: () => {}, exit: () => {} },
+  });
+  ctx.SparepartScanner.registerAdapter('gallery', () => Promise.resolve('CODE-GAL'));
+  await ctx.SparepartScanner.scan('gallery');
+  assert.deepEqual(handleScanCalls, ['CODE-GAL']);
+});
+
+// ------------------------------------------------------------------------
+// shouldDebounce()/recordScan() — Target Implementasi #6 (Scan Debounce)
+// ------------------------------------------------------------------------
+test('shouldDebounce() — kode baru -> false', () => {
+  const { ctx } = makeCtx();
+  assert.equal(ctx.SparepartScanner.shouldDebounce('SP001', 1000), false);
+});
+
+test('shouldDebounce() — kode sama, di dalam window -> true', () => {
+  const { ctx } = makeCtx();
+  ctx.SparepartScanner.recordScan('SP001', 1000);
+  assert.equal(ctx.SparepartScanner.shouldDebounce('SP001', 1400), true);
+});
+
+test('shouldDebounce() — kode sama, window sudah lewat -> false', () => {
+  const { ctx } = makeCtx();
+  ctx.SparepartScanner.recordScan('SP001', 1000);
+  assert.equal(ctx.SparepartScanner.shouldDebounce('SP001', 3000), false);
+});
+
+// ------------------------------------------------------------------------
+// stopMediaStream() — Target Implementasi #3 (MediaStream Cleanup)
+// ------------------------------------------------------------------------
+test('stopMediaStream() — stop() dipanggil di semua track, srcObject di-null-kan', () => {
+  const { ctx } = makeCtx();
+  const stopped = [];
+  const video = { srcObject: { getTracks: () => [{ stop: () => stopped.push('a') }, { stop: () => stopped.push('b') }] } };
+  ctx.SparepartScanner.stopMediaStream(video);
+  assert.deepEqual(stopped, ['a', 'b']);
+  assert.equal(video.srcObject, null);
+});
+
+test('stopMediaStream() — video/stream kosong -> tidak throw', () => {
+  const { ctx } = makeCtx();
+  assert.doesNotThrow(() => ctx.SparepartScanner.stopMediaStream(null));
+});
+
+// ------------------------------------------------------------------------
+// applyTorchCapability() — Target Implementasi #7 (Torch Capability)
+// ------------------------------------------------------------------------
+function makeFlashBtnSp() {
+  const classes = [];
+  return {
+    style: { display: 'none' },
+    classList: {
+      contains: (c) => classes.includes(c),
+      toggle: (c, force) => {
+        const has = classes.includes(c);
+        const want = typeof force === 'boolean' ? force : !has;
+        if (want && !has) classes.push(c);
+        if (!want && has) classes.splice(classes.indexOf(c), 1);
+      },
+    },
+    onclick: null,
+  };
+}
+
+test('applyTorchCapability() — caps.torch true -> tombol ditampilkan', () => {
+  const { ctx } = makeCtx();
+  const flashBtn = makeFlashBtnSp();
+  const video = { srcObject: { getVideoTracks: () => [{ getCapabilities: () => ({ torch: true }) }] } };
+  assert.equal(ctx.SparepartScanner.applyTorchCapability(video, flashBtn), true);
+  assert.equal(flashBtn.style.display, '');
+});
+
+test('applyTorchCapability() — caps.torch false/tidak ada -> tombol disembunyikan', () => {
+  const { ctx } = makeCtx();
+  const flashBtn = makeFlashBtnSp();
+  const video = { srcObject: { getVideoTracks: () => [{ getCapabilities: () => ({}) }] } };
+  assert.equal(ctx.SparepartScanner.applyTorchCapability(video, flashBtn), false);
+  assert.equal(flashBtn.style.display, 'none');
+});
+
+// ------------------------------------------------------------------------
+// pauseCamera()/resumeCamera() — Target Implementasi #5 (Visibility Lifecycle)
+// ------------------------------------------------------------------------
+test('pauseCamera() — track dinonaktifkan & video.pause() dipanggil', () => {
+  const { ctx } = makeCtx();
+  let paused = false;
+  const tracks = [{ enabled: true }];
+  const video = { srcObject: { getVideoTracks: () => tracks }, pause: () => { paused = true; } };
+  ctx.SparepartScanner.pauseCamera(video);
+  assert.equal(tracks[0].enabled, false);
+  assert.equal(paused, true);
+});
+
+test('resumeCamera() — track diaktifkan & video.play() dipanggil', () => {
+  const { ctx } = makeCtx();
+  let played = false;
+  const tracks = [{ enabled: false }];
+  const video = { srcObject: { getVideoTracks: () => tracks }, play: () => { played = true; return Promise.resolve(); } };
+  ctx.SparepartScanner.resumeCamera(video);
+  assert.equal(tracks[0].enabled, true);
+  assert.equal(played, true);
 });

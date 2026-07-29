@@ -155,6 +155,51 @@ test('validate() — aftermarketCode/supplier/location/serviceNotes bukan string
 });
 
 // ------------------------------------------------------------------------
+// Validation — Golongan A (audit UID v1.0, field additive, semua opsional)
+// ------------------------------------------------------------------------
+test('validate() — field Golongan A lengkap & valid -> valid:true', () => {
+  const { ctx } = makeCtx();
+  const result = ctx.VehicleCatalog.validate({
+    partName: 'Roller', category: 'Roller',
+    oldPartNumber: '22123-KVB-900', replacementPartNumber: '22123-KVB-901',
+    dimension: '15x12mm', material: 'Nylon', weight: 8.5,
+    consumable: true, source: 'Parts Catalog', confidence: 'high',
+  });
+  assert.equal(result.valid, true);
+});
+
+test('validate() — weight negatif/non-angka -> invalid; kosong -> valid (opsional)', () => {
+  const { ctx } = makeCtx();
+  assert.equal(ctx.VehicleCatalog.validate({ partName: 'X', category: 'Y', weight: -1 }).valid, false);
+  assert.equal(ctx.VehicleCatalog.validate({ partName: 'X', category: 'Y', weight: 'berat' }).valid, false);
+  assert.equal(ctx.VehicleCatalog.validate({ partName: 'X', category: 'Y' }).valid, true);
+});
+
+test('validate() — confidence di luar HIGH/MEDIUM/LOW/UNKNOWN -> invalid', () => {
+  const { ctx } = makeCtx();
+  assert.equal(ctx.VehicleCatalog.validate({ partName: 'X', category: 'Y', confidence: 'SUPER_YAKIN' }).valid, false);
+  assert.equal(ctx.VehicleCatalog.validate({ partName: 'X', category: 'Y', confidence: 'low' }).valid, true);
+});
+
+test('create() — field Golongan A tersimpan (weight jadi Number, confidence jadi UPPERCASE); kosong -> default aman', async () => {
+  const { ctx } = makeCtx();
+  const withFields = await ctx.VehicleCatalog.create({
+    partName: 'Roller', category: 'Roller',
+    oldPartNumber: ' 22123-KVB-900 ', weight: '8.5', consumable: true, confidence: 'medium',
+  });
+  assert.equal(withFields.item.oldPartNumber, '22123-KVB-900');
+  assert.equal(withFields.item.weight, 8.5);
+  assert.equal(withFields.item.consumable, true);
+  assert.equal(withFields.item.confidence, 'MEDIUM');
+
+  const empty = await ctx.VehicleCatalog.create({ partName: 'Y', category: 'Z' });
+  assert.equal(empty.item.oldPartNumber, '');
+  assert.equal(empty.item.weight, null);
+  assert.equal(empty.item.consumable, false);
+  assert.equal(empty.item.confidence, '');
+});
+
+// ------------------------------------------------------------------------
 // Create
 // ------------------------------------------------------------------------
 test('create() — data valid -> tersimpan dgn id/createdAt/updatedAt, IDBStore.set terpanggil', async () => {
