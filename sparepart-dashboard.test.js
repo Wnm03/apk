@@ -198,3 +198,68 @@ test('calcFinanceStats() — trenPembelianBulanan & trenPemakaianBulanan dikelom
   assert.deepEqual(stats.trenPemakaianBulanan.map((t) => t.month), ['2026-06', '2026-07']);
   assert.equal(stats.trenPemakaianBulanan[1].total, 2 * 10000);
 });
+
+// isPartForVehicle(part, vehicleId) — bugfix (laporan user, Car Notes):
+// Stok Sparepart & dropdown "Gunakan Stok Sparepart"/"Tambah ke Stok
+// Sparepart" dulu selalu tampil SEMUA D.partsStock tanpa pandang kendaraan
+// aktif. Filter ini reuse tautan catalogId -> compatibleVehicleIds
+// (VehicleCatalog), TIDAK ada skema baru. Perlu inject stub VehicleCatalog
+// terpisah (tidak dibutuhkan test calcDashboardStats/calcFinanceStats di
+// atas) — pakai makeCtx() sendiri per test biar tidak saling pengaruh.
+function makeCtxWithCatalog(catalogItems, loaded) {
+  const store = { items: catalogItems || [] };
+  return loadSource(
+    ['modules/vehicle/sparepart-servis.js'],
+    {
+      MY_WRENCH: { brand: 'MOLLAR', sku: 'MLR-B11950', minNm: 13.56, maxNm: 108.48, minLbft: 10, maxLbft: 80, panjang: 280 },
+      VehicleCatalog: {
+        isLoaded: () => loaded !== false,
+        getStore: () => store,
+      },
+    },
+    ['Sparepart']
+  );
+}
+
+test('isPartForVehicle() — part tanpa catalogId (input manual lama) dianggap universal, tetap lolos', () => {
+  const ctx = makeCtxWithCatalog([]);
+  const part = { id: 'p1', name: 'Oli Manual', qty: 1 };
+  assert.equal(ctx.Sparepart.isPartForVehicle(part, 'veh-1'), true);
+  assert.equal(ctx.Sparepart.isPartForVehicle(part, 'veh-2'), true);
+});
+
+test('isPartForVehicle() — part dengan catalogId ikut compatibleVehicleIds part katalognya', () => {
+  const ctx = makeCtxWithCatalog([
+    { id: 'cat-1', partName: 'Busi Vario', compatibleVehicleIds: ['veh-1'] },
+  ]);
+  const part = { id: 'p1', name: 'Busi Vario', qty: 5, catalogId: 'cat-1' };
+  assert.equal(ctx.Sparepart.isPartForVehicle(part, 'veh-1'), true);
+  assert.equal(ctx.Sparepart.isPartForVehicle(part, 'veh-2'), false);
+});
+
+test('isPartForVehicle() — catalogId ada tapi compatibleVehicleIds kosong/part katalog belum ditandai: tetap universal', () => {
+  const ctx = makeCtxWithCatalog([
+    { id: 'cat-1', partName: 'Oli Universal', compatibleVehicleIds: [] },
+  ]);
+  const part = { id: 'p1', name: 'Oli Universal', qty: 5, catalogId: 'cat-1' };
+  assert.equal(ctx.Sparepart.isPartForVehicle(part, 'veh-9'), true);
+});
+
+test('isPartForVehicle() — catalogId nyantol tapi part katalognya sudah dihapus (orphan): fail-open, tetap lolos', () => {
+  const ctx = makeCtxWithCatalog([]);
+  const part = { id: 'p1', name: 'Sudah Dihapus dari Katalog', qty: 5, catalogId: 'cat-hilang' };
+  assert.equal(ctx.Sparepart.isPartForVehicle(part, 'veh-1'), true);
+});
+
+test('isPartForVehicle() — VehicleCatalog belum sempat dimuat sesi ini (isLoaded()===false): fail-open, tidak menyembunyikan apa pun', () => {
+  const ctx = makeCtxWithCatalog([{ id: 'cat-1', partName: 'X', compatibleVehicleIds: ['veh-2'] }], false);
+  const part = { id: 'p1', name: 'X', qty: 5, catalogId: 'cat-1' };
+  assert.equal(ctx.Sparepart.isPartForVehicle(part, 'veh-1'), true);
+});
+
+test('isPartForVehicle() — vehicleId kosong (belum ada kendaraan aktif): tidak filter apa pun', () => {
+  const ctx = makeCtxWithCatalog([{ id: 'cat-1', partName: 'X', compatibleVehicleIds: ['veh-2'] }]);
+  const part = { id: 'p1', name: 'X', qty: 5, catalogId: 'cat-1' };
+  assert.equal(ctx.Sparepart.isPartForVehicle(part, null), true);
+  assert.equal(ctx.Sparepart.isPartForVehicle(part, ''), true);
+});
