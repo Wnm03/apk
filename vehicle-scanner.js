@@ -177,6 +177,10 @@ function vehicleScannerBuildHints() {
 function vehicleScannerBuildOverlay() {
   const overlay = document.createElement('div');
   overlay.className = 'vehicle-scanner-fullscreen';
+  // BUGFIX (pola SAMA PERSIS sparepart-scanner.js, laporan user di scanner
+  // sparepart tapi resiko sama persis di sini krn class CSS identik): jaring
+  // pengaman posisi fixed+fullscreen independen dari stylesheet eksternal.
+  overlay.style.cssText = 'position:fixed;inset:0;top:0;left:0;right:0;bottom:0;width:100vw;height:100vh;z-index:2147483000;background:#000;';
 
   const video = document.createElement('video');
   video.className = 'vehicle-scanner-video';

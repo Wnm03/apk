@@ -66,9 +66,10 @@ document.getElementById('pajakTab-pajak').style.display='';
 const PJK_SUBTAB_ORDER=['pph21','pbb'];
 const PJK_SUBTAB_LABEL={pph21:'PPh 21',pbb:'PBB & UMKM'};
 function setPjkTab(t,el){
-document.querySelectorAll('#pajakTab-pajak .pjk-subtab').forEach(b=>b.classList.remove('active'));
+const pjkSubtabBtns=document.querySelectorAll('#pajakTab-pajak .pjk-subtab');
+pjkSubtabBtns.forEach(b=>b.classList.remove('active'));
 if(el) el.classList.add('active');
-else { const idx=PJK_SUBTAB_ORDER.indexOf(t); const btn=document.querySelectorAll('#pajakTab-pajak .pjk-subtab')[idx>=0?idx:0]; if(btn) btn.classList.add('active'); }
+else { const idx=PJK_SUBTAB_ORDER.indexOf(t); const btn=pjkSubtabBtns[idx>=0?idx:0]; if(btn) btn.classList.add('active'); }
 document.getElementById('pjkTab-pph21').classList.toggle('u-dnone', t!=='pph21');
 document.getElementById('pjkTab-pbb').classList.toggle('u-dnone', t!=='pbb');
 const pjkBc=document.getElementById('pjkBreadcrumbSub');

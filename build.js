@@ -84,10 +84,22 @@ const GROUP_A = [
   'car-notes.js',
   'chat-action-handlers.js',
   'modules/finance/edukasi-dana.js',
-  'modules/business/sewakios.js',
+  // Sesi 14 Tahap 1b (lazy-load, DESIGN_lazy-load-modules.md): sewakios.js
+  // SENGAJA dikeluarkan dari GROUP_A -- tidak lagi ikut ter-bundle ke
+  // app-bundle-a.min.js. File-nya sekarang dimuat on-demand lewat
+  // _loadScriptOnce()/ensureSewaKios() (index.html) saat tab Aset & Proyek >
+  // Proyek Renovasi/Sewa Kios pertama dibuka (lihat setKeuanganTab() di
+  // tx-list-cashflow.js). Prasyarat Tahap 1a (guard typeof di semua titik
+  // panggil) sudah beres sebelum ini.
   'modules/home/hidup-seimbang.js',
   'modules/finance/linktx.js',
-  'modules/home/renovasi.js',
+  // Sesi 13 Tahap 1b (lazy-load, DESIGN_lazy-load-modules.md): renovasi.js
+  // SENGAJA dikeluarkan dari GROUP_A -- tidak lagi ikut ter-bundle ke
+  // app-bundle-a.min.js. File-nya sekarang dimuat on-demand lewat
+  // _loadScriptOnce()/ensureRenov() (index.html) saat tab Aset & Proyek >
+  // Proyek Renovasi pertama dibuka (lihat setKeuanganTab() di
+  // tx-list-cashflow.js). Prasyarat Tahap 1a (guard typeof di semua titik
+  // panggil) sudah beres sebelum ini -- lihat docs/SESI-13-GUARD-RENOV-TYPEOF.md.
   'modules/asset/aset.js',
   'modules/asset/aset-keluarga.js',
   'modules/ai/feature-insights.js',
@@ -876,9 +888,18 @@ const GROUP_B = [
   // feature-insights.js/ownership-engine.js + baris2 GROUP_B di atas), 0
   // forward-reference. Ditaruh langsung setelah BusinessFlowPresenter, pola
   // sama persis presenter-di-atas-presenter lain di blok ini.
-  'modules/shop/business-intelligence-presenter.js',
+  // Sesi 15 Tahap 1b (lazy-load, DESIGN_lazy-load-modules.md):
+  // business-intelligence-presenter.js SENGAJA dikeluarkan dari GROUP_B --
+  // tidak lagi ikut ter-bundle ke app-bundle-b.min.js. File-nya sekarang
+  // dimuat on-demand lewat _loadScriptOnce()/ensureBusinessIntelligence()
+  // (index.html) saat tab Shop > Business Intelligence pertama dibuka
+  // (lihat setShopTab() di cobek-io.js). Kedua titik panggil di luar modul
+  // ini SUDAH punya guard typeof sejak awal (Tahap 1a otomatis terpenuhi,
+  // tidak perlu perubahan tambahan) — dan modul ini TIDAK pernah masuk
+  // Object.assign(window,{...}) di app-bootstrap.js, jadi tidak perlu
+  // self-registrasi window.X=X seperti Renov/SewaKios.
 
-  // S195 (Managed Funds / Dana Kelolaan): reuse OwnershipEngine (S191) +
+
   // nilai per-entity yang sudah ada di akun.js/aset.js/investasi.js/
   // cobek-order.js — SEMUA sudah dimuat lebih dulu (GROUP_A + GROUP_B di
   // atas), jadi 0 forward-reference. Presenter langsung setelah engine-nya,
