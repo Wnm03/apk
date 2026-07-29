@@ -36,37 +36,6 @@ const DEFAULT_SPAREPARTS = [
 {id:'sp_roller_cvt',name:'Roller CVT',code:'RCV',intervalKm:24000},
 {id:'sp_aki',name:'Aki (cek/ganti)',code:'AKI',intervalKm:18000}
 ];
-// BUGFIX (Sesi 13 Tahap 1b lazy-load renovasi.js, temuan post-deploy v873):
-// DEFAULT_CATS dipindah ke sini dari modules/home/renovasi.js. Isinya kategori
-// income/expense bawaan app (tidak ada hubungan dgn fitur Renovasi) — sebelumnya
-// nangkring di renovasi.js kebetulan saja. Karena renovasi.js sekarang lazy-load
-// (baru dimuat saat tab Renovasi dibuka), sedangkan kategori.js/backup-restore.js/
-// features-helpers-global-security.js butuh DEFAULT_CATS langsung saat app pertama
-// kali jalan (setup data default & restore), harus ada di file yang SELALU
-// ter-bundle & load duluan — sama seperti DEFAULT_COBEK_KATEGORI/DEFAULT_ACCOUNTS/
-// DEFAULT_SPAREPARTS di atas.
-const DEFAULT_CATS = {
-income:[
-{id:'cat_gi',name:'Gaji toko',emoji:'💼',subs:[]},
-{id:'cat_bo',name:'Bonus toko',emoji:'🎁',subs:[]},
-{id:'cat_cb',name:'Bisnis',emoji:'🪨',subs:[{id:'sub_cb_cobek',name:'Cobek'}]},
-{id:'cat_tb',name:'Tambahan',emoji:'➕',subs:[]},
-{id:'cat_ll',name:'Lainnya',emoji:'📦',subs:[]}
-],
-expense:[
-{id:'cat_ki',name:'Kiriman istri',emoji:'👩',subs:[]},
-{id:'cat_bp',name:'BPJS',emoji:'💊',subs:[]},
-{id:'cat_tg',name:'Tagihan',emoji:'🧾',subs:[{id:'sub_wifi',name:'Wifi'},{id:'sub_pulsa',name:'Pulsa/Kuota'},{id:'sub_listrik',name:'Listrik'}]},
-{id:'cat_mk',name:'Makan',emoji:'🍽️',subs:[]},
-{id:'cat_an',name:'Anak',emoji:'👶',subs:[{id:'sub_sklh',name:'Sekolah'},{id:'sub_susu',name:'Susu & Gizi'},{id:'sub_mainan',name:'Mainan & Buku'}]},
-{id:'cat_rv',name:'Renovasi',emoji:'🔨',subs:[]},
-{id:'cat_bl',name:'Belanja',emoji:'🛒',subs:[]},
-{id:'cat_cbb',name:'Bisnis',emoji:'🪨',subs:[{id:'sub_cbb_cobek',name:'Cobek'}]},
-{id:'cat_inv',name:'Investasi',emoji:'📈',subs:[]},
-{id:'cat_sedekah',name:'Sedekah/Donasi',emoji:'🤲',subs:[]},
-{id:'cat_lx',name:'Lainnya',emoji:'📦',subs:[]}
-]
-};
 
 // ownership-engine.js — Ownership Engine (Sesi 191, fondasi lintas-domain).
 //
@@ -408,8 +377,8 @@ if(location.hostname==='localhost'||location.hostname==='127.0.0.1')return true;
 }catch(e){ /* anggap bukan dev mode kalau gagal deteksi */ }
 return false;
 }
-const APP_BUILD_VERSION = 's16-guard-renov-typeof-checks';
-const PRODUCTION_BUILD_SYNCED_VERSION = 's16-guard-renov-typeof-checks';
+const APP_BUILD_VERSION = 's15-guard-renov-typeof-checks';
+const PRODUCTION_BUILD_SYNCED_VERSION = 's15-guard-renov-typeof-checks';
 let D = {
 schemaVersion:SCHEMA_VERSION,
 transactions:[],cobek:[],products:[],produsen:[],cobekKategori:JSON.parse(JSON.stringify(DEFAULT_COBEK_KATEGORI)),targets:[],eduFunds:[],reminders:[],bills:[],billsArchive:[],inventoryTransfers:[],
