@@ -306,7 +306,11 @@ lastFilterSig:null,
 populatePartSelect(selectedPartId){
 const sel=document.getElementById('servisPartId');
 if(!sel)return;
-const opts=D.partsStock.map(p=>`<option value="${p.id}">${escapeHtml(p.name)} (sisa ${p.qty}${p.unit?' '+p.unit:''})</option>`).join('');
+// Bugfix (laporan user): dropdown ini dulu tampil SEMUA D.partsStock tanpa
+// pandang kendaraan aktif -- sekarang di-filter reuse Sparepart.isPartForVehicle()
+// (part tanpa tautan katalog/kendaraan tetap tampil, lihat catatan di sana).
+const list=D.partsStock.filter(p=>p.id===selectedPartId||Sparepart.isPartForVehicle(p,typeof curVehicleId!=='undefined'?curVehicleId:null));
+const opts=list.map(p=>`<option value="${p.id}">${escapeHtml(p.name)} (sisa ${p.qty}${p.unit?' '+p.unit:''})</option>`).join('');
 sel.innerHTML='<option value="">Tidak pakai stok</option>'+opts;
 sel.value=selectedPartId||'';
 Servis.onPartChange();
@@ -335,7 +339,12 @@ Servis.onCatalogPartChange();
 return;
 }
 VehicleCatalog.getAll().then(items=>{
-const opts=(items||[]).map(it=>`<option value="${escapeHtml(it.id)}" data-oem="${escapeHtml(it.oemCode||'')}" data-name="${escapeHtml(it.partName||'')}">${escapeHtml(it.partName||'(Tanpa nama)')}${it.oemCode?' — '+escapeHtml(it.oemCode):''}</option>`).join('');
+// Bugfix (laporan user): dulu tampil SEMUA part katalog tanpa pandang
+// kendaraan aktif -- reuse VehicleCatalog.filterForVehicle() yang sama
+// dipakai VehicleCatalogUI.renderList().
+const filtered=VehicleCatalog.filterForVehicle(items,typeof curVehicleId!=='undefined'?curVehicleId:null);
+const list=(filtered||[]).some(it=>it.id===selectedCatalogId)||!selectedCatalogId?filtered:filtered.concat((items||[]).filter(it=>it.id===selectedCatalogId));
+const opts=(list||[]).map(it=>`<option value="${escapeHtml(it.id)}" data-oem="${escapeHtml(it.oemCode||'')}" data-name="${escapeHtml(it.partName||'')}">${escapeHtml(it.partName||'(Tanpa nama)')}${it.oemCode?' — '+escapeHtml(it.oemCode):''}</option>`).join('');
 sel.innerHTML='<option value="">Tidak pakai part katalog</option>'+opts;
 sel.value=selectedCatalogId||'';
 Servis.onCatalogPartChange();

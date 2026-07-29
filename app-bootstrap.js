@@ -5,10 +5,42 @@
 // di urutan build.js (GROUP_B) sebelum lifeos/economic-intelligence (yang memang sudah dimuat
 // belakangan & tidak butuh init() ini — lihat catatan di scripts/build.js).
 
+// BUGFIX: sebelumnya Object.assign(...) + init() dipanggil TANPA try/catch. Kalau salah satu
+// identifier di daftar Object.assign belum terdefinisi (mis. gara-gara satu file module gagal
+// dimuat / urutan build.js berubah) ATAU ada error apa pun di dalam init(), exception-nya
+// langsung berhenti di sini TANPA pesan apa pun ke user -- init() adalah titik yang mendaftarkan
+// notifikasi (checkAndFireReminders via setInterval) DAN listener klik data-action (termasuk
+// semua tombol Scan), jadi kegagalan senyap di sini persis menjelaskan gejala "semua scan tidak
+// bisa dibuka, tidak ada notif di semua fitur" sekaligus. Sekarang errornya ditangkap, dilog, &
+// ditampilkan lewat banner global (lihat window.__showRuntimeErrorBanner di index.html) supaya
+// ketahuan & bisa dilaporkan, bukan cuma diam.
+try{
 Object.assign(window,{
 Etalase,Produsen,Order,FI,DanaDaruratAI,WorthIt,TimelineW,Pensiun,Budget,BudgetTabs,BudgetReko,
 Laporan,Payroll,Tukang,InsightTargetMingguan,BBM,Sparepart,Servis,Torsi,Pelanggan,SiapPulang,RefAI,Zakat,PPh21,PajakUMKM,
 Aset,LifeBalance,Piutang,Debt,DebtStrategy,Renov,RenovAI,SewaKios,RenovCalc,Kekayaan,AlokasiAset,PBB,
 IDBStore,LinkTx,Bill,AIWidget,EduFund,PriceReko,OngkirCalc,PriceRekoWidget,StockRekoWidget,Refleksi,Kasir,Advisor,FinCoach,GoldImport,GoldZakat,AIRecommendCard,AIDailyBriefingCard,AISimulateWidget,AIScenarioWidget,AIHealthCheckWidget,BillMultiScan,UniversalScan
 });
-init();
+// BUGFIX (audit klik "0 reaksi"): init() adalah `async function` -- try/catch sinkron di
+// sekeliling panggilan biasa `init()` TIDAK menangkap error yang terjadi DI DALAM init()
+// (async function selalu mengembalikan Promise; throw di dalamnya jadi unhandled rejection,
+// bukan exception sinkron). Akibatnya kalau init() gagal di tengah jalan, catch di bawah ini
+// TIDAK PERNAH jalan -- tidak ada banner, tidak ada console.error, tidak ada alert -- app
+// terlihat diam total (boot terhenti sebagian tanpa jejak). Fix: bungkus panggilannya supaya
+// rejection-nya benar2 ditangkap di sini juga.
+Promise.resolve(init()).catch(function(e){
+console.error('[app-bootstrap] init() gagal (async, tertangkap via Promise.catch):',e);
+if(typeof window.__showRuntimeErrorBanner==='function'){
+window.__showRuntimeErrorBanner('Gagal memulai aplikasi ('+(e&&e.message?e.message:e)+')');
+} else if(typeof alert==='function'){
+alert('Gagal memulai aplikasi: '+(e&&e.message?e.message:e));
+}
+});
+}catch(e){
+console.error('[app-bootstrap] Gagal Object.assign(window,...) -- app boot terhenti:',e);
+if(typeof window.__showRuntimeErrorBanner==='function'){
+window.__showRuntimeErrorBanner('Gagal memulai aplikasi ('+(e&&e.message?e.message:e)+')');
+} else if(typeof alert==='function'){
+alert('Gagal memulai aplikasi: '+(e&&e.message?e.message:e));
+}
+}
