@@ -77,13 +77,13 @@ toast(`🔧 Catatan servis terkait ikut dihapus`,2600);
 D.servisLogs=D.servisLogs.filter(s=>s.id!==t.servisLinkId);
 renderStockList();
 }
-if(t&&t.renovItemLinkId){
+if(t&&t.renovItemLinkId&&typeof Renov!=='undefined'){
 Renov.onLinkedTxDeleted(t);
 }
 if(t&&t.wishlistLinkId){
 WorthIt.onLinkedTxDeleted(t);
 }
-if(t&&t.sewaKiosLinkId){
+if(t&&t.sewaKiosLinkId&&typeof SewaKios!=='undefined'){
 SewaKios.onLinkedTxDeleted(t);
 }
 if(t&&t.tukangPaymentEntryIds&&t.tukangPaymentEntryIds.length){
@@ -166,9 +166,10 @@ return result;
 }
 const KEU_TAB_ORDER=['kelola','tagihan','budget','utangpiutang','asetproyek','laporan'];
 function setKeuanganTab(t,el){
-document.querySelectorAll('#page-keuangan .cn-tab').forEach(b=>b.classList.remove('active'));
+const keuTabBtns=document.querySelectorAll('#page-keuangan .cn-tab');
+keuTabBtns.forEach(b=>b.classList.remove('active'));
 if(el) el.classList.add('active');
-else { const idx=KEU_TAB_ORDER.indexOf(t); const btn=document.querySelectorAll('#page-keuangan .cn-tab')[idx>=0?idx:0]; if(btn) btn.classList.add('active'); }
+else { const idx=KEU_TAB_ORDER.indexOf(t); const btn=keuTabBtns[idx>=0?idx:0]; if(btn) btn.classList.add('active'); }
 document.getElementById('keuanganTab-kelola').classList.toggle('u-dnone', t!=='kelola');
 document.getElementById('keuanganTab-kelola').style.display='';
 document.getElementById('keuanganTab-tagihan').classList.toggle('u-dnone', t!=='tagihan');
@@ -185,7 +186,27 @@ if(t==='kelola'){populateKeuFilters();loadKeuFilterPrefsIntoDOM();renderKeuangan
 if(t==='tagihan'){renderBillList();}
 if(t==='budget'){renderBudgets();if(typeof BudgetReko!=='undefined')BudgetReko.init();}
 if(t==='utangpiutang'){if(typeof Piutang!=='undefined')Piutang.renderList();if(typeof Debt!=='undefined')Debt.renderList();}
-if(t==='asetproyek'){if(typeof Pensiun!=='undefined')Pensiun.render();if(typeof Renov!=='undefined')Renov.render();if(typeof SewaKios!=='undefined')SewaKios.render();}
+if(t==='asetproyek'){
+if(typeof Pensiun!=='undefined')Pensiun.render();
+// Sesi 13 Tahap 1b: Renov (modules/home/renovasi.js) sekarang lazy-load --
+// kalau belum ke-load, muat dulu lewat ensureRenov() (index.html, pola sama
+// dgn ensureTesseract() dkk), baru render begitu selesai. Pensiun/SewaKios
+// TIDAK terpengaruh (masih dari bundle, render sinkron seperti sebelumnya).
+if(typeof Renov!=='undefined'){Renov.render();}
+else if(typeof ensureRenov==='function'){
+ensureRenov().then(function(){if(typeof Renov!=='undefined')Renov.render();}).catch(function(e){
+console.error('[Renov] Gagal lazy-load modules/home/renovasi.js:',e);
+if(typeof window.__moduleLoadFail==='function')window.__moduleLoadFail('modules/home/renovasi.js');
+});
+}
+if(typeof SewaKios!=='undefined'){SewaKios.render();}
+else if(typeof ensureSewaKios==='function'){
+ensureSewaKios().then(function(){if(typeof SewaKios!=='undefined')SewaKios.render();}).catch(function(e){
+console.error('[SewaKios] Gagal lazy-load modules/business/sewakios.js:',e);
+if(typeof window.__moduleLoadFail==='function')window.__moduleLoadFail('modules/business/sewakios.js');
+});
+}
+}
 if(t==='laporan'){populateCatFilter();populateAccFilters();renderLaporan();renderKeuangan();}
 }
 
@@ -197,9 +218,10 @@ if(t==='laporan'){populateCatFilter();populateAccFilters();renderLaporan();rende
 const LAPORAN_SUBTAB_ORDER=['ringkasan','aruskas','transaksi'];
 const LAPORAN_SUBTAB_LABEL={ringkasan:'Ringkasan',aruskas:'Arus Kas & Kategori',transaksi:'Transaksi & Export'};
 function setLaporanTab(t,el){
-document.querySelectorAll('#keuanganTab-laporan .lap-subtab').forEach(b=>b.classList.remove('active'));
+const lapSubtabBtns=document.querySelectorAll('#keuanganTab-laporan .lap-subtab');
+lapSubtabBtns.forEach(b=>b.classList.remove('active'));
 if(el) el.classList.add('active');
-else { const idx=LAPORAN_SUBTAB_ORDER.indexOf(t); const btn=document.querySelectorAll('#keuanganTab-laporan .lap-subtab')[idx>=0?idx:0]; if(btn) btn.classList.add('active'); }
+else { const idx=LAPORAN_SUBTAB_ORDER.indexOf(t); const btn=lapSubtabBtns[idx>=0?idx:0]; if(btn) btn.classList.add('active'); }
 document.getElementById('laporanTab-ringkasan').classList.toggle('u-dnone', t!=='ringkasan');
 document.getElementById('laporanTab-aruskas').classList.toggle('u-dnone', t!=='aruskas');
 document.getElementById('laporanTab-transaksi').classList.toggle('u-dnone', t!=='transaksi');
@@ -215,9 +237,10 @@ if(lapBc)lapBc.textContent=LAPORAN_SUBTAB_LABEL[t]||t;
 const KELOLA_SUBTAB_ORDER=['ringkasan','transaksi','pengaturan'];
 const KELOLA_SUBTAB_LABEL={ringkasan:'Ringkasan',transaksi:'Transaksi',pengaturan:'Kelola Data'};
 function setKelolaTab(t,el){
-document.querySelectorAll('#keuanganTab-kelola .kel-subtab').forEach(b=>b.classList.remove('active'));
+const kelSubtabBtns=document.querySelectorAll('#keuanganTab-kelola .kel-subtab');
+kelSubtabBtns.forEach(b=>b.classList.remove('active'));
 if(el) el.classList.add('active');
-else { const idx=KELOLA_SUBTAB_ORDER.indexOf(t); const btn=document.querySelectorAll('#keuanganTab-kelola .kel-subtab')[idx>=0?idx:0]; if(btn) btn.classList.add('active'); }
+else { const idx=KELOLA_SUBTAB_ORDER.indexOf(t); const btn=kelSubtabBtns[idx>=0?idx:0]; if(btn) btn.classList.add('active'); }
 document.getElementById('kelolaTab-ringkasan').classList.toggle('u-dnone', t!=='ringkasan');
 document.getElementById('kelolaTab-transaksi').classList.toggle('u-dnone', t!=='transaksi');
 document.getElementById('kelolaTab-pengaturan').classList.toggle('u-dnone', t!=='pengaturan');

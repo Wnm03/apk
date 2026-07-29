@@ -463,3 +463,12 @@ document.getElementById('renovAiBody').innerHTML=`<div class="empty"><div class=
 }
 }
 };
+
+// Sesi 13 — Tahap 1b (lazy-load): file ini sekarang bisa dimuat TERPISAH lewat
+// _loadScriptOnce() (lihat ensureRenov() di index.html), bukan cuma lewat bundle
+// app-bundle-a.min.js. app-bootstrap.js (Object.assign(window,{...})) cuma jalan
+// SEKALI saat boot, sebelum file ini sempat ke-load kalau lazy — jadi modul ini
+// sekarang mendaftarkan dirinya sendiri ke window di sini, supaya kapan pun file
+// ini akhirnya dimuat, Renov/RenovAI/RenovCalc selalu tersedia sbg window.Renov
+// dkk juga — 0 perubahan perilaku utk pemanggil yang sudah ada.
+if(typeof window!=='undefined'){window.Renov=Renov;window.RenovAI=RenovAI;window.RenovCalc=RenovCalc;}

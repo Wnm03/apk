@@ -74,7 +74,7 @@ save();closeModal('sewaKiosUnitModal');SewaKios.render();renderDashboardSewaKios
 toast('🗑 Unit dihapus');
 },
 roi(u){
-const modal=u.renovProjectId?(()=>{const p=D.renovProjects.find(x=>sameId(x.id,u.renovProjectId));return p?Renov.totals(p).total:0;})():0;
+const modal=u.renovProjectId?(()=>{const p=D.renovProjects.find(x=>sameId(x.id,u.renovProjectId));return (p&&typeof Renov!=='undefined')?Renov.totals(p).total:0;})():0;
 const diterima=(u.riwayat||[]).reduce((s,r)=>s+(r.jumlah||0),0);
 const paybackBulan=(modal>0&&u.hargaSewaBulanan>0)?Math.ceil(modal/u.hargaSewaBulanan):null;
 return{modal,diterima,sisa:Math.max(0,modal-diterima),paybackBulan,pctBalik:modal>0?Math.min(100,Math.round((diterima/modal)*100)):null};
@@ -254,3 +254,11 @@ doc.save('laporan-sewakios-'+new Date().toISOString().split('T')[0]+'.pdf');
 toast('✅ Laporan Sewa Kios (PDF) berhasil dibuat');
 }
 };
+
+// Sesi 14 — Tahap 1b (lazy-load): file ini sekarang bisa dimuat TERPISAH lewat
+// _loadScriptOnce() (lihat ensureSewaKios() di index.html), bukan cuma lewat
+// bundle app-bundle-a.min.js. app-bootstrap.js (Object.assign(window,{...}))
+// cuma jalan SEKALI saat boot, sebelum file ini sempat ke-load kalau lazy --
+// jadi modul ini sekarang mendaftarkan dirinya sendiri ke window di sini,
+// pola sama persis dengan Renov (modules/home/renovasi.js).
+if(typeof window!=='undefined'){window.SewaKios=SewaKios;}

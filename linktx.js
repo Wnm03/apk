@@ -186,8 +186,10 @@ if(t)delete t.billLinkId;
 },
 _refreshCtxUI(){
 if(LinkTx.ctx==='renov'){
+if(typeof Renov!=='undefined'){
 Renov.render();
 if(sameId(Renov.curId,LinkTx.targetId))Renov.renderDetail();
+}
 renderDashboard();renderKeuangan();
 } else if(LinkTx.ctx==='wishlist'){
 WorthIt.renderList();

@@ -726,13 +726,13 @@ if(existingTx.bbmLinkId&&D.bbmLogs){
 const linkedBbm=D.bbmLogs.find(b=>b.id===existingTx.bbmLinkId);
 if(linkedBbm)Object.assign(linkedBbm,{cost:amt,date,accountId:accId});
 }
-if(existingTx.renovItemLinkId){
+if(existingTx.renovItemLinkId&&typeof Renov!=='undefined'){
 Renov.onLinkedTxEdited(existingTx);
 }
 if(existingTx.wishlistLinkId){
 WorthIt.onLinkedTxEdited(existingTx);
 }
-if(existingTx.sewaKiosLinkId){
+if(existingTx.sewaKiosLinkId&&typeof SewaKios!=='undefined'){
 SewaKios.onLinkedTxEdited(existingTx);
 }
 savedTxId=existingTx.id;
@@ -745,7 +745,7 @@ accountId:accId,payMethod:'tunai',
 note:note,date
 });
 WorthIt.applyBuyLink(savedTxId);
-SewaKios.applyPaymentLink(savedTxId);
+if(typeof SewaKios!=='undefined')SewaKios.applyPaymentLink(savedTxId);
 Tukang.applyPendingPayment(savedTxId);
 }
 applyTxStockFromTx(note,savedTxId,date,amt,existingTx);

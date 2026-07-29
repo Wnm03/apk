@@ -655,11 +655,13 @@ if(!hargaEl){toast('⚠️ Buka dulu form Tambah/Edit Item Biaya di Proyek Renov
 hargaEl.value=Math.round(r.total);
 const nameEl=document.getElementById('renovItemName');
 if(nameEl&&!nameEl.value.trim())nameEl.value='Upah Tukang (Absensi '+r.from+' s/d '+r.to+')';
+if(typeof RenovCalc!=='undefined'){
 RenovCalc._pendingDetail={
 type:'absensi',entryIds:r.entryIds,from:r.from,to:r.to,
 total:Math.round(r.total),
 text:'Absensi tukang '+r.from+' s/d '+r.to+' — '+(r.detail||'-')
 };
+}
 closeModal('tukangModal');
 toast('✅ Total absensi dipakai ke form item — jangan lupa tap Simpan Item');
 },

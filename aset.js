@@ -1443,6 +1443,7 @@ return{surplus:0,months:0};
 goals(){
 const goals=[];
 (D.renovProjects||[]).forEach(p=>{
+if(typeof Renov==='undefined')return;
 const t=Renov.totals(p);
 if(t.sisa>0)goals.push({key:'renov-'+p.id,emoji:'🔨',label:'Renovasi: '+p.name,remaining:t.sisa,kind:'renov'});
 });
@@ -1538,9 +1539,10 @@ applyOneCardCollapsePref('timelineWCard');
 // cuma sekarang levelnya per-tab, bukan per-kartu.
 const ASET_TAB_ORDER=['ringkasan','buku','analisis','manajemen'];
 function setAsetTab(t,el){
-document.querySelectorAll('#page-aset .cn-tab').forEach(b=>b.classList.remove('active'));
+const asetTabBtns=document.querySelectorAll('#page-aset .cn-tab');
+asetTabBtns.forEach(b=>b.classList.remove('active'));
 if(el) el.classList.add('active');
-else { const idx=ASET_TAB_ORDER.indexOf(t); const btn=document.querySelectorAll('#page-aset .cn-tab')[idx>=0?idx:0]; if(btn) btn.classList.add('active'); }
+else { const idx=ASET_TAB_ORDER.indexOf(t); const btn=asetTabBtns[idx>=0?idx:0]; if(btn) btn.classList.add('active'); }
 document.getElementById('asetTab-ringkasan').classList.toggle('u-dnone', t!=='ringkasan');
 document.getElementById('asetTab-buku').classList.toggle('u-dnone', t!=='buku');
 document.getElementById('asetTab-analisis').classList.toggle('u-dnone', t!=='analisis');
