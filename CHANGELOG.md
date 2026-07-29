@@ -1,4 +1,279 @@
-# Changelog — S312: Fix ownership akun baru dari Aset ("➕ Buat Akun Baru dari Aset Ini")
+# Changelog — Sesi 11: Bugfix cakupan sweep modal (self-test)
+
+## Bug yang diperbaiki
+Self-test "Tes Buka/Tutup Modal" melaporkan 1 masalah: "(kelengkapan
+cakupan) modal belum terdaftar" untuk `qsProdusenActions` & `qsAssetActions`.
+Kedua modal ini (dibuka lewat `openQS()`/`closeQS()` di
+`modules/shared/action-wrappers.js` & `modules/shop/cobek-order.js`,
+`modules/asset/aset.js`) memang ada di halaman & berfungsi normal, tapi
+belum didaftarkan ke sweep test manapun — jadi selamanya tidak pernah
+ikut ter-tes otomatis (bukan modal yang benar-benar rusak, cuma "buta"
+dari radar self-test).
+
+## Perubahan
+- `self-test.js` — tambah 2 entry ke `EXTRA_MODAL_SWEEP_SPECS`:
+  `qsProdusenActions` & `qsAssetActions`, pola SAMA PERSIS entry
+  `qsBillActions` yang sudah ada di atasnya (`{fn:'openQS',
+  args:['qs...'],id:'qs...',close:()=>closeQS('qs...')}`). Sekarang
+  92/102 → 94/102 modal aman, 0 bermasalah.
+
+---
+
+# Changelog — Sesi 10: Reroute ImportKatalog.commit() ke commitShopRows()
+
+## Target eksplisit user
+Lanjutan opsional (BUKAN bagian `DESIGN_torsi-vehicle-selector_shop-import-
+export-2.md` — dokumen itu SUDAH SELESAI 4/4 sejak Sesi 9): reroute
+`ImportKatalog.commit()` (Paste, `cobek-io.js`) ke `ShopDataIO.
+commitShopRows()` (`shop-data-io-api.js`, §B.4), item lanjutan yang
+tercatat pertama kali di Sesi 5.
+
+## Perubahan
+- `modules/business/shop-data-io-api.js` — `ShopDataIO.commitShopRows(rows)`
+  ditambah dukungan field opsional `hargaReseller` (dibutuhkan mode Paste
+  "🤝 Harga Reseller"; Scan/PDF/CSV tidak pernah mengirim field ini, jadi
+  perilakunya 0 berubah untuk ketiganya — 100% additive). Update: `product.
+  hargaReseller = r.hargaReseller` kalau dikirim (partial-update, pola sama
+  field lain). Create: `hargaReseller: r.hargaReseller ?? null` (sebelumnya
+  hardcoded `null`).
+- `modules/shop/cobek-io.js` — `ImportKatalog.commit()` DIREROUTE penuh:
+  logic match-by-name + create/update produk (± 15 baris) DIHAPUS, diganti
+  mapping `this.parsed` → `rows` (field `nama`/`kategori`/`hargaJual` selalu,
+  `hargaReseller` kalau `target==='reseller'`, `hargaBeli` kalau
+  `target==='beli'`) lalu 1 panggilan `ShopDataIO.commitShopRows(rows)`.
+  Perilaku Paste 100% TIDAK BERUBAH dari sisi user (hargaJual selalu terisi
+  dari harga yang di-paste; target menentukan kolom TAMBAHAN yang ikut
+  terisi) — hanya sumber logic-nya sekarang SATU dengan
+  Scan/PDF/CSV, bukan duplikat.
+- Dengan ini, SEMUA 4 entry point Shop Import (Scan/PDF/CSV/Paste) resmi
+  berbagi 1 SUMBER KEBENARAN commit (`ShopDataIO.commitShopRows()`) sesuai
+  desain §B.4 — tuntas.
+
+## Test
+`tests/shop-import-katalog-reroute.test.js` (7 test baru): target reseller/
+beli/jual pada produk baru (kombinasi field yang terisi benar), target
+reseller pada produk existing (partial-update, field lain tidak ditimpa),
+kategori teks ikut di-resolve lewat `commitShopRows()`, parsed kosong tidak
+menyentuh `D.products`, dan integrasi banyak baris sekaligus.
+
+`node --test tests/*.test.js` → **1703/1703 pass, 0 fail** (naik dari
+baseline 1696, +7 test baru, 0 regresi — 2x, sebelum & sesudah build).
+
+## Build
+`node scripts/build.js` → sukses, `?v=848`, `docs/FILE-MAP.md`
+ter-regenerasi otomatis, `index.html` & `app_production.html` identik.
+
+## ZIP
+`kw_release_s10_reroute-importkatalog-commitshoprows_v848.zip`.
+
+---
+
+
+
+
+
+## Target eksplisit user
+Item TERAKHIR `DESIGN_torsi-vehicle-selector_shop-import-export-2.md`,
+Bagian B (Shop Import/Export: Scan/PDF/CSV/JSON): Import/Export JSON
+Shop-only (§B.3.4). Dengan ini, Bagian B **SELESAI 4/4** (Scan, Import PDF,
+Import CSV, Import/Export JSON).
+
+## Perubahan
+- `modules/business/shop-data-io-api.js`:
+  - `ShopDataIO.exportShopJSON()` — download `{products, produsen, version,
+    exportedAt}`. Passthrough `D.products`/`D.produsen` apa adanya — subset
+    Shop-only dari `backup-restore.js` yang SUDAH ADA (`out.products=
+    D.products; out.produsen=D.produsen;`), dibungkus fungsi terpisah biar
+    user Shop bisa backup/restore cepat tanpa buka `backupModal` & centang/
+    uncentang 8 modul lain. 0 field baru, 0 rumus baru.
+  - `ShopDataIO.validateShopJSON(imp)` — cek shape (`products`/`produsen`
+    harus array kalau ada, minimal salah satu ada) SEBELUM overwrite apa
+    pun, pola sama `applyRestoredData()`.
+  - `ShopDataIO.importShopJSON(imp, mode)` — mode `'gabung'` (default):
+    match produk by nama (case-insensitive), ada → update PARTIAL (field
+    `undefined` di sumber TIDAK menimpa), belum ada → buat baru shape
+    produk Shop yang sama persis. Beda dari `commitShopRows()`: sumber di
+    sini sudah berupa objek produk PENUH (hasil export JSON, bukan rows
+    sederhana scan/CSV/PDF), jadi field yang disalin lebih lengkap
+    (`kategoriId`/`produsenId`/`hargaReseller`/`diskonPersen`) — tidak
+    lewat `commitShopRows()` karena tidak butuh `resolveShopKategori()`.
+    Produsen: tambah yang belum ada saja (match by nama), TIDAK update
+    produsen existing. Mode `'timpa'`: replace total `D.products`/
+    `D.produsen` (destruktif, pemanggil wajib `askConfirm()` dulu).
+  - `ShopJsonIO` *(baru)* — presenter modal `shopJsonModal`: Export = 1 tap
+    langsung download (tidak perlu preview). Import = pilih file → `File.
+    text()` → `JSON.parse()` → `validateShopJSON()` → preview ringkasan
+    (jumlah baru/update untuk mode Gabung, atau peringatan replace total
+    untuk mode Timpa) → commit lewat `importShopJSON()`. Mode Timpa wajib
+    konfirmasi destruktif (`askConfirm()`, pola sama `archiveDeleteStep()`)
+    sebelum commit; mode Gabung aman/additive, tidak ada konfirmasi
+    tambahan (konsisten Import CSV/PDF/Scan yang sudah ada). Diexpose ke
+    `window.ShopJsonIO` (dipanggil langsung dari `data-action` di modal).
+- `modules/shared/modals.js` — modal baru `shopJsonModal`: tombol Export
+  langsung, toggle mode Gabung/Timpa (`chip-btn`, sama gaya toggle lain),
+  file input `.json`, area preview, tombol commit (disabled sampai file
+  valid dipilih).
+- `index.html` & `app_production.html` — tombol baru "🗂️ Import/Export
+  JSON (Shop)" di tab Shop → Etalase, setelah tombol Scan Nota/Struk.
+
+## Test
+`tests/shop-data-io-json-import.test.js` (11 test baru): `exportShopJSON()`
+passthrough + version + exportedAt, `validateShopJSON()` (bukan objek,
+tanpa products/produsen, bukan array, shape valid), `importShopJSON()` mode
+gabung (produk baru lengkap, produk existing partial-update, produsen baru
+ditambah tapi existing tidak diubah), mode timpa (replace total), shape
+invalid (`D` tidak disentuh), dan integrasi ringan end-to-end
+`exportShopJSON()` → `importShopJSON()` gabung round-trip.
+
+`node --test tests/*.test.js` → **1696/1696 pass, 0 fail** (naik dari
+baseline 1685, +11 test baru, 0 regresi).
+
+## Build
+`node scripts/build.js` → sukses, `?v=847`, `docs/FILE-MAP.md`
+ter-regenerasi otomatis, `index.html` & `app_production.html` identik.
+
+## Status Bagian B (DESIGN_torsi-vehicle-selector_shop-import-export-2.md)
+**SELESAI 4/4**: Scan (§B.3.1), Import PDF (§B.3.2), Import CSV (§B.3.3),
+Import/Export JSON Shop-only (§B.3.4). Bagian A tetap SELESAI (Torsi
+Vehicle Selector, lihat entri Sesi N+2/N+3 di bawah). Item yang masih
+tercatat sbg lanjutan (di luar scope dokumen ini, dicatat terpisah di
+`docs/NEXT_SESSION.md` kalau relevan): reroute `ImportKatalog.commit()`
+(Paste, `cobek-io.js`) ke `commitShopRows()`.
+
+## ZIP
+`kw_release_s9_shop-import-export-json_v847.zip`.
+
+---
+
+
+
+
+
+## Target eksplisit user
+Lanjutan `DESIGN_torsi-vehicle-selector_shop-import-export-2.md`, Bagian B
+(Shop Import/Export: Scan/PDF/CSV/JSON) — item pertama & paling ringan sesuai
+urutan implementasi disarankan di dokumen: `commitShopRows()` + Import CSV
+(§B.3.3, §B.4). Scan (§B.3.1), Import PDF (§B.3.2), dan Import/Export JSON
+Shop-only (§B.3.4) SENGAJA belum dikerjakan — menyusul sesi terpisah
+masing-masing (RULE "1 target per sesi").
+
+## Perubahan
+- `modules/business/shop-data-io-api.js` *(baru)*:
+  - `ShopDataIO.commitShopRows(rows)` — 1 fungsi commit dipakai bareng 4
+    entry point (Scan/PDF/CSV/Paste) sesuai desain §B.4, mencegah duplikasi
+    logic. 100% reuse pola match-by-name (case-insensitive) + partial-update
+    yang sudah ada di `ImportKatalog.commit()`/`ImportShopExcel.commit()`
+    (`cobek-io.js`) — produk existing di-update field yang dikirim saja,
+    field yang tidak dikirim TIDAK ditimpa; produk baru dibuat dengan shape
+    objek yang sama persis dipakai di seluruh Shop.
+  - `ShopDataIO.parseShopCSV(text)` — parser CSV sederhana
+    (`split('\n')`+`split(',')`, sesuai §B.3.3 — codebase belum pakai
+    papaparse, konsisten prinsip "no extra dependency kalau tidak perlu").
+    Header wajib `nama,kategori,harga_beli,harga_jual,stok,satuan`, urutan
+    kolom bebas (dicocokkan lewat nama header, bukan posisi tetap), kolom
+    "nama" wajib ada.
+  - `ShopCsvImport` — presenter modal `shopCsvImportModal`, pola sama persis
+    `ImportShopExcel` (`cobek-io.js`): pilih file → baca (`File.text()`) →
+    parse → preview (badge 🆕 baru / 🔄 update) → commit lewat
+    `ShopDataIO.commitShopRows()`.
+- `modules/shared/modals.js` — modal baru `shopCsvImportModal` (upload
+  `.csv`, preview, tombol commit), reuse struktur `importShopExcelModal`.
+- Reroute `ImportKatalog.commit()` (Paste, `cobek-io.js`) ke
+  `commitShopRows()` yang sama **TIDAK** dikerjakan sesi ini (di luar scope
+  "paling ringan, validasi pola commit dulu") — dicatat sbg item lanjutan di
+  `docs/NEXT_SESSION.md`, bukan diasumsikan sudah beres.
+
+## Test
+`tests/shop-data-io-csv-import.test.js` (12 test baru): parsing header
+lengkap/dibalik/tanpa kolom nama/baris kosong/harga berformat "Rp30.000",
+`commitShopRows()` insert vs update partial, baris tanpa nama diabaikan,
+rows kosong/bukan array, banyak baris sekaligus, dan integrasi
+`parseShopCSV()` → `commitShopRows()` end-to-end.
+
+`node --test tests/*.test.js` → **1671/1671 pass, 0 fail** (naik dari
+baseline 1659).
+
+## Build
+`node scripts/build.js` → sukses, `?v=843`, `docs/FILE-MAP.md`
+ter-regenerasi otomatis.
+
+## Status Bagian B (DESIGN_torsi-vehicle-selector_shop-import-export-2.md)
+Item 1/4 selesai: `commitShopRows()` + Import CSV. Sisa: Import PDF (§B.3.2,
+reuse `VehicleCatalogImportUI`), Scan (§B.3.1, reuse `SparepartScannerUI`),
+Import/Export JSON Shop-only (§B.3.4). Bagian A tetap SELESAI (lihat entri
+Torsi Sesi N+2/N+3 di bawah).
+
+## ZIP
+`kw_release_sesi5_shop-data-io-csv-import_v843.zip`.
+
+---
+
+
+
+# Changelog — Torsi Sesi N+2/N+3: Vehicle Selector Field di `torsiModal`
+
+## Target eksplisit user
+Lanjutan `DESIGN_torsi-vehicle-selector_shop-import-export-2.md`, Bagian A,
+sesi berikutnya setelah migrasi `DATA_MIGRATIONS` (toVersion:4) & refactor
+`toggleCheck()`/`updateBiaya()` (lihat zip
+`kw_release_sesi2_torsi-togglecheck-vehicleapi_v841.zip`): tambahkan field
+"Pilih Kendaraan" mandiri di `torsiModal` supaya bisa cek/isi torsi
+kendaraan lain tanpa mengganti kendaraan aktif global (`curVehicleId`).
+
+## Perubahan
+- `modules/shared/modals.js` — tambah `<div id="trsVehiclePickerWrap">`
+  berisi `<select id="trsVehicleSelect" onchange="Torsi.onVehicleChange(this)">`
+  di `torsiModal`, persis di bawah judul modal, sebelum `.trs-calc-card`
+  (sesuai kontrak HTML A.4 di dokumen desain).
+- `car-notes.js` (`Torsi`):
+  - `renderVehicleSelect()` (baru) — isi `<option>` dari
+    `TorsiVehicleAPI.daftarKendaraan()`, 100% reuse pola
+    `ShopKatalogDinamisPresenter.render()`; default `_selectedVehicleId` ke
+    kendaraan pertama kalau belum valid.
+  - `onVehicleChange(el)` (baru) — ganti `Torsi._selectedVehicleId`
+    in-memory saja (TIDAK menyentuh `curVehicleId` global/`D`), baca ulang
+    checklist kendaraan terpilih lewat `TorsiVehicleAPI.checklistUntuk()`
+    (read-only, 0 side-effect), lalu render ulang daftar part + `trsVehChip`.
+    Sengaja TIDAK memanggil `setPageMode()`/`persist()` di sini karena
+    keduanya menulis ke `D.torsiChecklist[curVehicleId]`, bukan ke
+    kendaraan yang baru dipilih — toggle UI mode diupdate manual supaya
+    tidak salah tulis ke kendaraan aktif global.
+  - `open()` sekarang memanggil `renderVehicleSelect()` saat modal dibuka.
+- 0 perubahan skema `D.torsiChecklist`, 0 field `D` baru (konsisten A.4.1 —
+  `_selectedVehicleId` variabel modul biasa, direset tiap modal dibuka).
+
+## Test
+`tests/torsi-vehicle-selector-render-s4.test.js` (5 test baru): render
+`<option>` dari `daftarKendaraan()`, isolasi `_selectedVehicleId` dari
+`curVehicleId` global, `onVehicleChange()` read-only (tidak memanggil
+`save()`/menulis `D.torsiChecklist`), data checklist antar kendaraan tidak
+tercampur saat pindah-pindah di selector, guard value kosong.
+
+`node --test tests/*.test.js` → **1659/1659 pass, 0 fail** (naik dari
+baseline 1615 + 5 test/44 assertion baru di atas — migrasi `toVersion:4`
+& wiring `onVehicleChange()` sekarang sama-sama punya cakupan test
+otomatis, menuntaskan item "Sesi N+4: Regression test" di dokumen desain).
+
+## Build
+`node scripts/build.js` → sukses, `?v=841`, sintaks kedua bundle valid,
+`docs/FILE-MAP.md` ter-regenerasi otomatis (278 file, 1884 identifier).
+
+## Status Bagian A (DESIGN_torsi-vehicle-selector_shop-import-export-2.md)
+**SELESAI** — API (`TorsiVehicleAPI`, Sesi 1), migrasi jaring-pengaman
+(`DATA_MIGRATIONS` toVersion:4), refactor `toggleCheck()`/`updateBiaya()`,
+field "Pilih Kendaraan" (HTML + `onVehicleChange()`), dan regression test
+semuanya sudah dikerjakan & hijau. Sisa item opsional di dokumen desain:
+sinkronisasi dokumen desain itu sendiri (item terpisah, tidak mengubah
+kode) & keputusan UX terbuka soal prefill `servisModal` dari
+`Torsi._selectedVehicleId` (A.5, belum final — menunggu keputusan user).
+Bagian B (Shop Import/Export) belum dimulai.
+
+## ZIP
+`kw_release_sesi4_torsi-vehicle-selector_v841.zip`.
+
+---
+
+
 
 ## Target eksplisit user
 Lanjutan dari 2 temuan yang ditunda di S311 (rule 1-target/sesi) — user minta

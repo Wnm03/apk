@@ -818,6 +818,11 @@ const MY_WRENCH={brand:'MOLLAR',sku:'MLR-B11950',minNm:13.56,maxNm:108.48,minLbf
 const Torsi={
 mode:'catalog', selected:null, activeCat:'Semua', extOpen:false,
 pageMode:'normal', checked:{}, biaya:{}, cats:[TORSI_STANDARD_CAT], db:null,
+// _selectedVehicleId — state in-memory murni (bukan field D baru), pola sama
+// ShopKatalogDinamisPresenter._selectedVehicleId (lihat DESIGN dok. A.4.1).
+// Default diisi curVehicleId tiap open(); dipakai toggleCheck()/updateBiaya()
+// supaya baca/tulis lewat TorsiVehicleAPI, independen dari curVehicleId global.
+_selectedVehicleId:null,
 itemKey(cat,name){return cat+'|'+name;},
 computeCats(){
 const veh=D.vehicles.find(v=>v.id===curVehicleId);
@@ -848,11 +853,14 @@ save();
 },
 open(){
 this.mode='catalog';this.selected=null;this.activeCat='Semua';this.extOpen=false;
+// Default per A.4.1: mulai dari kendaraan aktif global tiap modal dibuka.
+this._selectedVehicleId=curVehicleId;
 this.loadPersisted();
 this.computeCats();
 const veh=D.vehicles.find(v=>v.id===curVehicleId);
 const km=getVehicleKm(curVehicleId)||0;
 document.getElementById('trsVehChip').textContent=(veh?veh.emoji+' '+veh.name:'')+' · '+km.toLocaleString('id-ID')+' km';
+this.renderVehicleSelect();
 this.renderSourceNote();
 document.getElementById('trsSearchInput').value='';
 document.getElementById('trsManualTorsiInput').value='';
@@ -861,6 +869,49 @@ this.setPageMode(this.pageMode||'normal');
 this.chips();
 this.renderList();
 openModal('torsiModal');
+},
+// renderVehicleSelect() — isi <select id="trsVehicleSelect"> dari
+// TorsiVehicleAPI.daftarKendaraan() (lihat DESIGN dok. A.4). 100% reuse
+// kontrak {ok,count,list} yang sudah dipakai ShopKatalogDinamisPresenter —
+// tidak ada query/hitungan baru di sini, murni render pilihan.
+renderVehicleSelect(){
+const sel=document.getElementById('trsVehicleSelect');
+if(!sel)return;
+if(typeof TorsiVehicleAPI==='undefined'){sel.innerHTML='';return;}
+const dk=TorsiVehicleAPI.daftarKendaraan();
+if(!dk.ok||dk.count===0){sel.innerHTML='<option value="">— Belum ada kendaraan —</option>';return;}
+if(!this._selectedVehicleId||!dk.list.some(v=>v.id===this._selectedVehicleId)){
+this._selectedVehicleId=dk.list[0].id;
+}
+sel.innerHTML=dk.list.map(v=>`<option value="${escapeHtml(v.id)}"${v.id===this._selectedVehicleId?' selected':''}>${v.emoji} ${escapeHtml(v.name)}</option>`).join('');
+},
+// onVehicleChange(el) — dipanggil dari onchange <select id="trsVehicleSelect">
+// (lihat DESIGN dok. A.4.1). Ganti this._selectedVehicleId (in-memory saja,
+// TIDAK menyentuh curVehicleId global maupun D — pola sama persis
+// ShopKatalogDinamisPresenter.onVehicleChange()), lalu baca checklist
+// kendaraan terpilih APA ADANYA lewat TorsiVehicleAPI.checklistUntuk()
+// (read-only, 0 side-effect) & render ulang daftar part + trsVehChip.
+// CATATAN: sengaja TIDAK memanggil this.setPageMode()/this.persist() di sini
+// — keduanya menulis ke D.torsiChecklist[curVehicleId] (lihat persist()),
+// bukan ke vehicleId yang baru dipilih; toggle UI mode diperbarui manual
+// di bawah supaya tidak salah menulis ke kendaraan aktif global.
+onVehicleChange(el){
+const vehicleId=el&&el.value;
+if(!vehicleId)return;
+this._selectedVehicleId=vehicleId;
+const res=TorsiVehicleAPI.checklistUntuk(vehicleId);
+if(!res.ok){toast(res.reason||'Kendaraan tidak ditemukan');return;}
+this.checked={...res.checked};
+this.biaya={...res.biaya};
+this.pageMode=res.pageMode;
+document.getElementById('trsTopModeNormal').classList.toggle('active',this.pageMode==='normal');
+document.getElementById('trsTopModeChecklist').classList.toggle('active',this.pageMode==='checklist');
+document.getElementById('trsSummaryBar').classList.toggle('show',this.pageMode==='checklist');
+const km=getVehicleKm(vehicleId)||0;
+const veh=D.vehicles.find(v=>v.id===vehicleId);
+document.getElementById('trsVehChip').textContent=(veh?veh.emoji+' '+veh.name:res.kendaraan.name)+' · '+km.toLocaleString('id-ID')+' km';
+this.renderList();
+this.updateSummary();
 },
 chips(){
 const cats=['Semua',...this.cats.map(d=>d.cat)];
@@ -1057,8 +1108,27 @@ this.renderList();
 this.updateSummary();
 this.persist();
 },
-toggleCheck(key){this.checked[key]=!this.checked[key];this.renderList();this.updateSummary();this.persist();},
-updateBiaya(key,val){this.biaya[key]=parseFloat(val)||0;this.updateSummary();this.persist();},
+// toggleCheck()/updateBiaya() — refactor (lihat DESIGN dok. A.5): baca/tulis
+// lewat TorsiVehicleAPI.setCheck() atas this._selectedVehicleId, bukan lagi
+// this.persist() langsung ke D.torsiChecklist[curVehicleId]. Kontrak
+// TorsiVehicleAPI & bentuk D.torsiChecklist tidak berubah (0 perubahan skema)
+// — cuma titik tulisnya yang pindah, supaya field "Pilih Kendaraan" (sesi
+// berikutnya) bisa cek/isi biaya kendaraan lain tanpa ganti curVehicleId
+// global. Fallback ke curVehicleId kalau _selectedVehicleId belum diisi
+// (mis. dipanggil di luar alur open() normal).
+toggleCheck(key){
+const vehicleId=this._selectedVehicleId||curVehicleId;
+this.checked[key]=!this.checked[key];
+this.renderList();
+this.updateSummary();
+TorsiVehicleAPI.setCheck(vehicleId,key,{checked:this.checked[key]});
+},
+updateBiaya(key,val){
+const vehicleId=this._selectedVehicleId||curVehicleId;
+this.biaya[key]=parseFloat(val)||0;
+this.updateSummary();
+TorsiVehicleAPI.setCheck(vehicleId,key,{biaya:this.biaya[key]});
+},
 updateSummary(){
 let total=0,done=0,count=0;
 this.cats.forEach(cat=>cat.items.forEach(it=>{

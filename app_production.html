@@ -80,9 +80,9 @@
 <link rel="preconnect" href="https://accounts.google.com" crossorigin>
 <link rel="dns-prefetch" href="https://accounts.google.com">
 <title>Keluarga W</title>
-<link rel="stylesheet" href="styles.css?v=838">
-<link rel="stylesheet" href="modern-ui-layer.css?v=838">
-<script src="nav-scroll.js?v=838" defer></script>
+<link rel="stylesheet" href="styles.css?v=854">
+<link rel="stylesheet" href="modern-ui-layer.css?v=854">
+<script src="nav-scroll.js?v=854" defer></script>
 <script>
 /* Debug console (Eruda) — aktifkan sekali lewat ?debug=1 di URL, nempel via localStorage.
    Matikan lagi lewat ?debug=0. Tidak aktif buat user biasa. */
@@ -107,8 +107,14 @@ if(window._loadedScripts[src])return window._loadedScripts[src];
 window._loadedScripts[src]=new Promise((resolve,reject)=>{
 const s=document.createElement('script');
 s.src=src;s.async=true;
-s.onload=()=>resolve();
-s.onerror=()=>{delete window._loadedScripts[src];reject(new Error('Gagal memuat '+src));};
+let done=false;
+const timeoutId=setTimeout(()=>{
+if(done)return;done=true;
+delete window._loadedScripts[src];
+reject(new Error('Timeout memuat '+src+' — cek koneksi internet, atau kalau pakai Brave coba matikan Shields untuk situs ini, lalu coba lagi'));
+},12000);
+s.onload=()=>{if(done)return;done=true;clearTimeout(timeoutId);resolve();};
+s.onerror=()=>{if(done)return;done=true;clearTimeout(timeoutId);delete window._loadedScripts[src];reject(new Error('Gagal memuat '+src));};
 document.head.appendChild(s);
 });
 return window._loadedScripts[src];
@@ -153,8 +159,8 @@ window.location.reload();
 }catch(e){}
 })();
 </script>
-<script src="app-bundle-a.min.js?v=838" onerror="window.__moduleLoadFail('app-bundle-a.min.js')"></script>
-<script src="modules/shared/smoke-test.js?v=838" defer></script>
+<script src="app-bundle-a.min.js?v=854" onerror="window.__moduleLoadFail('app-bundle-a.min.js')"></script>
+<script src="modules/shared/smoke-test.js?v=854" defer></script>
 <link rel="manifest" id="pwaManifestLink" href="manifest.json">
 </head>
 <body data-theme="fresh">
@@ -1128,6 +1134,10 @@ window.location.reload();
     <button class="btn btn-ghost btn-full btn-sm u-mb8" data-action="openImportKatalogModal">📋 Import Katalog & Harga</button>
     <button class="btn btn-ghost btn-full btn-sm u-mb8" data-action="exportShopEtalaseXLSX">📤 Export Excel (Etalase)</button>
     <button class="btn btn-ghost btn-full btn-sm u-mb8" data-action="openImportShopExcelModal" data-args='["etalase"]'>📥 Import Excel (Etalase)</button>
+    <button class="btn btn-ghost btn-full btn-sm u-mb8" data-action="openShopCsvImportModal">📊 Import CSV</button>
+    <button class="btn btn-ghost btn-full btn-sm u-mb8" data-action="ShopPdfImportUI.open">📄 Import PDF (Supplier)</button>
+    <button class="btn btn-ghost btn-full btn-sm u-mb8" data-action="ShopScanUI.scanCamera">📷 Scan Nota/Struk Supplier</button>
+    <button class="btn btn-ghost btn-full btn-sm u-mb8" data-action="openShopJsonModal">🗂️ Import/Export JSON (Shop)</button>
     <button class="btn btn-ghost btn-full btn-sm u-mb8" data-action="Etalase.openMergeModal">🔗 Gabungkan Harga Produk</button>
     <div class="u-fs12 u-t2 u-mb8">💡 Stok juga otomatis bertambah kalau kamu catat pengeluaran kategori "Bisnis" sub "Shop" di tab Keuangan — 2 arah, tetap sinkron.</div>
     <div class="card" id="priceRekoWidgetCard" style="display:none">
@@ -3675,6 +3685,6 @@ window.location.reload();
 <script>document.write(MODAL_HTML[80]);</script><!-- modal:hondaPdfImportModal -->
 <script>document.write(MODAL_HTML[82]);</script><!-- modal:inventoryTransferModal (S244) -->
 
-<script src="app-bundle-b.min.js?v=838" onerror="window.__moduleLoadFail('app-bundle-b.min.js')"></script>
+<script src="app-bundle-b.min.js?v=854" onerror="window.__moduleLoadFail('app-bundle-b.min.js')"></script>
 </body>
 </html>

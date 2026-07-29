@@ -1,5 +1,138 @@
 # NEXT_SESSION.md — Target sesi berikutnya (update setiap sesi)
 
+> **Catatan Sync (Sesi 10 — Reroute ImportKatalog.commit() ke
+> commitShopRows(), lanjutan opsional di luar
+> DESIGN_torsi-vehicle-selector_shop-import-export-2.md yang SUDAH SELESAI
+> 4/4 sejak Sesi 9, build `s10-shop-scan-nota-struk`, `?v=848`):** Item
+> lanjutan yang tercatat sejak Sesi 5 SUDAH DIKERJAKAN —
+> `ImportKatalog.commit()` (Paste, `cobek-io.js`) DIREROUTE penuh ke
+> `ShopDataIO.commitShopRows()` (`shop-data-io-api.js`, §B.4): logic
+> match-by-name+create/update yang dulu duplikat DIHAPUS dari
+> `ImportKatalog.commit()`, diganti mapping `this.parsed` → `rows` lalu 1
+> panggilan `commitShopRows()`. `commitShopRows()` ditambah dukungan field
+> opsional `hargaReseller` (dibutuhkan mode Paste "🤝 Harga Reseller"; 100%
+> additive — Scan/PDF/CSV tidak pernah mengirim field ini). Perilaku Paste
+> dari sisi user TIDAK BERUBAH sama sekali. **SEMUA 4 entry point Shop
+> Import (Scan/PDF/CSV/Paste) sekarang resmi berbagi 1 SUMBER KEBENARAN
+> commit sesuai §B.4 — tuntas.** Test baru: `tests/shop-import-katalog-
+> reroute.test.js` (7 test). Baseline regression **1703/1703 PASS** (naik
+> dari 1696, 2x — sebelum & sesudah build).
+>
+> **Target sesi berikutnya**: TBD — tidak ada lagi item lanjutan tercatat
+> dari dokumen desain Torsi/Shop Import-Export (Bagian A+B keduanya SUDAH
+> SELESAI). Tanya user target baru sebelum coding apa pun (lihat kandidat
+> lama di § "Target berikutnya" di bawah, semua masih butuh keputusan
+> produk).
+
+> **Catatan Sync (Sesi 9 — Shop Import/Export JSON, ITEM TERAKHIR Bagian B
+> `DESIGN_torsi-vehicle-selector_shop-import-export-2.md`, build
+> `s9-shop-import-export-json`, `?v=847`):** Item ke-4/terakhir Bagian B
+> selesai — `ShopDataIO.exportShopJSON()`/`.validateShopJSON()`/
+> `.importShopJSON(imp,mode)` (`modules/business/shop-data-io-api.js`) +
+> presenter baru `ShopJsonIO` + modal `shopJsonModal`
+> (`modules/shared/modals.js`). Export = passthrough `{products, produsen,
+> version, exportedAt}` (subset `backup-restore.js` yang sudah ada, 0 rumus
+> baru). Import mode Gabung (match by nama, partial-update, field lengkap
+> kategoriId/produsenId/hargaReseller/diskonPersen — beda dari
+> `commitShopRows()` krn sumbernya objek produk PENUH bukan rows sederhana)
+> atau Timpa (replace total, wajib `askConfirm()` destruktif dulu). Tombol
+> baru "🗂️ Import/Export JSON (Shop)" di tab Shop → Etalase
+> (`index.html`/`app_production.html`), setelah tombol Scan. Test baru:
+> `tests/shop-data-io-json-import.test.js` (11 test). Baseline regression
+> **1696/1696 PASS** (naik dari 1685).
+>
+> **Bagian B `DESIGN_torsi-vehicle-selector_shop-import-export-2.md`
+> SEKARANG SELESAI 4/4** (Scan §B.3.1, Import PDF §B.3.2, Import CSV
+> §B.3.3, Import/Export JSON §B.3.4). Bagian A (Torsi Vehicle Selector)
+> juga sudah SELESAI sejak Torsi Sesi N+2/N+3. **Seluruh dokumen desain
+> `DESIGN_torsi-vehicle-selector_shop-import-export-2.md` SELESAI.**
+>
+> Item yang masih tercatat sbg lanjutan opsional (BUKAN bagian dokumen
+> desain ini, belum ada keputusan produk): reroute `ImportKatalog.commit()`
+> (Paste, `cobek-io.js`) ke `commitShopRows()` yang sama — dicatat pertama
+> kali di Sesi 5, masih terbuka.
+>
+> **Target sesi berikutnya**: TBD — dokumen desain Torsi/Shop Import-Export
+> sudah tuntas semua. Tanya user target baru sebelum coding apa pun (lihat
+> kandidat lama di § "Target berikutnya" di bawah, atau reroute
+> `ImportKatalog.commit()` di atas kalau user setuju itu prioritas
+> berikutnya).
+
+> **Catatan Sync (Sesi 8 — Shop Scan Nota/Struk Supplier, lanjutan Bagian B
+> `DESIGN_torsi-vehicle-selector_shop-import-export-2.md`, build
+> `s8-shop-scan-nota-struk`, `?v=846`):** Item ke-3 Bagian B (Shop
+> Import/Export) selesai — `ShopScanUI.scanCamera()`/`.scanGallery()`
+> (`modules/business/shop-scan-ui.js`, baru) + modal `shopScanModal`
+> (`modules/shared/modals.js`). 100% reuse `ocrRecognize()` (scan-ocr.js,
+> pipeline OCR yang sama dipakai `scanReceipt()`/`BillMultiScan`) +
+> `ImportKatalog.parseText()` (1 sumber kebenaran parsing, sudah dipakai
+> bareng Import PDF Shop) + `ShopDataIO.commitShopRows()` (fungsi commit yang
+> sama dipakai CSV/PDF/Scan, §B.4 — 0 logic baru). **Catatan revisi vs draf
+> desain awal §B.3.1**: draf menyebut reuse `SparepartScannerUI` — audit
+> kode menunjukkan itu scanner BARCODE (ZXing) utk Vehicle Catalog, BUKAN
+> pipeline yang cocok utk struk/nota multi-baris; pipeline yang benar-benar
+> dipakai adalah `ocrRecognize()` (Tesseract), dicatat di komentar header
+> `shop-scan-ui.js`. Tombol baru "📷 Scan Nota/Struk Supplier" ditambah di
+> tab Shop → Etalase (`index.html`/`app_production.html`), setelah tombol
+> Import PDF. Test baru: `tests/shop-scan-ui.test.js` (7 test). Baseline
+> regression **1685/1685 PASS** (naik dari 1678, 2x — sebelum & sesudah
+> build).
+>
+> Item yang SENGAJA belum digarap sesi ini: Import/Export JSON Shop-only
+> (§B.3.4) — item terakhir Bagian B.
+>
+> **Target sesi berikutnya**: Bagian B item ke-4 (terakhir) — Import/Export
+> JSON Shop-only (§B.3.4): `exportShopJSON()` (`{products, produsen,
+> version, exportedAt}`, subset dari `backup-restore.js` yang sudah ada) +
+> `importShopJSON()` (validasi version+shape, mode Gabung/Timpa) di
+> `shop-data-io-api.js`, dibungkus modal baru (atau tambahan ke pola modal
+> yang sudah ada).
+
+> **Catatan Sync (Sesi 5 — Shop Import CSV, lanjutan Bagian B
+> `DESIGN_torsi-vehicle-selector_shop-import-export-2.md`, build `?v=843`):**
+> Item pertama Bagian B (Shop Import/Export) selesai —
+> `ShopDataIO.commitShopRows()` + `ShopDataIO.parseShopCSV()`
+> (`modules/business/shop-data-io-api.js`, baru) + modal `shopCsvImportModal`
+> (`modules/shared/modals.js`). 100% reuse pola match-by-name + partial-update
+> yang sudah ada di `ImportKatalog.commit()`/`ImportShopExcel.commit()`.
+> Test baru: `tests/shop-data-io-csv-import.test.js` (12 test). Baseline
+> regression **1671/1671 PASS** (naik dari 1659). Detail lengkap:
+> `CHANGELOG.md` § Sesi 5.
+>
+> Item yang SENGAJA belum digarap sesi ini: reroute `ImportKatalog.commit()`
+> (Paste) ke `commitShopRows()` yang sama (di luar scope "paling ringan").
+>
+> **Target sesi berikutnya**: Bagian B item ke-2 — Import PDF Shop (§B.3.2,
+> reuse pipeline `VehicleCatalogImportUI`: pilih multi-PDF → ekstrak teks
+> (pdf.js) → OCR fallback kalau kosong/scan → parser baris harga SAMA PERSIS
+> `previewImportKatalog()` → preview → commit lewat `commitShopRows()` yang
+> sudah ada). Setelah itu: Scan (§B.3.1, reuse `SparepartScannerUI`/OCR), lalu
+> Import/Export JSON Shop-only (§B.3.4).
+
+> **Catatan Sync (Torsi Sesi N+2/N+3, lanjutan migrasi `toVersion:4` &
+> refactor `toggleCheck()`/`updateBiaya()`, build `?v=841`):** Bagian A
+> `DESIGN_torsi-vehicle-selector_shop-import-export-2.md` (Kunci Torsi
+> Dinamis per-Kendaraan) **SELESAI**. Field "Pilih Kendaraan"
+> (`<select id="trsVehicleSelect">`) ditambah di `torsiModal`
+> (`modules/shared/modals.js`), diisi via `Torsi.renderVehicleSelect()`
+> (reuse `TorsiVehicleAPI.daftarKendaraan()`); `Torsi.onVehicleChange()`
+> ganti `Torsi._selectedVehicleId` in-memory & baca ulang checklist
+> read-only lewat `TorsiVehicleAPI.checklistUntuk()`, tanpa menyentuh
+> `curVehicleId` global. Test baru: `tests/torsi-vehicle-selector-render-
+> s4.test.js` (5 test). Baseline regression **1659/1659 PASS**. Detail
+> lengkap: `CHANGELOG.md` § Torsi Sesi N+2/N+3.
+>
+> Item terbuka yang SENGAJA belum digarap (butuh keputusan user, bukan
+> ditebak — lihat DESIGN dok. A.5): apakah `servisModal` yang terbuka dari
+> `Torsi.catatServis()` perlu di-prefill dengan kendaraan yang sedang
+> dipilih di Torsi (`Torsi._selectedVehicleId`) kalau beda dari
+> `curVehicleId` aktif — belum final.
+>
+> **Target sesi berikutnya**: Bagian B dokumen desain yang sama (Shop
+> Import/Export: Scan/PDF/CSV/JSON) — belum dimulai sama sekali. Mulai dari
+> item paling ringan sesuai urutan disarankan di dokumen: `commitShopRows()`
+> + Import CSV.
+
 > **Catatan Sync (S317, Tahap 6 — Migrasi Scanner, lanjutan S316 Tahap 5
 > PD-007, build `s317-tahap6-migrasi-scanner-scannersession`, `?v=827`):**
 > Migrasi `ScannerSession` (dibuat S316) DITUNTASKAN — Scanner Engine
